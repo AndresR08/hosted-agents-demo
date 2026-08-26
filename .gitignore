@@ -1,0 +1,36 @@
+# Dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Environment files. Only the .example templates are committed.
+.env
+.env.*
+!.env.example
+*.local
+
+# Local Claude Code working aid — a development tool, not project
+# documentation. Deliberately unpublished; never link to it from public docs.
+CLAUDE.md
+
+# Assistant tooling state. .claude/settings.local.json records per-machine tool
+# permissions, including absolute paths that carry the operator's username.
+# It was previously covered only by a global ignore on one machine, which does
+# not travel with a clone — this repo-local rule is what actually protects a
+# public repository.
+.claude/
+.cursor/
+.aider*
+
+# Rehearsal captures are presenter-specific and may contain real session data.
+# See demo-app/src/services/simulation — never commit a real capture file.
+/demo-app/captures/*.json
+!/demo-app/captures/.gitkeep
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

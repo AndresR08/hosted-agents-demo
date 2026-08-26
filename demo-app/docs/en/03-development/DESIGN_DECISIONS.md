@@ -1,0 +1,482 @@
+# Design decisions
+
+This document consolidates the philosophy, positioning, and design decisions made during the development of this demo. It is a technical document aimed at anyone joining the project as a developer or designer: it explains not just *what* was built, but *why*, including a real course correction that is worth understanding before touching the code.
+
+---
+
+## 1. Design philosophy and principles
+
+### 1.1 Role and original context
+
+The application was designed from the perspective of a Microsoft Cloud Solution Architect, for the `labs/ai-foundry-hosted-agents-custom-framework` lab, with a deliberately enterprise audience: banking, insurance, healthcare, retail — regulated sectors where the security review, not the business case, is what kills an AI proposal.
+
+### 1.2 What's actually being sold (and the later correction about this)
+
+The original design thesis argued that the customer isn't buying an agent — any vendor can show a chatbot answering a question — but rather **the ability to put agents into production without losing control over them**. The idea to convey was:
+
+> Between the user and the model, and between the agent and the model, there is a control point the enterprise owns. No credential reaches the client. No credential reaches the agent. Every call is logged. Every agent is versioned, attributable, and runs with least privilege.
+
+In the original formulation, the dual-gateway pattern (API Management appearing twice in a single request) was not an implementation detail to hide away — **it was the product**, and the demo was built around making it visible.
+
+That specific claim — "that's the product" — turned out to be the project's initial focus error. Section 2 of this document tells the full story: why that decision was made, why it wasn't unreasonable, and why it was corrected to "Foundry first, gateway second." The rest of this section 1 (principles, data-honesty bands, local-host architecture) still stands unchanged; what changed was *which* protagonist sits at the center of those principles, not the principles themselves.
+
+### 1.3 Guiding design principles
+
+| Principle | Consequence for the application |
+|---|---|
+| **Truth over polish** | Every number carries a labeled provenance. Nothing is invented. Where the lab cannot show something, the application says so on screen. |
+| **One idea per screen/surface** | Every region of the interface has a single headline; an executive should be able to summarize its conclusion in one sentence. |
+| **Progressive disclosure** | Executives see the conclusion. The enterprise architect in the room clicks "show detail" and sees the live policy XML, the RBAC table, the raw JSON. Both audiences are served without cluttering the main view. |
+| **Live where it matters, honest where it doesn't** | Security and governance screens are 100% live — that's where skepticism lives. The cost screen is explicitly illustrative and visually marked as such. |
+| **Demo-safe by construction** | Nothing that takes more than ~15 seconds runs live during the session. Deployment, image builds, and agent registration all happen before the customer is in the room. |
+
+### 1.4 What this application is NOT
+
+- **It is not a developer tool.** No code editor, no request builder, no schema explorer, no "try the API."
+- **It is not an operations console.** It does not replace the Azure Portal and must not pretend to be a production monitoring product.
+- **It is not a chat product.** The conversational surface exists only as evidence that the platform works.
+
+### 1.5 Audience map and the five questions
+
+| Persona | Their question |
+|---|---|
+| CIO / CDO | Can we actually take this to production? |
+| CISO / Security architect (the critical persona) | Where do the credentials live? |
+| AI lead / platform owner | How do I manage fifty of these? |
+| Enterprise architect | Show me the real path. |
+| Risk / Compliance / Model risk | What gets logged, and what can I show the regulator? |
+| FinOps | How much does this cost per department? |
+
+The CISO is the critical persona: in regulated industries, an AI platform proposal dies in the security review, not the business case. This is what justifies the Access and Identity block getting the largest time budget in the script (see §5).
+
+The application must answer, in order, five questions: does it work? · what's happening right now? · is it secure? · can I control my AI agents? · why is this valuable?
+
+### 1.6 The data-honesty band system
+
+This is the central mechanism governing every claim the application is allowed to make: an honest inventory of what this specific lab can and cannot produce. Every data element on screen is classified into one of three bands, and every data component carries a visible provenance badge — **there is never an unlabeled number in the application**.
+
+| Band | Meaning | Visual treatment |
+|---|---|---|
+| 🟢 **LIVE** | Real Azure data, retrievable in seconds, trustworthy in a demo | "Live" badge with timestamp |
+| 🟡 **LIVE — DELAYED / VERIFY** | Genuinely real, but subject to ingestion latency or pending confirmation during rehearsal | "Live · delayed" badge showing data age |
+| 🔴 **NOT AVAILABLE** | Cannot be obtained from this lab. Omitted or shown as a clearly labeled illustration | Visually distinct panel, with an explicit "Illustrative" label |
+
+**Golden rule: no solution is ever invented for what falls in the red band.** Every unavailable element is either omitted or explicitly declared as an illustration.
+
+#### What is genuinely 🟢 live
+
+Agent response text and end-to-end latency; HTTP status codes under varied credentials; the API Management policy XML read live from ARM; the managed identity's object ID and audiences; the agent's name/version/status/image/CPU/memory/environment variable keys; Azure Container Registry repositories, tags, and digests; resource inventory; model deployment configuration and its RAI policy; diagnostic settings configuration.
+
+An important finding, the result of a full telemetry audit conducted on 2026-08-02, **reclassified several elements from "not available" to genuinely live** — each verified by querying the deployed workspace directly:
+
+- **Token counts** (prompt, completion, total) — populated at the inference hop (the model call), independently corroborated by the agent container's own OpenTelemetry instrumentation (exact matching values, e.g. 423/643 from both sources).
+- **Per-hop gateway timing** — two rows per interaction, one per API. The gateway's own processing cost (`TotalTime − BackendTime`) turned out to be **1–5 ms** against multi-second requests: the direct answer to "won't a gateway slow us down?"
+- **Distributed tracing** — 7 to 10 real parent/child spans across the Foundry runtime, the agent container, and API Management, including managed identity token acquisition as its own span.
+- Exact model version, correlation IDs, agent session ID, server runtime versions.
+
+#### What is 🟡 live but delayed or pending verification
+
+Request count, success rate, and latency percentiles from Application Insights (1–3 minute ingestion delay); status code distribution; prompt and completion text logged in Log Analytics (`ApiManagementGatewayLlmLog`) — verified that the prompt is indeed captured, but in at least one check the completion field arrived empty, so the application prints "(not captured at the gateway for this request)" instead of inventing one; correlation between the two gateway hops in a single distributed trace (the agent does propagate `traceparent`, but the north-south API Management hop has no diagnostics configured in Application Insights, so the two hops are associated by time window and the UI labels it as an approximation, not a single measured transaction); tool-execution visibility (`get_weather`) — execution is real and container logs do reach Application Insights, but at audit time no tool-call span had been observed because no rehearsal question had triggered one; SSE streaming through API Management (gateway buffering can affect token-by-token rendering); content-filter rejection (real, because the `Microsoft.DefaultV2` RAI policy is attached, but discouraged by default in an executive setting).
+
+#### What is 🔴 not available — and why
+
+| Cannot be shown | Why | Decision |
+|---|---|---|
+| Real cost/spend | Azure Cost Management has 8–24h latency; a demo resource group is too young | Illustrative panel, labeled as a public pricing model, not an invoice |
+| Chargeback by department/consumer | The lab deploys a single API Management subscription | Do not simulate multiple departments; present as an architectural capability. Provisioning 2–3 extra subscriptions before the demo would make this genuinely live (recommended) |
+| Rate limiting / throttling in action | No policy contains `llm-token-limit`, `azure-openai-token-limit`, or `rate-limit-by-key` | Do not simulate a throttling event; present in the Controls Catalog as "available at this policy point, not enabled in this deployment" |
+| Semantic caching | No caching policy, no Redis | Controls Catalog only |
+| Load balancing / circuit breaker in action | The inference bicep supports a pool, but the main bicep only passes a single AI service, so the pool is never created | Controls Catalog only |
+| Historical trends (7/30/90 days) | The resource group is new, no history exists | No trend lines anywhere |
+| Uptime / historical SLA | No operational history | Omit entirely |
+| Private networking / network isolation | `publicNetworkAccess: 'Enabled'` on the Foundry and ACR accounts | Controls Catalog only, as a gap |
+| Multi-region failover | Single region (`swedencentral`), Basicv2 SKU with no zones | Omit |
+| Foundry evaluations, red teaming, security scorecards | The lab does not configure any of these even though the README mentions them | Do not build an evaluations screen; fabricating an evaluation score to a model-risk team at a bank would be actively harmful |
+| Agent autoscaling under load | No load generation, no scaling telemetry exposed | Omit |
+| A second agent framework competing live | The lab registers one agent at a time | Pre-register both agents (`strands-agent` and `pydantic-agent`) before the demo — recommended, but not done at the first check on 2026-08-01 |
+| Full RBAC role-assignment table | **Reclassified from 🟢 on 2026-08-01.** `az role assignment list` returns empty under the presenter's identity, which lacks the `Microsoft.Authorization/roleAssignments/read` permission at the resource-group level | Do not present as live. The RBAC design is real and documented, but it must appear as a documented configuration claim, never with a "Live" badge |
+
+This last reclassification (RBAC from 🟢 to 🔴) and the reverse reclassifications of tokens/timing (from 🔴 or 🟡 to 🟢) are the evidence that this band system is taken seriously: claims get adjusted whenever live verification contradicts the original assumption, in either direction.
+
+**The resolution for the entire "not available" column is the Controls Catalog**: instead of fabricating telemetry, an honest two-state inventory — *active in this deployment* versus *available at this control point, not enabled* — that cannot be contradicted by anyone who later reads the configuration, and that enterprise architects find more persuasive than a fake 429. The contents of this catalog are detailed in §4.
+
+### 1.7 Live / Replay mode: a safety net, not deception
+
+A persistent two-mode toggle was designed:
+
+- **Live** — every call is real, against the running deployment.
+- **Replay** — every screen renders from a capture recorded during rehearsal against that same real deployment.
+
+Replay mode preserves honesty: the badge changes on every panel, simulated content is never presented as if it were live. It protects against venue wifi, a cold agent, or an expired token, and ensures the demo never fails in front of a customer. Every component must render correctly in both modes.
+
+**As built, there are two deviations from the original design:**
+
+1. The modes are labeled **"Azure Live"** and **"Simulation"** in the Settings drawer, not "Live / Replay," and the toggle lives in Settings and in the presenter menu (`L`) rather than a visible switch in the header.
+2. **Simulation renders hand-written simulated content, not a rehearsal capture.** The honesty property is preserved — panels still switch badges and nothing simulated is presented as live — but the claim of "captured against that same real deployment" isn't true yet. Recording a real capture remains outstanding.
+
+### 1.8 Why this cannot be a pure browser app
+
+Two hard lab constraints force a specific architecture:
+
+1. **CORS.** Neither the API Management gateway nor the Foundry project endpoint emit CORS headers for an arbitrary browser origin. A direct `fetch()` from a browser page to either one fails — including, critically, the "the direct call bypasses API Management" comparison, which is one of the demo's strongest moments.
+2. **Credential handling.** The API Management subscription key and the presenter's Entra token must never be embedded in client-side script, not even for a demo.
+
+**Design decision:** the application runs as a **locally hosted presenter application** — a lightweight process on the CSA's machine that holds the Entra context (`az login` / `DefaultAzureCredential`), reads the deployment outputs, brokers every call to Azure, and serves the UI to the browser or projector. The client never needs their own Azure subscription, and no secret ever leaves the presenter's machine.
+
+This materialized as two separate processes: `broker/` (Express/TypeScript, holds the Entra context, reads `broker/.env`, brokers every Azure call) and `demo-app/` (Vite/React, the UI served to the browser). No original lab file (notebook, Bicep, policies, `src/`) was modified; all new work is additive.
+
+Additional, equally binding constraints: every component must render correctly in both modes (Live and Replay); no scroll at 1920×1080, with graceful compression down to 1366×768 (a common boardroom resolution); Foundry SDK calls need `allow_preview=True`; nothing that takes more than ~15 s can run live during the session.
+
+---
+
+## 2. Evolution of the product positioning
+
+This section deliberately and honestly documents a real course correction in the project: from "the dual gateway is the product" to "Foundry first, gateway second." The fact that there was an early focus error is not hidden — it's valuable information for whoever continues the project, because the reasoning behind both the mistake and the correction remains relevant to future decisions.
+
+### 2.1 The original thesis
+
+At the project's first milestone, the "business problem" section of the project context stated in plain words that the lab's answer was a **dual-gateway pattern**, and closed with the line: *"That's the product. Everything else on screen supports it."* That sentence, written early and never reevaluated, ended up steering every subsequent design decision: Request Journey became the hero panel, Access Control received the largest time budget in the script, the line "two control points, not one" became the demo's thesis, and the most highlighted observability figure was API Management's latency overhead.
+
+**Was this an unreasonable mistake?** Not entirely, and the distinction matters:
+
+- **Defensible:** the parent repository is `AI-Gateway`, and its README bills itself as "APIM ❤️ AI Foundry." An API-Management-centered focus isn't foreign to that material, and the east-west hop (agent → API Management → model) is structurally real — the agent's `AZURE_OPENAI_ENDPOINT` does in fact point to API Management.
+- **Accidental:** the single component the lab itself marks as **optional** (`main.bicep:33` — `enableHostedAgentResponsesApi bool = false` by default) got elevated to "the product," and no one ever asked what makes *this* lab different from the other labs in the same repository. The API Management control-point story is, to a large extent, common across that entire repository. Custom frameworks running on Foundry Hosted Agents is what's distinctive about this particular lab, and that's the part that got treated as supporting cast.
+
+### 2.2 The self-critique: the positioning audit
+
+A positioning review, conducted by rereading the root lab README, the `src/frameworks/` README, the notebook's own markdown cells, and `main.bicep`, arrived at one unambiguous central finding:
+
+> **We built the demo around API Management. The lab is about Foundry Hosted Agents running custom frameworks.**
+
+The evidence: the frontmatter and title of the lab README speak of "AI Foundry Hosted Agents with Custom Frameworks"; the six reasons the README itself gives to justify the lab (§Why) are, all six, properties of Foundry — none belong to API Management; and the notebook describes the lab as deploying "a custom framework agent."
+
+#### The lab's six value propositions, evaluated honestly
+
+| # | Lab's claim | What we were showing | Verdict |
+|---|---|---|---|
+| 1 | Built-in observability, tracing, and monitoring | Full trace, tokens, per-hop timing, GenAI attributes | ✅ Exceeded — we demonstrated it better than the lab itself |
+| 2 | Agent identity and RBAC by default ("least privilege... instead of embedded secrets") | Managed identity span as evidence; RBAC table not retrievable | ⚠️ Weak, and uncomfortable (see §2.3 below) |
+| 3 | Foundry guardrails and governance | Only model-level RAI policy | ⚠️ Partial — *agent*-level Foundry guardrails aren't configured in this lab |
+| 4 | Discovery via Agent365 | Nothing | ❌ Absent |
+| 5 | Native evaluation and risk testing | Nothing | ❌ Absent, correctly so — fabricating evaluation scores would be harmful |
+| 6 | Control plane and platform operations | Immutable versions, image digest (buried in a dialog) | ⚠️ Partial and under-exposed |
+
+The result: roughly **1.5 out of 6** on the reasons the lab itself gives for existing — while scoring very highly on a seventh value proposition (gateway governance) that the lab itself doesn't highlight.
+
+#### The uncomfortable case: agent identity versus the plaintext key
+
+The lab's reason #2 is specifically "least-privilege access to downstream Azure resources via RBAC **instead of** embedded secrets." This implementation does exactly the opposite on its most visible path: the API Management subscription key is injected into the agent container as a **plaintext environment variable**, and the Strands agent even exposes a `show_internal_environment_variables` tool that would hand it back to any caller. The application was already honestly disclosing this, which is correct — but the positioning consequence is subtler: **the agent's own outbound hop is the only hop in this architecture that doesn't use Agent Identity**, and the "dual gateway" framing turned exactly that weakness into the centerpiece, celebrating as a differentiator the very hop that, by the lab's own value system, is the one not yet done correctly.
+
+The stronger, more lab-aligned version is: *"the agent currently holds a gateway subscription key; the Foundry Agent Identity it already has is what will replace that key, and here's the RBAC model waiting for it."* That's both more accurate and more useful to an architect. The proposed correction isn't to hide the key, but to reframe the east-west hop as **a migration path toward Agent Identity**, not the final destination.
+
+#### Panel-by-panel review (summary)
+
+The audit examined every existing panel against what the lab actually teaches. The recurring findings:
+
+- **AI Assistant** explained the gateway architecture better than the agent runtime — an accidental divergence, fixable by rebalancing the knowledge base toward the runtime and surfacing container provenance in every answer.
+- **Request Journey** ended on gateway latency, when the lab's own payoff for that same diagram is **agent routing by URL path** (one API Management API serving N agents) — the URL was never shown.
+- **Access Control** only showed the direct path *failing*, when the lab documents it as the troubleshooting baseline that **should succeed** with an Entra token — a diagnostic tool got inverted into a security scare.
+- **Active Agents** told half the story: that frameworks are interchangeable under the same governance, but never that they are **specifically different** — which is the whole reason the lab supports custom frameworks. Flagged as **the single biggest missed opportunity in the entire application**.
+- **Observability** was strong, but its headline KPI was gateway overhead (an API Management metric) on an *agent* observability panel; the cross-runtime trace comparison (Strands shows spans from its event loop, Pydantic AI a flat trace) was already captured and never shown.
+- **Controls/Governance** listed almost exclusively API Management controls; Foundry-side governance (Agent Identity, agent RBAC, evaluations, red teaming) was barely represented.
+- The **application's name**, "Enterprise AI Gateway," staked out the positioning from the very first second — the lab is called "AI Foundry Hosted Agents (Custom Frameworks)."
+- The application offered **no bridge back to the notebook**, which is the real reproducible artifact and the lab's official starting point.
+
+**What this same audit says to keep unchanged**: the honesty architecture (observable fields, provenance, the active/available/not-configured split, the refusal to fabricate evaluation scores); the observability pipeline; the three-way credential test and the live policy viewer; the two registered, switchable agents; and the presenter tools.
+
+### 2.3 The correction: "Foundry first, gateway second"
+
+The course correction, dated 2026-08-03, was articulated across three successive documents, each explicitly built on the previous one:
+
+1. **`PRODUCT_POSITIONING_REVIEW.md`** — the diagnosis (summarized above).
+2. **`PRODUCT_REDESIGN.md`** — the first redesign proposal, working panel by panel. It was **superseded** the same day by the next document, and is kept only as history — where the two disagree, the later document wins.
+3. **The product experience architecture** — the definitive document, "the one to build against," detailed in section 3 of this document.
+
+The project context was explicitly corrected: the phrase "that's the product" was removed, not softened. The dual-gateway material itself is accurate, well built, and stays on screen — what changes is the claim it carries:
+
+> **The product is the first sentence; the gateway is the second.** Foundry turns the agent into a managed asset; API Management is the perimeter around it. A demo of the perimeter is not a demo of the asset — which is what the application had become, and what this correction fixes.
+
+The line the customer should walk away with, restated:
+
+> *"I can build agents with whatever framework my teams prefer, and Azure gives me a single platform to deploy, govern, observe, and operate all of them."*
+
+#### Foundry's role, in business terms
+
+Foundry is **the platform that turns a team's agent code into a managed corporate asset**:
+
+| Business need | What Foundry does | Evidence in this lab |
+|---|---|---|
+| "I don't want to rewrite our agents to fit a vendor's runtime" | Runs **your container**, unchanged, behind a standard contract | Responses protocol v1.0.0; two different SDKs, same contract |
+| "I need to know exactly what's running in production" | **Immutable versions** — publishing creates `:2`, never mutates `:1` | `pydantic-agent` is already at `:3` |
+| "I need to prove which build answered which request" | Version pinned to an **image digest** in ACR | Real digest, real push timestamp |
+| "I don't want one more thing to operate" | Foundry owns the **hosting lifecycle, scaling, health, routing** | Documented in the Strands framework README |
+| "Every team instruments differently and I can't compare anything" | A single telemetry model **regardless of framework** | Both runtimes emit GenAI OpenTelemetry spans to the same workspace |
+| "Secrets everywhere" | Agents get an **Agent Identity** for RBAC to downstream resources | Partially realized in this lab — see §2.2 |
+
+#### API Management's role, in business terms
+
+API Management is **the enterprise boundary around those assets** — important, structural, but not the protagonist:
+
+- Consumers hold **a single subscription key**, never an Azure credential — onboarding a consumer means issuing a key, not provisioning an identity.
+- The gateway performs **credential exchange per request** — managed identity tokens, minted on the fly, never stored, on both hops.
+- **One API serves N agents** by URL route — the tenth agent changes nothing.
+- Full prompt/completion capture and token measurement at a point the platform team owns.
+- All of this for **1–5 ms**, measured.
+
+And the honest limit, straight from the lab itself: `main.bicep:33` sets `enableHostedAgentResponsesApi = false` by default, and both framework READMEs call the API Management integration "optional." The lab works without the north-south gateway. That doesn't make API Management irrelevant — it makes it **the enterprise layer that gets added on**, which is a better, more sellable story than "the thing without which nothing works." The proportion target: API Management should own roughly **one act out of five** and one dashboard panel — not the hero slot, not the largest time budget, not the headline metric.
+
+### 2.4 Practical consequence: what stays, what changes, what's removed
+
+**Stays unchanged:** the broker and all Azure integration (endpoints, correlation model, telemetry queries); the honesty architecture (observable fields, provenance badges, the three-state governance split); the observability data layer (cross-validation of tokens, per-hop timing, distributed tracing); the three-way credential test and the live policy viewer; the presenter tools (guide, maintenance diagnostics, keyboard model, Simulation mode); the natural-language assistant and its knowledge base (only the content *balance* shifts toward the runtime).
+
+**Changes:** the application name and the landing-page framing, to lead with Foundry; the agents panel, elevated to a hero surface with capabilities and positioning for each framework; Request Journey, re-centered on the container, naming the protocol and the routing; Observability, which absorbs the controls catalog, leads with agent metrics, and adds the cross-runtime comparison; Access Control, reduced, plus the authorized direct path; the assistant, with answers sealed with container provenance and a rebalanced knowledge base.
+
+**Removed:** the Controls panel as a standalone surface (merged, content not discarded); the claim "the dual-gateway pattern... is the product"; "two control points, not one" as a permanent Journey subtitle (it stays as a presenter talking point, not a fixed label); the top position of gateway overhead in the Operations KPI order (the metric stays, its position drops).
+
+**Explicit warning against overcorrection**, logged in the redesign process itself: don't demote the gateway material out of spite toward the diagnosis — it's the strongest content for the persona who can veto the deal (the CISO), and the goal is to stop *claiming* it's what the lab is about, not to spend less time on it. Nor should any framework difference be fabricated that doesn't exist in the source code, nor should Agent Identity be simulated on the model hop — both agents explicitly document that they use API-key authentication, not managed identity, for model calls; the honest version ("this is where Agent Identity would replace the key") makes for a better architecture conversation than a false claim.
+
+---
+
+## 3. Product experience architecture
+
+This is the definitive document — the one to build against. Its lineage is clear: the positioning audit is the diagnosis, the first redesign is the initial proposal (superseded), and this is the current product definition.
+
+### 3.1 The narrative in five acts
+
+The application tells five acts, with the agent as the protagonist throughout and the customer's own work visible from the first act:
+
+1. **"That's my agent."** The application opens on the agent the customer registered: name, immutable version, the image digest they pushed, the framework they chose, running. Ask it something and it answers. Recognition is immediate and personal.
+2. **"And this one is nothing like it."** There's a second agent: a different framework, with genuinely different capabilities — different tools, different handling of conversation history, one accepts images and the other doesn't. It's not a variant — it's different software.
+3. **"Neither one had to be told anything about governance."** Both cross the same policy enforcement point. No container holds an Azure credential. Routing is by URL path, so a tenth agent needs no gateway changes. Four lines of policy achieve this, and the customer can read them, live.
+4. **"And I didn't instrument anything."** Both runtimes land on a single operational surface. Same token counting, same traceability, same audit log. The traces even reveal their different internals — Strands shows its agent loop, Pydantic AI shows a flat call — which is the proof that the platform didn't need to know what was inside.
+5. **"So here's what I have."** What's enforced today, what the control point offers that isn't switched on, what a production hardening pass would add. Configuration, not a rebuild.
+
+That is the lab README's own "§Why" section, in order, experienced rather than read. The line the customer should remember is the same one quoted in §2.3.
+
+**A nuance on narrative order:** the proposed flow is not a single agent that introduces a second one late, but **two teams, two frameworks from the premise** — establishing plurality as the starting point makes every following step demonstrate convergence instead of merely describing it.
+
+### 3.2 Why the frameworks exist — and how they actually differ
+
+This is the biggest deficit identified: the lab's whole reason for being, and where the application was nearly silent. Both framework READMEs answer "why would I choose this," and neither had ever been surfaced:
+
+- **Strands** — an open-source toolkit focused on building production agents with model/provider flexibility, built-in context management, execution limits, observability, and hook-based runtime control. Good fit for tool-heavy workflow automation, for steering runtime behavior with hooks, and when visibility and operational control of the agent loop are the priority.
+- **Pydantic AI** — the agent is the primary abstraction: a container of instructions, tools/toolsets, structured output typing, dependency typing, model configuration, and reusable capabilities. Good fit when the shape and validation of output matters to downstream systems, when typed dependencies and static-checker feedback are needed, and for composing reusable behavior.
+
+That's a real engineering-decision distinction — **runtime control versus type safety and output contracts** — exactly the kind of decision platform teams debate.
+
+The real differences, verified directly against both frameworks' source code:
+
+| Capability | Strands | Pydantic AI |
+|---|---|---|
+| Exposed tools | `get_weather` **+** `show_internal_environment_variables` | `get_weather` only |
+| Tool execution | Strands's server-side agent loop | `@tool_plain` |
+| Conversation history | Native `Messages`, `SlidingWindowConversationManager(20)` | **Flattened to a text prompt** (`"role: text"`) |
+| Image input | **Supported** — inline `data:` URLs → raw bytes | Not implemented |
+| Streaming | `agent.stream_async()` | `run_stream()` + prefix differentiation |
+| Cancellation | Bound to `agent.cancel()` | Cooperative loop interruption |
+| Observed trace shape | `invoke_agent → execute_event_loop_cycle → chat → chat gpt-5-mini` | Flat: `chat gpt-5-mini` |
+
+**What the application should demonstrate — and explicitly should not:**
+
+- **This is not a benchmark.** No "faster," no "better," no scores. The observed latency differences are model variance, not framework quality, and presenting them as quality would be dishonest.
+- **Yes: they are different software.** Different capabilities, made visible.
+- **Yes: Azure doesn't force a choice.** Both registered, both running, both reachable.
+- **Yes: governance is identical.** Same policy, same identity model, same auditing, same telemetry shape — and no container had to be modified to get it.
+
+The highest-value moment available for this demo, and the one that wasn't built: asking both agents the same thing and showing a capability one has that the other doesn't. That is the lab's thesis in a single interaction.
+
+### 3.3 The five panel surfaces
+
+Honestly interrogating the six existing panels with the question: *does this make a lab capability visible, or does it exist because we kept adding things?* — the Controls panel turned out to be the clearest artifact of "we added it because we were adding things": it duplicated the Governance tab of the Observability panel, which does the same job with per-request evidence. Removing it costs nothing and frees up the space the frameworks story needs.
+
+The resulting structure — six panels become five, named for what they teach rather than the Azure service behind them:
+
+| # | Surface | Answers | Replaces |
+|---|---|---|---|
+| ① | **Your Agent** | Is my container running, and does it work? — the conversation, always sealed with which container, framework, and version answered | AI Assistant |
+| ② | **Frameworks** *(hero)* | Why two, and what actually differs? — both agents side by side: framework positioning, version, image digest, protocol, declared tools, capability matrix, live status | Active Agents, expanded |
+| ③ | **Request Path** | How does a request reach my container, and what does the platform add? — Responses protocol, path routing, the two governance hops with their measured cost | Request Journey, re-centered |
+| ④ | **Enterprise Boundary** | Who can reach it, and on what terms? — the three credential outcomes, the authorized direct path, the four-line policy, live | Access Control, reduced |
+| ⑤ | **Operations** | How do I operate a fleet of these? — cross-runtime telemetry, tokens, traceability, audit log, and the governance catalog across **both** planes | Observability + Controls merged |
+
+### 3.4 Capability inventory
+
+Summary of what the application demonstrates against what the lab actually offers (legend: ✅ demonstrated · 🟡 partial · ❌ the lab names it but doesn't implement it · 🚧 implementable with extra work on top of what's already deployed):
+
+**Foundry Hosted Agents (the platform):** the Hosted Agent concept 🟡 (name and version shown, the idea never visually explained); the Responses protocol v1.0.0 🚧 (never mentioned in the UI, despite being the contract that makes any framework pluggable); the ACR image supply chain 🟡 (digest and timestamp exist, buried in a dialog); immutable versioning 🟡 (`:3` visible, the immutability property never made explicit); `az acr build` with no local Docker 🚧 (a real benefit for the practitioner that the README highlights); the deploy/register flow ❌ as an app capability (it happens in the notebook; the app shows no trace of it).
+
+**Framework runtime (the lab's subject):** two frameworks coexisting ✅; why each framework exists 🚧; capability differences between frameworks 🚧 (tools, history, image input — all real, all in the source code, none shown); tool calls 🚧 (both expose `get_weather`, never exercised); image input (Strands only) 🚧; multi-turn with `conversation_id` 🚧; SSE streaming 🚧.
+
+**Governance and identity:** live API Management policies from ARM ✅; managed identity on both hops ✅; credential enforcement (401s) ✅; multi-agent routing by path 🚧 (architecturally real, never shown); Agent Identity for downstream RBAC 🟡/❌ (Foundry grants it, but both agents document using an API key for model calls — real as a Foundry capability, not exercised on this path); RBAC role assignments ❌ (not retrievable with the presenter's identity; documented design only, never a live claim); Foundry agent-level guardrails ❌ (only the model deployment's RAI is configured).
+
+**Observability and operations:** token measurement ✅; per-hop gateway timing ✅ (1–5 ms measured); distributed traceability ✅ (7–10 real spans); cross-runtime trace comparison 🚧 (collected, never exposed — the best available proof of the lab's value proposition #1); Application Insights / Log Analytics 🟡 (used constantly, never named on screen); full audit logging ✅; cold-start/scaling behavior 🚧 (8–17 s measured).
+
+**Named by the lab, not implemented by it (declare as platform capabilities, never as demonstrations):** discovery via Agent365 ❌; evaluations/red teaming ❌ (correctly absent — fabricating a score for a model-risk audience would be actively harmful); cost estimation flows ❌.
+
+**Summary:** of the lab's six own value propositions, **one** (observability) is fully demonstrated, **three** are partially demonstrated, and **two** cannot be demonstrated without inventing things — which won't be done.
+
+### 3.5 The acceptance test
+
+A Microsoft architect who just ran the notebook opens the application and, unprompted:
+
+1. sees **their own agent** — name, version, image — within five seconds;
+2. sees the **second framework** and can state one real difference between the two in a sentence;
+3. understands that **no container was modified** to get governance, identity, or telemetry;
+4. can read the **four lines of policy** that make it enforceable;
+5. knows **what it would take** to run this in production;
+6. can **go back to the notebook**.
+
+When all six hold, the target line arrives on its own: *"Yes. This demonstrates exactly what the lab is worth."*
+
+---
+
+## 4. Visual design system (UI)
+
+### 4.1 The organizing metaphor: a stage, not a dashboard
+
+A dashboard is a surface you *monitor*. A stage is a surface you *direct*. The application is a stage: the page doesn't sit there showing everything at once — it starts quiet, and components light up in sequence as the presenter drives the story. The audience's attention is guided, not scattered. That single decision is what lets one page carry a five-act narrative without turning into an information dump.
+
+Everything else follows from that: components have **states**, not just content; the layout order **is** the argument's order; and nothing is visible before it's relevant.
+
+**What "premium Microsoft product" means here:** not chrome, not gradients, not a hero image. It means: **confidence** (generous whitespace — a product that needs to fill every pixel is a product unsure of its own value); **restraint** (a single accent color, two elevation levels, no decorative motion); **precision** (a strict type and spacing scale, optical alignment); **honesty** (every figure carries provenance, no unlabeled number); **calm** (nothing blinks, spins, or pulses unless doing so communicates something). The reference point is Microsoft 365 admin surfaces and Fluent 2 — clean, typographic, low-saturation — **not** the Azure Portal; the visual language must say exactly that within the first second.
+
+**Design evolution note:** the original design proposed five sequential screens. It was decided that a single page is the better instrument for a ten-minute session — navigating costs seconds, breaks eye contact, and gives the audience a chance to "reset." All five acts survive intact; they become **regions of one page, revealed in order**, rather than separate destinations. This "single page" decision is independent of — and predates — the positioning correction described in section 2; what changed afterward wasn't the single-page principle, but which region occupies the hero slot.
+
+### 4.2 Component decisions: what stayed, what was cut, what was added
+
+| Component | Original verdict | Reasoning |
+|---|---|---|
+| Chat | Keep, radically reduced to "Ask": one question, one answer, no transcript | A chat invites the audience to judge the model response's quality — a commodity conversation that can't be won in a boardroom |
+| Request Journey | Keep, promoted to hero (in the original design) | The dual-gateway pattern was, at the time, "the product" — see section 2 on how this reasoning changed |
+| Governance Summary | Keep, reframed as "Controls": active vs. available, instead of a vague "summary" | A concrete inventory is more persuasive than a generic claim |
+| Active Agents | Keep, small in the original design | "Two frameworks under one governance model" is a powerful fact — it's a *fact*, not a dashboard, and should have been sized as such |
+| Azure Resources Status | **Remove** | Recreates the Azure Portal (explicitly forbidden); no executive value; invites going off-script; telemetry for a freshly created resource group tells no story |
+| Recent Requests | **Remove** — one thing salvaged | A request log is a developer artifact and the component most likely to embarrass live (Application Insights has a 1–3 min ingestion delay, so during the demo it will be empty or stale exactly when the presenter points at it). What's salvageable: the **audit log** — a real prompt and completion captured at the gateway, the artifact a bank's compliance function actually wants |
+| Demo Controls | Keep, nearly invisible | Necessary (Live/Replay, reset, agent selection) but corrosive if visible — a panel labeled "Demo Controls" tells the audience they're watching a demo, not a system |
+| Access Control | **Added**, not on the original candidate list | The single most important component on the page: the three-way credential test is the moment a skeptical CISO changes posture, it's 100% live and visually unambiguous |
+
+### 4.3 Layout composition, as built
+
+The original design specified a 12-column grid stacked top to bottom. During implementation, on the presenter's explicit instruction, this was replaced with a **two-column composition**:
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  HEADER — product brand · region · resource count · ● Live                │
+├────────────────────────┬─────────────────────────────────────────────────┤
+│                        │  REQUEST JOURNEY                     (hero)     │
+│  AI ASSISTANT          ├──────────────────────────┬──────────────────────┤
+│  ~35%, full height     │  ACCESS CONTROL          │  AGENTS              │
+│  multi-turn            ├──────────────────────────┼──────────────────────┤
+│                        │  AUDIT RECORD            │  CONTROLS            │
+└────────────────────────┴──────────────────────────┴──────────────────────┘
+```
+
+Two deviations from the original design, both by the presenter's explicit instruction, neither of which changed the architecture, the service-layer separation, or the "no Azure in the browser" boundary:
+
+1. **Layout** — the vertically stacked 12-column grid became the two-column composition above (AI Assistant at ~35% on the left, full height; the stacked visualizations at ~65% on the right).
+2. **Ask → AI Assistant** — the deliberately single-turn "Ask" became a persistent multi-turn assistant, with scrollable history, per-message timestamps, and suggested scenarios. The risk the original design wanted to avoid (the room debating response quality) remains real, and the presenter still has to manage it verbally.
+
+The original single-column composition's vertical budget fit comfortably at 1080 px tall; the two-column layout keeps the same "no page scroll" rule by pinning the outer container to the viewport, with a single intentional exception: the assistant's message history scrolls within its own panel.
+
+Later, the product experience architecture (§3.3) redefined which region occupies the hero slot — from Request Journey to Frameworks — and merged Controls into Operations. See §2.4 and the note in section 5 on the status of this migration.
+
+### 4.4 What each surface must demonstrate (functional summary)
+
+Each component was originally specified against nine attributes (purpose, position, size, information shown, Azure resource, live/simulated, refresh cadence, interactions, business message). The pixel-level details are omitted here; what follows is the purpose and business message of each, which is what survives any layout reshuffle:
+
+- **AI Assistant (formerly Ask/Answer)** — prove that the platform answers and nothing more; it exists to earn the right to talk about governance for the rest of the session. Business message: *"This is a running system, not a slide."* In Live, every message is a real round trip API Management → Foundry → API Management → `gpt-5-mini`; suggested prompts always send a scripted question but always render the agent's real response — canned response text only exists in Simulation mode.
+
+- **Request Journey / Request Path** — make the dual-gateway architecture visible and intuitive. Five nodes on a horizontal trace (Client → API Management → Agent → API Management → `gpt-5-mini`), each with a label and a one-line credential fact, lighting up in sequence as the request executes. Emphasis originally landed on step 4 (the agent doesn't call the model directly, it calls the inference gateway) under the "two control points, not one" thesis; the later experience architecture calls for re-centering the agent node and showing the URL-based routing path. Per-hop timing (🟡, subject to Application Insights delay) and internal agent processing (derived, never directly measured) must be explicitly labeled as such; if a rehearsal shows the two hops don't correlate within a single distributed trace, they're associated by time window and the UI marks it as an approximation, never as a single measured transaction.
+
+- **Access Control / Enterprise Boundary** — prove security by demonstration, not by claim. Three live outcomes, run in sequence: with subscription key (200 OK), without a key (401, rejected at the gateway), direct to Foundry with no Entra token (401, rejected by Foundry). A "credential ledger" summarizes what the customer holds (one API Management subscription key, no Azure AD credential), what API Management adds (a managed identity token minted per request, audience `https://ai.azure.com`, never stored), and what the agent holds for model calls (an inference-gateway subscription key, not a model key). **Critical color inversion:** a 401 renders as an **affirmative** result, never as an error — a shield or lock icon, never a warning triangle; red appears nowhere on this page. It's the single most important semantic decision in the entire visual system. Business message: *"The customer holds one key. They never touch Azure."*
+
+- **Active Agents / Frameworks** — move the conversation from one agent to a fleet, and defuse the vendor-lock-in objection before it's raised. Agent registry (name, immutable version, status, framework, resources), provenance chain (source → ACR image + tag + digest + push timestamp → agent version → running instance), identity and permissions (live RBAC table, when retrievable), configuration (environment variable keys, masked values), and guardrails (RAI policy read live). Business message: *"Your teams choose their framework. You keep one governance model."*
+
+- **Controls / Operations (merged governance)** — turn "AI governance" from an aspiration into an inventory. Two columns: what's **active in this deployment** (verified live from the running configuration) and what's **available but not enabled here** (explicitly declared as not configured). The second column isn't a weakness — it's the roadmap, and presenting it honestly is worth more than a fabricated throttling event. Business message: *"You already own the control point. Turning this on is configuration, not a rebuild."*
+
+- **Audit Record** — hand the compliance function the artifact it actually needs. A single real record captured at the gateway (`ApiManagementGatewayLlmLog`), shown in full rather than as twenty truncated rows. Business message: *"Every AI interaction across your organization is logged centrally — no matter which team built the agent or which framework they chose."* It's also the right moment to name, unprompted, that the lab logs at 100% sampling with full message capture — a data-governance decision the customer should make consciously.
+
+- **Header (chrome)** — establish in a single line that this is real Azure infrastructure: region, resource count, resource group, connection status (Live with timestamp, or Simulation). Serves the legitimate need behind the removed "Azure Resources Status" panel at 1/40th the visual cost.
+
+- **Presenter menu (chrome, nearly invisible)** — presenter instruments deliberately kept out of the audience's attention: the Live/Replay toggle (implemented as "Azure Live"/"Simulation"), reset to initial state, target agent selection, warm the agent, refresh telemetry. Driven primarily by keyboard shortcuts so the presenter never breaks eye contact.
+
+### 4.5 Visual system: principles (not pixel values)
+
+The exact typography and spacing values (Segoe UI Variable family, four font sizes, 4 px scale, 12-column grid with 24 px gutters and 48 px margins) are documented in the code and not reproduced here. What's worth preserving is the reasoning behind each decision:
+
+- **Typography:** four sizes, nothing more — no weight below 400, because thin weights fall apart on projectors. The 16 px base body size is the "projector floor": never smaller.
+- **Color:** a very light gray canvas, never pure white (pure white causes projector glare); a single accent color reserved for "live" status and primary actions; an "affirmative" color distinct from the accent, reserved for security rejections (401s); illustrative content in a visibly muted treatment, so the distinction survives even a photo of the screen. A dark variant is required, because boardroom lighting varies and that preference isn't ours to assume.
+- **The color inversion** (already described in §4.4): a 401 in Access Control is success, not error. No red and no warning triangle appears anywhere on the page — there is no failure state meant to be communicated visually; a real outage falls back to Replay mode rather than rendering an error.
+- **Elevation and shape:** only two levels (canvas and surface); cards defined by a 1 px border rather than a shadow — heavily shadowed cards read as a web template, thin lines read as a product.
+- **Motion:** only where it communicates meaning — the sequential lighting of the Journey steps, the pacing of the Access Control test sequence, detail expansion. Nothing else moves: no skeleton shimmer, no pulsing dots, no spinner longer than one second (a spinner on a projector reads as a failure).
+- **Provenance badges (non-negotiable):** every component showing data carries exactly one — `● Live · 14:32`, `◐ Live · delayed 2m`, `◑ Replay · 29 Jul`, `○ Illustrative`. This is the visual expression of the honesty principle from §1.6, and it's what lets the presenter stay relaxed in the face of a hostile question.
+
+### 4.6 Page states
+
+The page is a stage with four lighting states: **Opening** (load or reset — header and entry point at full presence, everything else dimmed, the page visibly "waiting"); **Executing** (an Ask fires — the Journey lights up left to right, the response streams in); **Resolved** (response complete — the answer, provenance, and per-hop timings settle in, the bottom band rises to full presence because the governance conversation is now available); **Interrogated** (any detail expanded — the expanded card rises, everything else recedes to 60%, one thing is being examined). The Opening state is what makes a single page work: the audience doesn't see the whole argument before the presenter has laid it out.
+
+### 4.7 Constraints and degradation
+
+**Not a developer tool:** deliberately absent are request builders, header editors, schema explorers, endpoint pickers, environment configuration, code samples, "copy as cURL," or response inspectors beyond a collapsed raw view.
+
+**Not the Azure Portal:** no resource tree, no blades, no breadcrumbs, no per-resource-type icon set, no health grid. The visual language must not be mistaken for the portal at first glance — that confusion would make the application feel like a worse version of something the customer already has.
+
+**Resolution degradation:** designed for 1920×1080 with no scroll; scales proportionally down to 1600×900; at 1366×768 (a common boardroom resolution) the Journey shrinks, the bottom band compresses, and the Audit Record collapses to an expandable summary line — but **there is still no scroll**; below 1366 there is no support, the presenter must use an adequate screen.
+
+---
+
+## 5. Demo choreography, risks, and prep
+
+The recommended script runs 12 to 15 minutes: open with a question/answer exchange (~90 s, "that's a governed agent in your cloud"), move into the three Access Control tests and the live policy reveal (~3:30, the pivot moment), continue with Agent Governance — two frameworks, one governance model, provenance chain, live RBAC (~3 min), animate the six steps of the Request Journey (~3 min), and close with Platform Control — real audit record, controls catalog, honest cost framing (~3 min), leaving the controls catalog as the natural artifact for the next conversation.
+
+**Prep beforehand — never live during the session:** the Bicep deployment (~30–45 min, dominated by API Management Basicv2 provisioning); `az acr build` for both frameworks (several minutes each); registering both agents (`pydantic-agent`, `strands-agent`); publishing a second version of an agent so the version history isn't empty; optionally adding 2–3 extra API Management subscriptions; **warming the agent** (critical, see risk below); generating ~20 warmup requests to populate telemetry, at least 5 minutes ahead of time due to ingestion latency; recording a full Replay capture as a safety net.
+
+**Risk register:**
+
+| Risk | Severity | Mitigation |
+|---|---|---|
+| **Foundry hosted-agent cold start** | **High** | The biggest live risk in the entire lab. Warm up immediately before the session and keep warm with a periodic request during setup; Replay mode as a fallback |
+| Venue network blocks Azure endpoints | High | Replay mode; mobile tethering as a fallback |
+| Application Insights delay leaves the telemetry screen sparse | Medium | Generate warmup traffic ≥5 min ahead of time; the data-age indicator makes sparseness read as honesty, not failure |
+| SSE streaming buffered by API Management | Medium | Rehearse; keep the non-streaming fallback |
+| Cross-hop correlation unavailable | Medium | Falls back to time-window association, labeled as an approximation |
+| `ApiManagementGatewayLlmLog` doesn't populate as expected | Medium | Confirm during rehearsal; if absent, fall back to Application Insights logs and have the presenter state the limitation instead of substituting invented content |
+| `az` token expires mid-demo | Medium | Refresh before the session; the host process exposes auth status in the header |
+| Subscription key visible on the projector | **High** | Mask to the last four characters everywhere, by construction |
+| Unresolved principal names (Graph permission) | Low | Friendly-name mapping for known identities; never fabricate a name |
+
+**Every failure mode recovers by declaring the limitation, never by substituting invented content.** The fallback to Replay is the universal recovery; agent cold start is risk #1.
+
+---
+
+## 6. Technical findings and known lab defects
+
+Logged during analysis and documented rather than silently fixed, because surfacing them builds more credibility with a technical audience than hiding them would:
+
+- **Three real defects in the lab, found during analysis:**
+  1. The `hostedAgentResponsesApimPath` output emits `…/hosted-agent-responses/responses`, which isn't a path the API actually exposes — a leftover from an abandoned `agent_reference`-in-request-body design.
+  2. The documentation references `src/responses/agents/frameworks/…`; the actual path is `src/frameworks/…`.
+  3. `main.bicep` hardcodes the name literals `'-foundry-models'` / `'-foundry-agents'`, so renaming entries in the otherwise-parameterized `aiServicesConfig` breaks the template.
+
+- **Security observations to volunteer, not hide:** the API Management subscription key is injected into the agent container as a plaintext environment variable; the Strands agent exposes a `show_internal_environment_variables` tool that returns every environment variable to whoever calls it; `disableLocalAuth` is not enabled; the ACR admin account is enabled; no rate-limiting policy exists.
+
+- **Foundry hosted-agent cold start** is the biggest live-demo risk in the entire lab (8–17 s measured).
+
+- **`az acr build`** builds on ACR Tasks — no local Docker, and guarantees Linux/amd64.
+
+---
+
+## 7. Note on the implementation status of this correction
+
+This document consolidates six sources that don't all share the same date or the same "approved and implemented" status. The open question they left — whether the hero migration (from Request Journey to Frameworks) and the merge of Controls into Operations actually got implemented — **was verified directly against the real `demo-app/` code during development**, not just against these design documents:
+
+- **Controls merged into Operations, confirmed.** The "Platform" section of the built console (`src/features/operations/OperationsStop.tsx`) is a single surface combining the deployed environment, the controls catalog in its three states (active / available / absent), and the maintenance actions — exactly the merge described in section 4.4 under "Controls / Operations (merged governance)."
+- **The "single-page stage with simultaneous regions" composition from section 4.3, however, is not the final architecture.** The console as built is not a single page with always-visible panels — it's navigation across **four top-level sections** (Agents, Gateway, Observability, Platform), each its own full-screen view, selected via tabs (`SectionNav`). Agents is the first section, consistent with the "Frameworks first" reframing in section 3, but as its own section, not as a hero region within a two-column composition. The "stage" metaphor and the lighting states (4.6) survive in spirit — there is a deliberate hierarchy of attention — but the concrete mechanism differs from what's described in 4.3.
+
+Whoever continues the project can treat section 4.3 as the historical record of an intermediate decision, not as the current description of the layout — the current source of truth is the code in `demo-app/src/layout/` and `demo-app/src/features/`.
+
+## See also
+
+- [`../01-general/ARCHITECTURE.md`](../01-general/ARCHITECTURE.md) — the Azure architecture these decisions visualize.
+- [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — the current implementation status.
+- [`HISTORY.md`](HISTORY.md) — the full chronological development history.

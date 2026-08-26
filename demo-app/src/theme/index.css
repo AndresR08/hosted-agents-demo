@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+/* Class-based dark mode, toggled by AppearanceProvider (see theme/AppearanceProvider.tsx). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Tailwind v4 tokens mirroring tokens.ts (DESIGN_DECISIONS.md). Tailwind v4
+ * reads design tokens from CSS, so these values are hand-kept in sync with
+ * theme/tokens.ts rather than generated from it. If you change one, change
+ * both.
+ */
+@theme {
+  --font-family-sans: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+
+  --color-canvas: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e5e5e5;
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #6b6b6b;
+  --color-accent: #0f6cbd;
+  --color-affirm: #0e7a5f;
+  --color-illustrative-fg: #8a8a8a;
+  --color-illustrative-bg: #f2f2f2;
+
+  --text-display: 32px;
+  --text-body-lg: 24px;
+  --text-body: 16px;
+  --text-caption: 13px;
+
+  --spacing-grid-gutter: 24px;
+  --spacing-grid-margin: 48px;
+
+  /*
+   * DESIGN_DECISIONS.md — motion only where it carries meaning. These two
+   * are the only custom animations in the app: a one-time panel entrance on
+   * load, and a settle-in for items that appear inside an already-visible
+   * panel (a new chat bubble, a revealed Access Control result). Nothing
+   * loops or decorates.
+   */
+  --animate-fade-in-up: fade-in-up 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-slide-in: fade-slide-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Landing → Dashboard transition (App.tsx / store.startDemonstration). */
+  --animate-fade-out: fade-out 320ms cubic-bezier(0.4, 0, 1, 1) both;
+  /*
+   * Loading states. A spinner on a projector reads as failure
+   * (DESIGN_DECISIONS.md), so pending work is a quiet indeterminate line at
+   * the panel edge and skeletons breathe rather than shimmer.
+   */
+  --animate-progress-line: progress-line 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-pulse-soft: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes progress-line {
+  0% {
+    transform: translateX(-100%) scaleX(0.35);
+  }
+  50% {
+    transform: translateX(0%) scaleX(0.6);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.35);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+/*
+ * Panel scrollbars. Panels must scroll internally rather than lose content
+ * (DESIGN_DECISIONS.md), but a default OS scrollbar is a heavy vertical rule
+ * that reads as "web page" on a projector and breaks the flush hairline
+ * geometry of the cards. Thin, low-contrast, and only fully visible on hover
+ * over the region that owns it.
+ */
+.scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 200ms ease;
+}
+
+.scrollbar-subtle:hover,
+.scrollbar-subtle:focus-within {
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.scrollbar-subtle::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 200ms ease;
+}
+
+.scrollbar-subtle:hover::-webkit-scrollbar-thumb,
+.scrollbar-subtle:focus-within::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-ink-muted) 35%, transparent);
+}
+
+.scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-ink-muted) 55%, transparent);
+}
+
+.dark {
+  --color-canvas: #121212;
+  --color-surface: #1c1c1c;
+  --color-border: #333333;
+  --color-ink: #f2f2f2;
+  --color-ink-muted: #a3a3a3;
+  --color-accent: #3e9be0;
+  --color-affirm: #3fc79a;
+  --color-illustrative-bg: #262626;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-family-sans);
+  font-weight: 400; /* DESIGN_DECISIONS.md — no weight below 400 on projectors */
+  /* DESIGN_DECISIONS.md — the page is one composition, never a scroll region. */
+  overflow: hidden;
+}
+
+/*
+ * Settings → Reduced Motion. A manual presenter override, not tied to the
+ * OS `prefers-reduced-motion` query — the presenter's laptop setting
+ * shouldn't silently change what a live audience sees. Near-zero durations
+ * rather than `none` so nothing that happens to depend on a transition/
+ * animation end event silently breaks.
+ */
+.reduce-motion,
+.reduce-motion * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

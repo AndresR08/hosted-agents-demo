@@ -1,0 +1,159 @@
+# Refreshes vendor/ai-gateway/ from Azure-Samples/AI-Gateway and opens a pull
+# request with the result. It never merges: a person reviews every change to the
+# vendored lab before it reaches the default branch.
+#
+# The refresh itself is scripts/sync-vendor.ps1 - the same script used locally on
+# Windows, run here under pwsh, which is preinstalled on ubuntu-latest. One
+# script, one language, so the CI path and the local path cannot drift apart.
+name: Sync vendored AI-Gateway
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Upstream commit to vendor (full 40-char SHA). Empty = tip of main.'
+        required: false
+        type: string
+  schedule:
+    # 06:00 UTC on the 1st of each month. The vendored files are near-static -
+    # most have not changed upstream in months - so anything more frequent would
+    # only produce empty runs.
+    - cron: '0 6 1 * *'
+
+permissions:
+  contents: write        # push the branch the pull request is opened from
+  pull-requests: write   # open the pull request
+
+concurrency:
+  group: sync-vendor
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out this repository
+        uses: actions/checkout@v4
+
+      # Azure-Samples/AI-Gateway is public, so this needs no token. Shallow:
+      # only the requested tree is copied, never upstream's history. An empty
+      # ref checks out the default branch.
+      - name: Check out upstream AI-Gateway
+        uses: actions/checkout@v4
+        with:
+          repository: Azure-Samples/AI-Gateway
+          ref: ${{ inputs.ref || '' }}
+          path: upstream
+          fetch-depth: 1
+
+      # bicep build is a local compile. There is no az login anywhere in this
+      # workflow, and it touches no Azure subscription.
+      - name: Install Bicep
+        run: az bicep install
+
+      - name: Refresh vendor/
+        shell: pwsh
+        run: |
+          ./labs/ai-foundry-hosted-agents-custom-framework-automation/scripts/sync-vendor.ps1 -UpstreamDir ./upstream
+
+      # The upstream checkout must not end up inside the pull request.
+      - name: Discard the upstream checkout
+        run: rm -rf upstream
+
+      - name: Summarise the diff
+        id: diff
+        run: |
+          if git diff --quiet -- vendor/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "vendor/ is already up to date."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo 'stat<<DIFF_EOF'
+              git diff --stat -- vendor/
+              echo DIFF_EOF
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read the vendored revision
+        id: rev
+        if: steps.diff.outputs.changed == 'true'
+        shell: pwsh
+        run: |
+          $notice = Get-Content vendor/ai-gateway/NOTICE.md -Raw
+          $sha = [regex]::Match($notice, '\| Commit \| `([0-9a-f]{40})`').Groups[1].Value
+          $date = [regex]::Match($notice, '\| Commit date \| ([0-9-]+) \|').Groups[1].Value
+          if (-not $sha) { throw 'Could not read the vendored commit from NOTICE.md.' }
+          "sha=$sha"                      >> $env:GITHUB_OUTPUT
+          "short=$($sha.Substring(0,7))"  >> $env:GITHUB_OUTPUT
+          "date=$date"                    >> $env:GITHUB_OUTPUT
+
+      - name: Open a pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/sync-vendor-${{ steps.rev.outputs.short }}
+          delete-branch: true
+          labels: |
+            vendored
+            needs-review
+          title: "Sync vendored AI-Gateway to ${{ steps.rev.outputs.short }}"
+          commit-message: |
+            Sync vendored AI-Gateway to ${{ steps.rev.outputs.sha }}
+
+            Refreshed by scripts/sync-vendor.ps1. Files remain byte-identical to
+            upstream; az bicep build passes on the refreshed template.
+          body: |
+            Upstream `Azure-Samples/AI-Gateway` changed in the paths this
+            repository vendors.
+
+            |  |  |
+            |---|---|
+            | Upstream commit | `${{ steps.rev.outputs.sha }}` |
+            | Upstream date | ${{ steps.rev.outputs.date }} |
+            | Verification | `az bicep build` passes on the refreshed template |
+
+            ```
+            ${{ steps.diff.outputs.stat }}
+            ```
+
+            ### ⚠️ Merging this moves the pin
+
+            `vendor/` is pinned on purpose. The shared Bicep modules **define the
+            deployed infrastructure**, so a newer revision changes real resources
+            on the next `deploy.ps1` run — quietly, because the template still
+            compiles either way. A previous bump silently replaced
+            `searchVersion` with `enableLogAccessUsingOnlyResourcePermissions` on
+            the Log Analytics workspace, which is the workspace the broker's
+            managed identity reads.
+
+            **Deploy this to a disposable resource group before merging**, then
+            to anything anyone depends on:
+
+            ```powershell
+            ./deploy.ps1 -ResourceGroupName rg-vendor-bump-test
+            ./teardown.ps1 -ResourceGroupName rg-vendor-bump-test
+            ```
+
+            ### Review before merging
+
+            A passing build does **not** mean the automation still works. The
+            template can compile perfectly and still have broken `deploy.ps1`,
+            which would only surface on the next real deployment. Check:
+
+            - [ ] **`main.bicep` OUTPUTS** — `Get-LabDeploymentOutputs` consumes
+                  `apimResourceGatewayURL`, `containerRegistryName`,
+                  `foundryAgentProjectEndpoint` and `apimSubscriptions` by exact
+                  name and casing. A rename breaks the run after deployment.
+            - [ ] **`main.bicep` parameters** — `New-BicepParametersFile`
+                  generates all eleven. A new required parameter without a
+                  default fails validation; a renamed one is passed and ignored.
+            - [ ] **New `module` or `loadJsonContent` references** — these mean
+                  the vendored file set is no longer the full transitive closure,
+                  and the list in `sync-vendor.ps1` needs extending.
+            - [ ] **Changes under `src/frameworks/`** — the agent images are
+                  built from these; a Dockerfile or requirements change alters
+                  what runs as the hosted agent.
+            - [ ] **Nothing outside `vendor/` is modified by this PR.**
+
+            Opened automatically. **Do not enable auto-merge on this branch.**

@@ -1,0 +1,32 @@
+<svg width="1200" height="280" viewBox="0 0 1200 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Foundry Hosted Agents — demonstration console">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f6cbd"/>
+      <stop offset="100%" stop-color="#0a4d8c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="280" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1200" height="280" fill="#000000" opacity="0.04"/>
+
+  <!-- cube mark, echoing the app's own header icon -->
+  <g transform="translate(90,92)">
+    <rect width="72" height="72" rx="16" fill="#ffffff" opacity="0.14"/>
+    <path d="M36 14 L58 26 L58 50 L36 62 L14 50 L14 26 Z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M36 14 L36 38 M36 38 L58 26 M36 38 L14 26 M36 38 L36 62" stroke="#ffffff" stroke-width="2.5" opacity="0.85"/>
+  </g>
+
+  <text x="200" y="118" font-family="Segoe UI, -apple-system, Helvetica, Arial, sans-serif" font-size="42" font-weight="600" fill="#ffffff">AI Foundry Hosted Agents</text>
+  <text x="200" y="156" font-family="Segoe UI, -apple-system, Helvetica, Arial, sans-serif" font-size="22" font-weight="400" fill="#e3f0fb">Demonstration console for the official Microsoft lab</text>
+
+  <g font-family="Segoe UI, -apple-system, Helvetica, Arial, sans-serif" font-size="15" fill="#c9e3f7">
+    <text x="200" y="196">Agents</text>
+    <text x="290" y="196">·</text>
+    <text x="305" y="196">Gateway</text>
+    <text x="405" y="196">·</text>
+    <text x="420" y="196">Observability</text>
+    <text x="560" y="196">·</text>
+    <text x="575" y="196">Platform</text>
+  </g>
+
+  <text x="200" y="240" font-family="Segoe UI, -apple-system, Helvetica, Arial, sans-serif" font-size="14" fill="#a9cdea">Independent companion project — not affiliated with or endorsed by Microsoft</text>
+</svg>

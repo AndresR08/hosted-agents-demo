@@ -1,0 +1,51 @@
+MIT License
+
+Copyright (c) 2026 AndresR08
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+The MIT License above covers the work original to this repository: `broker/`,
+`demo-app/`, the PowerShell automation under `labs/`, and the documentation.
+
+## Third-party content redistributed here
+
+This project is an independent companion to the official Microsoft sample
+"AI Foundry Hosted Agents with Custom Frameworks", published by Microsoft
+Corporation under the MIT License as part of the Azure-Samples/AI-Gateway
+repository (https://github.com/Azure-Samples/AI-Gateway).
+
+`vendor/ai-gateway/` **does redistribute** part of that repository: the lab
+folder in full — its Bicep template, APIM policies, notebooks and agent
+sources — together with the shared Bicep modules the template depends on, and
+`shared/utils.py`. Those files are byte-identical to upstream and remain the
+work and the property of Microsoft Corporation and the lab's contributors. They
+are redistributed under their own MIT License, which permits it provided the
+copyright and permission notices are preserved; that license is included
+unmodified at `vendor/ai-gateway/LICENSE.md`, and `vendor/ai-gateway/NOTICE.md`
+records the exact upstream commit each file came from.
+
+They are vendored so this repository's deployment automation runs from a fresh
+clone, with no second checkout required. Nothing in `vendor/` is covered by the
+copyright notice at the top of this file.
+
+Also reused under that same MIT License, outside `vendor/`:
+`assets/ai-foundry-hosted-agents.gif`, the lab's own architecture diagram — see
+ACKNOWLEDGEMENTS.md for the full attribution.
