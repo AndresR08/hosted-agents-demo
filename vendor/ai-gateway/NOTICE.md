@@ -5,7 +5,7 @@
 | Source | https://github.com/Azure-Samples/AI-Gateway |
 | Commit | `561d71992bd660af94efc76a8f2f21df0e6ac8e5` |
 | Commit date | 2026-07-24 |
-| Vendored on | 2026-08-26 |
+| Vendored on | 2026-08-27 |
 | License | MIT - see [LICENSE.md](LICENSE.md), Copyright (c) Microsoft Corporation |
 
 Redistributed under the MIT License, which permits it provided the copyright
@@ -28,10 +28,23 @@ pwsh scripts/sync-vendor.ps1 -Ref <full 40-character SHA>
 
 ## Do not edit these files here
 
-They are byte-identical to upstream, and `scripts/sync-vendor.ps1` rebuilds this
-folder from scratch on every sync. Edits would be silently discarded, and would
-turn each sync from a copy into a merge conflict. Fix things upstream, or in the
-automation that consumes them.
+`scripts/sync-vendor.ps1` rebuilds this folder from scratch on every sync, so
+edits made here are silently discarded. Fix things upstream, in the automation
+that consumes them, or - when neither is possible - as a patch file.
+
+## Local patches applied
+
+This copy is upstream **plus the delta below**, applied by `sync-vendor.ps1` on
+every sync. It is not byte-identical to upstream, and the automation says so.
+
+- `patches/apim-consumption-capacity.patch`
+
+Each patch file explains why it exists. These are **our customisations**, not
+upstream defects: they cover configurations upstream never claimed to support,
+so there is nothing in them to report to Microsoft. Genuine upstream bugs are
+tracked separately, in the automation's `docs/`.
+
+Run `sync-vendor.ps1 -SkipPatches` to vendor upstream unmodified.
 
 ## What is vendored, and why exactly this
 

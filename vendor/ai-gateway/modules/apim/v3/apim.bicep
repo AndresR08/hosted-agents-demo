@@ -83,7 +83,11 @@ resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   location: location
   sku: {
     name: apimSku
-    capacity: 1
+    // LOCAL PATCH - not upstream. Applied by scripts/sync-vendor.ps1 from
+    // patches/apim-consumption-capacity.patch on every sync. The Consumption
+    // tier rejects any capacity other than 0 (MissingSkuTypeCapacity), and
+    // upstream hardcodes 1 because this lab never offered that tier.
+    capacity: apimSku == 'Consumption' ? 0 : 1
   }
   properties: {
     publisherEmail: publisherEmail

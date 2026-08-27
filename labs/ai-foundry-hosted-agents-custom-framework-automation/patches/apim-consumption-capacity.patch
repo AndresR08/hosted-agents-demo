@@ -1,0 +1,53 @@
+Allow the APIM Consumption tier: capacity must be 0, not 1.
+
+WHY THIS EXISTS
+  modules/apim/v3/apim.bicep hardcodes sku.capacity: 1. Every tier this lab
+  was built for (Developer, Basic, Basicv2, Standard, Premium) accepts that.
+  The Consumption tier does not: ARM rejects the deployment outright with
+
+      MissingSkuTypeCapacity: For Consumption SKU Type capacity must be
+      specified as 0.
+
+  and there is no way around it from the outside - capacity is not a parameter
+  of apim.bicep, and main.bicep only forwards apimSku. Note that
+  `az deployment group validate` passes regardless; the failure only appears
+  during a real deployment.
+
+  We want Consumption because APIM is otherwise the dominant fixed cost of a
+  demo environment that sits idle most of the time.
+
+THIS IS A CUSTOMISATION, NOT A BUG REPORT
+  Upstream never claimed to support Consumption in this lab, so there is
+  nothing here for Microsoft to fix. That makes it different in kind from
+  docs/05-upstream-issue-deployments-bicep.md, which documents a genuine
+  upstream defect that IS reportable. Do not file this one.
+
+  Keeping it as a patch rather than an edit in vendor/ is what preserves the
+  property that vendor/ is upstream plus a known, reviewable delta.
+
+APPLIED AUTOMATICALLY
+  scripts/sync-vendor.ps1 applies every patch in this folder to the staged
+  copy on each sync, before the build check, and fails the sync if one does
+  not apply cleanly. Nothing needs to be re-applied by hand.
+
+  If a future upstream revision touches this same line, the sync fails here.
+  Re-cut the patch against the new file, or drop it if upstream has made
+  capacity configurable on its own.
+
+diff --git a/modules/apim/v3/apim.bicep b/modules/apim/v3/apim.bicep
+index 394a497..e8ed272 100644
+--- a/modules/apim/v3/apim.bicep
++++ b/modules/apim/v3/apim.bicep
+@@ -83,7 +83,11 @@ resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
+   location: location
+   sku: {
+     name: apimSku
+-    capacity: 1
++    // LOCAL PATCH - not upstream. Applied by scripts/sync-vendor.ps1 from
++    // patches/apim-consumption-capacity.patch on every sync. The Consumption
++    // tier rejects any capacity other than 0 (MissingSkuTypeCapacity), and
++    // upstream hardcodes 1 because this lab never offered that tier.
++    capacity: apimSku == 'Consumption' ? 0 : 1
+   }
+   properties: {
+     publisherEmail: publisherEmail

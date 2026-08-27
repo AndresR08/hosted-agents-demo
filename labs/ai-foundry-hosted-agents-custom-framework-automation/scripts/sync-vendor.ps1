@@ -10,8 +10,10 @@
 
   Two properties are load-bearing and deliberate:
 
-  1. Vendored files are byte-identical to upstream. Nothing is patched on the
-     way in. A sync is therefore a copy, never a merge, and never conflicts.
+  1. Vendored files are upstream plus a known, reviewable delta - nothing else.
+     Every deviation lives as a file in patches/, is applied here on the way in,
+     and fails the sync loudly if it does not apply. A sync is therefore still a
+     copy, never a merge, and hand edits to vendor/ are still discarded.
   2. The two-level layout of upstream is preserved (vendor/ai-gateway/labs/<lab>
      and vendor/ai-gateway/modules). main.bicep refers to '../../modules/...',
      and that relative path has to keep resolving without editing the file.
@@ -36,6 +38,11 @@
 
   Ignored when -UpstreamDir is given: that checkout is used as it stands.
 
+.PARAMETER SkipPatches
+  Vendors upstream unmodified, without applying patches/. Use it to see what
+  upstream actually ships, or to re-cut a patch that stopped applying. The
+  result will not deploy with apimSku = 'Consumption'.
+
 .PARAMETER SkipBuildCheck
   Skips the az bicep build verification. Only for environments without the Azure
   CLI; the check is the point of the script and should normally run.
@@ -57,6 +64,7 @@
 param(
     [string]$UpstreamDir,
     [string]$Ref,
+    [switch]$SkipPatches,
     [switch]$SkipBuildCheck
 )
 
@@ -67,6 +75,7 @@ $scriptRoot = Split-Path -Parent $PSCommandPath
 $repoRoot   = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $scriptRoot))
 $vendorRoot = Join-Path $repoRoot 'vendor/ai-gateway'
 $labName    = 'ai-foundry-hosted-agents-custom-framework'
+$patchDir   = Join-Path (Split-Path -Parent $scriptRoot) 'patches'
 
 function Write-Step { param([string]$m) Write-Host "==> $m" -ForegroundColor Cyan }
 function Write-Ok   { param([string]$m) Write-Host "    $m" -ForegroundColor Green }
@@ -245,6 +254,78 @@ try {
     }
     Write-Ok "$($moduleFiles.Count) module files, $($extraFiles.Count) support files"
 
+    # -------------------------------------------------------------- PATCH
+    # Applied to the staging copy, never to vendor/ itself, and before the build
+    # check below - so a patch that produces something uncompilable is caught by
+    # the same gate as a bad upstream, and neither ever reaches vendor/.
+    #
+    # Every patch is expected to apply cleanly. A rejected hunk means upstream
+    # changed the very lines we depend on, which is a decision for a human: the
+    # sync fails here rather than publishing a half-patched tree that would
+    # deploy differently than the patch file claims.
+    $appliedPatches = @()
+    if (-not $SkipPatches -and (Test-Path $patchDir)) {
+        $patches = @(Get-ChildItem -Path $patchDir -Filter '*.patch' -File | Sort-Object Name)
+        if ($patches.Count -gt 0) {
+            Write-Step "Applying $($patches.Count) local patch(es) from patches/"
+            foreach ($patch in $patches) {
+                # git apply, not patch.exe: git is already a prerequisite of
+                # this script, and patch.exe is not on a stock Windows. -C runs
+                # it inside the staging folder, which is deliberately outside any
+                # work tree, so the patch lands there and never in this repo.
+                # -p1 matches the a/ b/ prefixes git diff produces. Leading prose
+                # in the patch file is ignored: git apply scans for the header.
+                # git runs under cmd.exe so that the stderr redirection happens
+                # inside cmd and PowerShell never sees the stream at all. Doing
+                # it with PowerShell's own 2> raises a NativeCommandError on any
+                # stderr write in Windows PowerShell 5.1: under 'Continue' git's
+                # message is printed as noise on top of the error thrown below,
+                # and under 'SilentlyContinue' the message is swallowed before
+                # the file is written, leaving the diagnostic with nothing in it.
+                $applyErr = Join-Path ([System.IO.Path]::GetTempPath()) "patch-$([guid]::NewGuid().ToString('N').Substring(0,8)).err"
+                $prevEap = $ErrorActionPreference
+                $ErrorActionPreference = 'Continue'
+                try {
+                    & cmd.exe /c "git -C `"$staging`" apply -p1 `"$($patch.FullName)`" 2>`"$applyErr`"" | Out-Null
+                    $applyExit = $LASTEXITCODE
+                    # -join, not a [string] cast: Get-Content on an empty file
+                    # emits nothing at all, and casting "no output" still yields
+                    # $null - .Trim() on which is a terminating error that would
+                    # replace this diagnostic with a stack trace. -join always
+                    # produces a string, including for no input.
+                    $applyOutput = @(Get-Content $applyErr -Raw -ErrorAction SilentlyContinue) -join ''
+                }
+                finally {
+                    $ErrorActionPreference = $prevEap
+                    Remove-Item $applyErr -Force -ErrorAction SilentlyContinue
+                }
+
+                if ($applyExit -ne 0) {
+                    # Built before the throw, not inline: a nested double-quoted
+                    # string inside $(...) is a parse hazard in Windows PowerShell
+                    # 5.1, and it turned this diagnostic into an InvokeMethodOnNull.
+                    $gitDetail = $applyOutput.Trim()
+                    if (-not $gitDetail) { $gitDetail = "exit code $applyExit, no output" }
+                    throw @(
+                        "Local patch did not apply: $($patch.Name)"
+                        "  Patch   : $($patch.FullName)"
+                        "  Upstream: $sha"
+                        "  git     : $gitDetail"
+                        '  Meaning : upstream changed the lines this patch depends on.'
+                        '  Check   : re-cut the patch against the new upstream file, or delete it'
+                        '            if upstream has made the change unnecessary. Run with'
+                        '            -SkipPatches to vendor upstream unmodified and inspect it.'
+                    ) -join "`n"
+                }
+                $appliedPatches += $patch.Name
+                Write-Ok "applied $($patch.Name)"
+            }
+        }
+    }
+    elseif ($SkipPatches) {
+        Write-Step 'Skipping local patches (-SkipPatches)'
+    }
+
     # ------------------------------------------------------------- NOTICE
     $notice = @"
 # Vendored from Azure-Samples/AI-Gateway
@@ -279,10 +360,28 @@ pwsh scripts/sync-vendor.ps1 -Ref <full 40-character SHA>
 
 ## Do not edit these files here
 
-They are byte-identical to upstream, and ``scripts/sync-vendor.ps1`` rebuilds this
-folder from scratch on every sync. Edits would be silently discarded, and would
-turn each sync from a copy into a merge conflict. Fix things upstream, or in the
-automation that consumes them.
+``scripts/sync-vendor.ps1`` rebuilds this folder from scratch on every sync, so
+edits made here are silently discarded. Fix things upstream, in the automation
+that consumes them, or - when neither is possible - as a patch file.
+$(if ($appliedPatches.Count -eq 0) { @"
+
+These files are byte-identical to upstream: no local patch is applied.
+"@ } else { @"
+
+## Local patches applied
+
+This copy is upstream **plus the delta below**, applied by ``sync-vendor.ps1`` on
+every sync. It is not byte-identical to upstream, and the automation says so.
+
+$(($appliedPatches | ForEach-Object { "- ``patches/$_``" }) -join "`n")
+
+Each patch file explains why it exists. These are **our customisations**, not
+upstream defects: they cover configurations upstream never claimed to support,
+so there is nothing in them to report to Microsoft. Genuine upstream bugs are
+tracked separately, in the automation's ``docs/``.
+
+Run ``sync-vendor.ps1 -SkipPatches`` to vendor upstream unmodified.
+"@ })
 
 ## What is vendored, and why exactly this
 
@@ -364,7 +463,9 @@ never merges on its own.
     $staging = $null
 
     Write-Host ''
-    Write-Ok "vendor/ai-gateway is at upstream $($sha.Substring(0,7)) ($date)"
+    $patchNote = if ($appliedPatches.Count -eq 0) { 'unmodified' }
+                 else { "+ $($appliedPatches.Count) local patch(es)" }
+    Write-Ok "vendor/ai-gateway is at upstream $($sha.Substring(0,7)) ($date), $patchNote"
     Write-Host ''
 }
 finally {

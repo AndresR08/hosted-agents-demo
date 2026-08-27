@@ -241,7 +241,7 @@ try {
     Test-Prerequisites -RequireNode:(-not $SkipDemoApp)
     Test-Configuration -Config $config
     $ctx = Test-Authentication -SubscriptionId $SubscriptionId
-    Test-LabSources -LabPath $LabPath -Framework $Framework
+    Test-LabSources -LabPath $LabPath -Framework $Framework -PatchDir (Join-Path $rootDir 'patches')
 
     # Advisory only, and only meaningful once a subscription is selected: warns
     # when a previous resource group of this name left soft-deleted resources

@@ -280,9 +280,13 @@ function Test-Configuration {
 }
 
 function Test-LabSources {
-    param([Parameter(Mandatory)][string]$LabPath, [Parameter(Mandatory)][string[]]$Framework)
+    param(
+        [Parameter(Mandatory)][string]$LabPath,
+        [Parameter(Mandatory)][string[]]$Framework,
+        [string]$PatchDir = ''
+    )
 
-    Write-Step 'Validating the official lab sources (read-only)'
+    Write-Step 'Validating the vendored lab sources (read-only)'
 
     if (-not (Test-Path -Path $LabPath -PathType Container)) {
         throw "Lab folder not found: $LabPath`n  Check   : pass -LabPath pointing at labs/ai-foundry-hosted-agents-custom-framework."
@@ -305,5 +309,22 @@ function Test-LabSources {
         }
     }
 
-    Write-Ok "Lab sources found at $LabPath (not modified by this automation)"
+    # This used to claim "not modified by this automation" unconditionally. That
+    # is no longer true: sync-vendor.ps1 applies the patch files below to the
+    # vendored tree on every sync. The count is read from patches/ rather than
+    # verified against the files, which would mean hashing a tree this script
+    # does not own - the point here is only that the claim matches reality.
+    $patchNames = @()
+    if ($PatchDir -and (Test-Path $PatchDir)) {
+        $patchNames = @(Get-ChildItem -Path $PatchDir -Filter '*.patch' -File | Sort-Object Name | ForEach-Object { $_.Name })
+    }
+
+    if ($patchNames.Count -eq 0) {
+        Write-Ok "Lab sources found at $LabPath (vendored upstream, no local patches)"
+        return
+    }
+
+    Write-Ok "Lab sources found at $LabPath"
+    Write-Info "vendored upstream, with $($patchNames.Count) documented local patch(es) applied - see vendor/ai-gateway/NOTICE.md:"
+    foreach ($name in $patchNames) { Write-Info "  patches/$name" }
 }
