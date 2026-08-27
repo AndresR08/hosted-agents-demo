@@ -107,6 +107,82 @@ function Grant-FoundryProjectManagerRole {
     Write-Ok "Granted Foundry Project Manager at $scope"
 }
 
+<#
+.SYNOPSIS
+  Extracts the version number from any of the shapes the agents API returns.
+.DESCRIPTION
+  The data plane answers the two creation calls with two different objects:
+
+    POST /agents                  -> an "agent" object. The version data is
+                                     nested under versions.latest, and there is
+                                     NO top-level "version" property.
+    POST /agents/{name}/versions  -> an "agent.version" object, which does carry
+                                     a top-level "version" (and "status").
+
+  This is a live change on Microsoft's side: the agent object used to expose the
+  version at the root. See docs/03-implementation-report.md.
+
+  Order of preference: top-level version, then versions.latest.version, then the
+  "{name}:{n}" id as a last resort - the id is a composite, so parsing it is
+  strictly more fragile than reading the dedicated field.
+#>
+function Resolve-AgentVersionNumber {
+    param(
+        [Parameter(Mandatory)]$Response,
+        [Parameter(Mandatory)][string]$Context,
+        [string]$Hint = ''
+    )
+
+    if (Test-HasProperty -Object $Response -Name 'version') {
+        return [string]$Response.version
+    }
+
+    $latest = $null
+    if ((Test-HasProperty -Object $Response -Name 'versions') -and
+        (Test-HasProperty -Object $Response.versions -Name 'latest')) {
+        $latest = $Response.versions.latest
+    }
+
+    if ($null -ne $latest) {
+        if (Test-HasProperty -Object $latest -Name 'version') {
+            return [string]$latest.version
+        }
+        if (Test-HasProperty -Object $latest -Name 'id') {
+            # id is "{agent name}:{version}"; the name itself may contain no ':'.
+            $tail = ([string]$latest.id).Split(':')[-1]
+            if (-not [string]::IsNullOrWhiteSpace($tail)) { return $tail }
+        }
+    }
+
+    # Nothing usable: fall back to the shared validator so the operator gets the
+    # standard "available properties" diagnostic instead of a bespoke message.
+    return [string](Get-RequiredProperty -Object $Response -Name 'version' -Context $Context -Hint $Hint)
+}
+
+<#
+.SYNOPSIS
+  Reads the provisioning status out of an agent or agent.version response.
+.DESCRIPTION
+  Mirrors Resolve-AgentVersionNumber: GET on a version returns status at the
+  root, while an agent object carries it under versions.latest.status. The
+  polling loop below queries the version endpoint, so the root branch is the
+  normal path - the nested branch keeps the loop working if that endpoint is
+  ever answered with the agent shape.
+#>
+function Resolve-AgentVersionStatus {
+    param([Parameter(Mandatory)]$Response)
+
+    if (Test-HasProperty -Object $Response -Name 'status') {
+        return [string]$Response.status
+    }
+    if ((Test-HasProperty -Object $Response -Name 'versions') -and
+        (Test-HasProperty -Object $Response.versions -Name 'latest') -and
+        (Test-HasProperty -Object $Response.versions.latest -Name 'status')) {
+        return [string]$Response.versions.latest.status
+    }
+    return ''
+}
+
 function Get-HostedAgent {
     param(
         [Parameter(Mandatory)][string]$ProjectEndpoint,
@@ -193,8 +269,8 @@ function New-HostedAgentVersion {
         "`"${ProjectEndpoint}/agents/${AgentName}?api-version=$($script:FoundryApiVersion)`" " +
         "--resource https://ai.azure.com"
 
-    $version = Get-RequiredProperty -Object $result.Json -Name 'version' `
-        -Context "Foundry response to the agent creation call" `
+    $version = Resolve-AgentVersionNumber -Response $result.Json `
+        -Context 'Foundry response to the agent creation call' `
         -Hint $inspectHint
 
     Write-Ok "Agent '$AgentName' registered, version $version"
@@ -236,9 +312,7 @@ function Wait-HostedAgentActive {
         }
 
         $status = ''
-        if ($result.Json -and ($result.Json.PSObject.Properties.Name -contains 'status')) {
-            $status = [string]$result.Json.status
-        }
+        if ($result.Json) { $status = Resolve-AgentVersionStatus -Response $result.Json }
 
         if ($status -ne $lastStatus) {
             Write-Info "status: $status"

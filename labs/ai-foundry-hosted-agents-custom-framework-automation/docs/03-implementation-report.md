@@ -200,6 +200,60 @@ fixed.
    directory. Verified: all 14 files are now listed, and `out/` remains ignored.
 
 
+## 4.1 A live Foundry API change — the agent creation response (2026-08-27)
+
+This one is **not** a bug in this automation, and not a consequence of the
+vendored lab: the data-plane response shape changed on Microsoft's side after
+the previous end-to-end run. It broke the deployment at the read-back step,
+*after* the agent had already been created successfully.
+
+**Symptom.** `New-HostedAgentVersion` threw from `Get-RequiredProperty`
+(`Common.ps1:247`) because the creation response had no top-level `version`
+property. The agent itself was fine — `pydantic-agent:1` existed and was
+`active` in Foundry while the script reported failure.
+
+**What actually changed.** The two creation calls now answer with two different
+objects, and only one of them is flat:
+
+| Call | `object` | Where the version lives |
+| --- | --- | --- |
+| `POST /agents` (agent does not exist yet) | `agent` | `versions.latest.version` — **no** top-level `version` or `status` |
+| `POST /agents/{name}/versions` (agent exists) | `agent.version` | top-level `version` and `status` |
+| `GET /agents/{name}` | `agent` | `versions.latest.version` |
+| `GET /agents/{name}/versions/{n}` | `agent.version` | top-level `version` and `status` |
+
+Captured live against `rg-standalone-test-20260827`. The `agent` object's own
+keys are `agent_endpoint, blueprint, blueprint_reference, id, instance_identity,
+name, object, state, versions` — note `state: "enabled"` (the agent is enabled),
+which is a different field from a version's `status: "active"` (the version
+finished provisioning). Reading `state` as if it were `status` would be wrong.
+
+**Fix.** Two small resolvers in `FoundryAgent.ps1`,
+`Resolve-AgentVersionNumber` and `Resolve-AgentVersionStatus`, which accept
+either shape: top-level field first, then `versions.latest.*`, then — for the
+version number only — the `{name}:{n}` composite `id` as a last resort. When
+nothing matches, the call still falls through to `Get-RequiredProperty` so the
+operator gets the standard "available properties" diagnostic rather than a
+silent `$null`. This is Lesson 1 again: tolerate the shape, never the absence.
+
+`Wait-HostedAgentActive` polls the *version* endpoint, which still returns
+`status` at the root, so it was never actually broken — it now goes through
+`Resolve-AgentVersionStatus` anyway so a future flip of that endpoint to the
+agent shape would not silently produce an empty status and a 15-minute timeout.
+
+**Verified**, against the already-provisioned `rg-standalone-test-20260827` with
+`-SkipInfrastructure -SkipImageBuild -ImageTag 20260827145224 -SkipDemoApp`, so
+neither ACR nor the ARM deployment was re-exercised:
+
+- `pydantic-agent` (existing) → `POST /versions` path → version read back,
+  `active`, answered both directly and through APIM.
+- `strands-agent` (absent) → `POST /agents` path, i.e. the shape that caused the
+  failure → version read back from `versions.latest`, reached `active` after
+  ~30 s, answered both directly and through APIM.
+
+Unrelated to `main.bicep`, which stays pinned at `561d7199` and has no bearing on
+a live data-plane contract.
+
 ## 5. The operator's role — earlier claim corrected
 
 A previous version of this report stated that the lab grants the operator only
