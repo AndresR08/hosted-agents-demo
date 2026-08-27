@@ -87,9 +87,15 @@ function Test-SoftDeletedCollisions {
     $needle = "/resourcegroups/$($ResourceGroupName.ToLowerInvariant())/"
     $found = @()
 
+    # Each block below tests only .Success, never .Json. An empty JSON array is
+    # falsy in PowerShell, so "$x.Success -and $x.Json" reported the overwhelmingly
+    # common case - nothing soft-deleted at all - as "could not list (skipped)",
+    # i.e. as if the check had not run. @() around a $null Json keeps the loop
+    # safe when a listing really does come back empty or unparsable.
+
     # --- API Management (recoverable ~48h, name reserved until purged) --------
     $apim = Invoke-Az -Arguments @('apim', 'deletedservice', 'list', '-o', 'json') -AllowFailure
-    if ($apim.Success -and $apim.Json) {
+    if ($apim.Success) {
         foreach ($svc in @($apim.Json)) {
             $serviceId = ''
             if (Test-HasProperty -Object $svc -Name 'serviceId') { $serviceId = [string]$svc.serviceId }
@@ -107,7 +113,7 @@ function Test-SoftDeletedCollisions {
     # --- Cognitive Services / Foundry (recoverable ~48h) ----------------------
     # No resourceGroup field on these records; the resource id carries it.
     $cog = Invoke-Az -Arguments @('cognitiveservices', 'account', 'list-deleted', '-o', 'json') -AllowFailure
-    if ($cog.Success -and $cog.Json) {
+    if ($cog.Success) {
         foreach ($acct in @($cog.Json)) {
             $id = ''
             if (Test-HasProperty -Object $acct -Name 'id') { $id = [string]$acct.id }
@@ -122,7 +128,7 @@ function Test-SoftDeletedCollisions {
 
     # --- Log Analytics (recoverable up to 14 days) ---------------------------
     $law = Invoke-Az -Arguments @('monitor', 'log-analytics', 'workspace', 'list-deleted-workspaces', '-o', 'json') -AllowFailure
-    if ($law.Success -and $law.Json) {
+    if ($law.Success) {
         foreach ($ws in @($law.Json)) {
             $wsRg = ''
             if (Test-HasProperty -Object $ws -Name 'resourceGroup') { $wsRg = [string]$ws.resourceGroup }
