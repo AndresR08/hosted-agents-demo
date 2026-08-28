@@ -84,6 +84,51 @@ the notebook hardcodes as lab configuration lives in
 | `-ValidateOnly` | off | Validate without deploying lab resources. |
 | `-SkipInfrastructure` / `-SkipImageBuild` / `-SkipAgent` / `-SkipValidation` | off | Re-run individual stages. |
 
+## APIM tier — `Basicv2` by default, `Consumption` for scratch environments
+
+`ApimSku` in [`config/lab.defaults.psd1`](config/lab.defaults.psd1) is
+`Basicv2`. `Consumption` is a **supported alternative**, deployed and validated
+end to end, and it is dramatically cheaper: APIM is ~92% of this lab's fixed
+cost on `Basicv2` (~$197/month, billed while the resource group exists), and
+essentially $0 idle on `Consumption`. A full deployment also takes ~14 minutes
+instead of ~25-35.
+
+**Use `Consumption` for:**
+
+- Disposable test environments — created and deleted the same day, like the
+  scratch resource groups used to verify a change.
+- Validating an infrastructure change without paying for `Basicv2` to prove it.
+
+**Do not use `Consumption` for any session with a live audience.** Measured on a
+real deployment: after 35 minutes idle, the **first request took 54 seconds**.
+That figure is the gateway alone — the request was an unauthenticated call that
+returns `401` without ever reaching the backend, so it generated no tokens. The
+next call, immediately after, took 0.36 s.
+
+A warm-up call before presenting is therefore mandatory, not a nicety — and it
+is not sufficient on its own: any long pause *during* the session (coffee,
+questions, a demo segment that does not touch the gateway) can put the instance
+back to sleep and cost 54 seconds in front of the client. `Basicv2` has no such
+state.
+
+A shorter idle period is misleading. At 12 minutes idle the instance was still
+warm and the first call cost only ~1.4 s more than a warm one, which reads like
+an acceptable penalty and is not one.
+
+Switching tiers needs no code change:
+
+```powershell
+# in config/lab.defaults.psd1
+ApimSku = 'Consumption'
+```
+
+The vendored `apim.bicep` hardcodes `sku.capacity: 1`, which the Consumption
+tier rejects. That is handled by a patch applied automatically on every
+`sync-vendor.ps1` run — see
+[`docs/06-apim-consumption.md`](docs/06-apim-consumption.md) and
+[`patches/`](patches/). Note that `az deployment group validate` passes with the
+unpatched template; only a real deployment surfaces the error.
+
 ## Re-deploying
 
 The resource group is **reused by default**. The lab derives most resource names

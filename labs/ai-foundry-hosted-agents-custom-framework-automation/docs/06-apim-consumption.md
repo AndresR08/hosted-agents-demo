@@ -4,6 +4,55 @@ Status: **applied.** The patch lives in
 [`patches/apim-consumption-capacity.patch`](../patches/apim-consumption-capacity.patch)
 and is applied to `vendor/ai-gateway/` automatically by `scripts/sync-vendor.ps1`.
 
+## Decision: not the default. Read this before proposing it again
+
+**`Basicv2` remains the default for any session with a live audience.**
+`Consumption` is supported and works end to end - it is not experimental, and
+the patch below is maintained - but it is for disposable environments only.
+
+The reason is one measured number, taken on a real deployment
+(`rg-apim-consumption-test`, swedencentral, 2026-08-27):
+
+| | |
+|---|---|
+| First request after **35 minutes idle** | **54.2 s** |
+| Next request, immediately after | 0.36 s |
+| Two more, immediately after | 0.34 s / 0.36 s |
+
+The cold request was an unauthenticated call that APIM rejects with `401`
+before reaching any backend. It generated no tokens and did no model work:
+**those 54 seconds are the gateway waking up, nothing else.**
+
+Two traps worth knowing before anyone re-runs this experiment:
+
+- **A short idle period will tell you it is fine.** At 12 minutes idle the
+  first call cost only ~1.4 s more than a warm one - and that difference was
+  within the variance of the model call itself, not a cold start at all. The
+  instance was still warm. Measuring with a short gap produces a number that
+  supports the wrong conclusion.
+- **A warm-up call does not fully solve it.** It is mandatory if you use this
+  tier at all, but any long pause *during* a session - coffee, questions, a
+  segment that does not touch the gateway - can put the instance back to sleep
+  and spend 54 seconds in front of the client.
+
+What it costs to keep `Basicv2`: ~$197/month while the resource group exists,
+~92% of the lab's fixed cost, and ~25-35 min to deploy instead of ~14. That is
+the price of not gambling a client demo on a cold start, and it was judged
+worth paying.
+
+### Where `Consumption` *is* the right choice
+
+- Disposable test environments, created and deleted the same day.
+- Validating an infrastructure change without paying for `Basicv2` to prove it.
+
+### Considered and deliberately not built
+
+A keep-alive ping (from the broker, or a scheduled job) would hold the instance
+warm. It was left out: it adds a moving part whose failure mode is silent - the
+ping stops, nobody notices, and the 54 s comes back at the worst moment - to
+save money on environments that are not the ones under time pressure. Revisit
+only if idle cost on a long-lived demo environment becomes a real problem.
+
 ## Why this is not the same kind of finding as `05`
 
 [`05-upstream-issue-deployments-bicep.md`](05-upstream-issue-deployments-bicep.md)
