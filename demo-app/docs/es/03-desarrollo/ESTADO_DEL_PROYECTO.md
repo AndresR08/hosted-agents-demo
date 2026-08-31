@@ -97,6 +97,7 @@ Completada. Toda la documentación del proyecto se consolidó en `demo-app/docs/
 - La correlación de observabilidad es en memoria — un reinicio del broker resuelve los asks pasados a un 404 honesto.
 - `az role assignment list` devuelve `[]` bajo la identidad usada — una brecha de permisos, no un error.
 - Arranque en frío de ~10–17 s en el primer Ask. CORS verificado con `curl`, no con un navegador.
+- `CORS_ORIGIN` acepta exactamente un origen. Una lista separada por comas se devuelve entera en `Access-Control-Allow-Origin`, cosa que los navegadores rechazan, mientras el preflight sigue respondiendo 204 — así que `curl` pasa y solo falla el navegador. Apuntar un broker desplegado a un frontend local implica reemplazar el valor, no añadirlo. Ver `broker/.env.example`.
 - Nunca disponible, nunca fabricado: costo/facturación interna · throttling en acción · caché semántico · balanceo de carga · tendencias históricas · uptime/SLA · redes privadas · failover multi-región · evaluaciones / red teaming / puntajes de seguridad.
 - Los frameworks nunca se comparan por rendimiento. Ninguna cifra de latencia, conteo de tokens o throughput se renderiza por framework en ningún lugar, incluido "Ask both", que descarta la latencia real que devuelven ambas llamadas. Las diferencias entre los dos agentes son variancia de un mismo modelo compartido.
 - La matriz de capacidades es código fuente, no telemetría — se lee de `src/frameworks/*/main.py`, es verdad sobre el código, no una medición de los contenedores en ejecución. El único diferenciador vivo es "Ask both".

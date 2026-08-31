@@ -9,6 +9,13 @@ function required(name: string): string {
 export const config = {
   // App Service injects PORT; locally it falls back to the documented 4000.
   port: Number(process.env.PORT ?? 4000),
+  /**
+   * A single origin. `cors({ origin })` below treats a string as one origin
+   * and echoes it verbatim, so a comma-separated value produces a header no
+   * browser accepts - and the preflight still answers 204, so it only fails
+   * in a real browser. See broker/.env.example. Accepting a list would mean
+   * splitting this into an array here.
+   */
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
 
   /**

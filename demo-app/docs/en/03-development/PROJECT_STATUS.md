@@ -97,6 +97,7 @@ Complete. All project documentation was consolidated into `demo-app/docs/`, with
 - Observability correlation is in-memory — a broker restart resolves past asks to an honest 404.
 - `az role assignment list` returns `[]` under the identity used — a permissions gap, not an error.
 - ~10–17 s cold start on the first Ask. CORS verified with `curl`, not with a browser.
+- `CORS_ORIGIN` accepts exactly one origin. A comma-separated list is echoed back whole in `Access-Control-Allow-Origin`, which browsers reject, while the preflight still returns 204 — so `curl` passes and only a browser fails. Pointing a deployed broker at a local frontend means replacing the value, not appending to it. See `broker/.env.example`.
 - Never available, never fabricated: internal cost/billing · throttling in action · semantic caching · load balancing · historical trends · uptime/SLA · private networking · multi-region failover · evaluations / red teaming / security scores.
 - Frameworks are never compared on performance. No latency figure, token count, or throughput is rendered per framework anywhere, including "Ask both," which discards the real latency both calls return. Differences between the two agents are variance within a shared model.
 - The capability matrix is source code, not telemetry — it's read from `src/frameworks/*/main.py`, a truth about the code, not a measurement of the running containers. The only live differentiator is "Ask both."
