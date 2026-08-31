@@ -187,3 +187,11 @@ body {
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
+/* The sequence beam on the Reference tab: a stroke drawn on from nothing.
+   A keyframe rather than a transition because it must replay on every step,
+   and a transition will not re-run towards a value the element already holds. */
+@keyframes seq-draw {
+  from { stroke-dashoffset: 400; }
+  to { stroke-dashoffset: 0; }
+}

@@ -7,6 +7,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { useDemoDataService } from "@/services/provider";
 import { cn } from "@/lib/cn";
 import { CAPABILITIES, ROUTING_STEPS, TIER_ROWS } from "./apimCapabilities";
+import { IdentityFlowSequence } from "./IdentityFlowSequence";
 
 /**
  * REFERENCE — "what else does API Management offer?"
@@ -129,6 +130,15 @@ export function ApimCapabilitiesStop() {
             );
           })}
         </div>
+
+        {/*
+          The catalogue above answers "what else does APIM offer" in breadth;
+          this answers "how does the identity mechanism actually work" in
+          depth, for the one capability this lab does use. Kept separate
+          rather than merged because a viewer wants one or the other, never
+          both at once.
+        */}
+        <IdentityFlowSequence />
 
         {/* ── Tier comparison — our own measurement ─────────────────────── */}
         <section className="rounded-lg border border-border bg-surface px-4 py-3">
