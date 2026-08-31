@@ -62,6 +62,11 @@ if (-not $ResourceGroupName) {
     $ResourceGroupName = $config.ResourceGroupName
 }
 
+# out/ is git-ignored, and already where this automation keeps run artefacts.
+# Named after the resource group so two environments cannot overwrite each
+# other's outstanding work.
+$journalPath = Join-Path $rootDir (Join-Path 'out' "pending-purge.$ResourceGroupName.txt")
+
 <#
 .SYNOPSIS
   Lists the resources in the group that survive deletion in a soft-deleted state.
@@ -130,14 +135,44 @@ function Get-PurgeCommandText {
   Note the purge uses the ORIGINAL resource group name: a soft-deleted
   Cognitive Services account is addressed by the group it was deleted from,
   which no longer exists. That is expected, not a stale argument.
+
+  An interrupted purge is the case this guards hardest. The resource group is
+  already gone by the time we get here, so anything not yet purged is invisible
+  - it holds its name and its quota with nothing on screen to say so. That
+  happened: a backgrounded run was killed between two purges and left two
+  Foundry accounts behind, silently.
+
+  Two layers cover it, because they cover different interruptions:
+
+    - try/finally prints what is left. This runs on Ctrl+C and on a terminating
+      error, but NOT on a hard kill - PowerShell never gets to run finally when
+      the process is killed outright.
+    - a journal file, written before the first purge and deleted after the last
+      one, covers exactly that hard kill. It survives the process, so the
+      commands are recoverable from disk afterwards, and the next teardown of
+      the same group finds it and says so.
 #>
 function Invoke-SoftDeletePurge {
     param(
         [Parameter(Mandatory)][array]$Resources,
-        [Parameter(Mandatory)][string]$ResourceGroupName
+        [Parameter(Mandatory)][string]$ResourceGroupName,
+        [Parameter(Mandatory)][string]$JournalPath
     )
 
     Write-Step 'Purging soft-deleted resources'
+
+    # Everything still owed, in the same shape Get-PurgeCommandText expects.
+    # Entries are removed as each one is settled, so whatever remains here at
+    # any instant is exactly what an interruption would strand.
+    $pending = [System.Collections.ArrayList]::new()
+    foreach ($item in $Resources) { [void]$pending.Add($item) }
+
+    try {
+    # Inside the try, not before it: a failure while writing the journal must
+    # still reach the finally below, or an interruption at the very first step
+    # would report nothing at all. Found by testing the interrupted path rather
+    # than by reading the code.
+    Write-PurgeJournal -Pending $pending -ResourceGroupName $ResourceGroupName -JournalPath $JournalPath
 
     foreach ($item in $Resources) {
         if ($item.type -eq 'Microsoft.ApiManagement/service') {
@@ -150,6 +185,8 @@ function Invoke-SoftDeletePurge {
         $purge = Invoke-Az -Arguments $purgeArgs -AllowFailure
         if ($purge.Success) {
             Write-Ok "Purged $($item.name)"
+            $pending.Remove($item)
+            Write-PurgeJournal -Pending $pending -ResourceGroupName $ResourceGroupName -JournalPath $JournalPath
             continue
         }
 
@@ -159,18 +196,89 @@ function Invoke-SoftDeletePurge {
         $text = "$($purge.Error) $($purge.Text)"
         if ($text -match '(?i)not found|does not exist') {
             Write-Ok "$($item.name) was not soft-deleted - nothing to purge"
+            $pending.Remove($item)
+            Write-PurgeJournal -Pending $pending -ResourceGroupName $ResourceGroupName -JournalPath $JournalPath
             continue
         }
 
         Write-Warn "Could not purge $($item.name): $($purge.Error.Trim())"
         Write-Warn "  Retry : $(Get-PurgeCommandText -Resource $item -ResourceGroupName $ResourceGroupName)"
         Write-Warn '  Until it succeeds the name stays taken, and a Foundry account keeps its quota (up to 48h).'
+        # Reported, with its retry command, so it is no longer a silent debt -
+        # which is all $pending tracks. Leaving it in would make the finally
+        # block repeat what was just printed.
+        $pending.Remove($item)
+        Write-PurgeJournal -Pending $pending -ResourceGroupName $ResourceGroupName -JournalPath $JournalPath
     }
+    }
+    finally {
+        # Reached on the normal path, on Ctrl+C, and on a terminating error.
+        # $pending is empty on the normal path, so this says nothing then.
+        if ($pending.Count -gt 0) {
+            Write-Host ''
+            Write-Warn "The purge did not finish. $($pending.Count) resource(s) are still soft-deleted:"
+            foreach ($item in $pending) {
+                Write-Warn "    $(Get-PurgeCommandText -Resource $item -ResourceGroupName $ResourceGroupName)"
+            }
+            Write-Warn '  They keep their names, and Foundry accounts keep their quota, for up to 48h.'
+            Write-Warn "  Also saved to: $JournalPath"
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+  Writes the outstanding purge commands to disk, or removes the file when none.
+.DESCRIPTION
+  The journal is what survives a hard kill, where finally never runs. It holds
+  the same commands Get-PurgeCommandText produces - the function is called here
+  rather than the text rebuilt, so the file and the console can never disagree.
+#>
+function Write-PurgeJournal {
+    param(
+        [Parameter(Mandatory)]$Pending,
+        [Parameter(Mandatory)][string]$ResourceGroupName,
+        [Parameter(Mandatory)][string]$JournalPath
+    )
+
+    if ($Pending.Count -eq 0) {
+        Remove-Item -Path $JournalPath -Force -ErrorAction SilentlyContinue
+        return
+    }
+
+    $lines = @(
+        "# Soft-deleted resources from '$ResourceGroupName' that were not purged."
+        "# Written by teardown.ps1 at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')."
+        '# Run these to finish the job, then delete this file. Only a teardown run'
+        '# that purges everything itself removes it automatically.'
+        ''
+    )
+    foreach ($item in $Pending) {
+        $lines += (Get-PurgeCommandText -Resource $item -ResourceGroupName $ResourceGroupName)
+    }
+
+    $dir = Split-Path -Parent $JournalPath
+    if ($dir -and -not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    Set-Content -Path $JournalPath -Value $lines -Encoding utf8
 }
 
 try {
     if ($SubscriptionId) {
         Invoke-Az -Arguments @('account', 'set', '--subscription', $SubscriptionId) | Out-Null
+    }
+
+    # A journal left by an earlier run means that run was killed mid-purge and
+    # never got to print anything. Surfacing it here is what turns a silent
+    # debt into a visible one, whatever this run turns out to do.
+    if (Test-Path $journalPath) {
+        Write-Warn "A previous teardown of '$ResourceGroupName' did not finish purging:"
+        foreach ($line in (Get-Content $journalPath | Where-Object { $_ -and -not $_.StartsWith('#') })) {
+            Write-Warn "    $line"
+        }
+        Write-Warn "  Source: $journalPath"
+        Write-Warn '  Delete that file once the commands above have been run: this notice is'
+        Write-Warn '  driven by the file, not by a live check against Azure.'
+        Write-Host ''
     }
 
     Write-Step "Checking resource group '$ResourceGroupName'"
@@ -232,7 +340,8 @@ try {
         }
     }
     elseif ($proceed -and $softDeleting.Count -gt 0) {
-        Invoke-SoftDeletePurge -Resources $softDeleting -ResourceGroupName $ResourceGroupName
+        Invoke-SoftDeletePurge -Resources $softDeleting -ResourceGroupName $ResourceGroupName `
+            -JournalPath $journalPath
     }
 }
 catch {
