@@ -27,6 +27,12 @@ export type StopId =
   | "frameworks"
   | "hostedAgents"
   | "gateway"
+  /**
+   * Reference material about API Management as a product - not a reading of
+   * this deployment. A stop of its own precisely so it can never share a
+   * screen with the live gateway journey; see ApimCapabilitiesStop.
+   */
+  | "apimCapabilities"
   | "observability"
   | "operations";
 
@@ -35,6 +41,7 @@ export const STOP_ORDER: StopId[] = [
   "frameworks",
   "hostedAgents",
   "gateway",
+  "apimCapabilities",
   "observability",
   "operations",
 ];
@@ -59,7 +66,7 @@ export const SECTION_ORDER: SectionId[] = ["agents", "gateway", "observability",
  */
 export const SECTION_STOPS: Record<SectionId, StopId[]> = {
   agents: ["frameworks", "hostedAgents"],
-  gateway: ["gateway"],
+  gateway: ["gateway", "apimCapabilities"],
   observability: ["observability"],
   platform: ["operations"],
 };

@@ -39,6 +39,14 @@ export interface EnvironmentContext {
    * path without it rather than inventing one.
    */
   agentRouteTemplate?: string;
+  /**
+   * The APIM tier this deployment actually runs on ("Basicv2", "Consumption",
+   * ...), read from ARM by the broker. The APIM reference panel marks the row
+   * for the tier in use with it. Optional: an older broker omits it, and that
+   * panel then shows the comparison without claiming which one is live -
+   * which is the required behaviour, not a degraded one.
+   */
+  apimSku?: string;
   provenance: Provenance;
 }
 

@@ -11,6 +11,32 @@ export const translations: Record<Locale, Record<string, string>> = {
   en: {
     "common.cancel": "Cancel",
 
+    "gatewayNav.label": "Gateway screens",
+    "gatewayNav.live": "Live",
+    "gatewayNav.reference": "Reference",
+
+    "apim.title": "Reference",
+    "apim.question": "What else does API Management offer?",
+    "apim.bannerTitle": "Reference material — not this deployment",
+    "apim.bannerBody": "This screen describes the Azure API Management product. Most of it is not configured in this lab, and nothing here is read from Azure except the tier in use, marked below. Each capability says whether this lab actually uses it.",
+    "apim.pillUsed": "Used here",
+    "apim.pillNotUsed": "Not in this lab",
+
+    "apim.tiersTitle": "Choosing a tier has measurable consequences",
+    "apim.tiersSubtitle": "Both tiers below were deployed and measured in this subscription. The cold start is a call the gateway rejects with 401 before reaching any backend — it times the gateway waking up, nothing else.",
+    "apim.tiersLive": "This deployment: {sku}",
+    "apim.tiersUnknown": "Tier not reported by the broker",
+    "apim.tierCurrent": "in use",
+    "apim.colTier": "Tier",
+    "apim.colCost": "Cost",
+    "apim.colColdStart": "Cold start",
+    "apim.colFit": "Fits",
+    "apim.tiersFootnote": "A 12-minute idle period shows only ~1.4 s and reads as acceptable — the instance is still warm. Measuring with too short a gap is how this decision gets made wrongly.",
+
+    "apim.routingTitle": "How is the model chosen for each agent?",
+    "apim.routingLead": "API Management does not know, and does not decide. There is no per-agent routing — a common and reasonable assumption, but not what happens here.",
+    "apim.routingPunchline": "The choice lives in the agent's configuration at registration time. Changing the model means a new agent version with an updated environment variable — it is not dynamic at request time.",
+
     "header.productName": "Foundry Hosted Agents",
     "header.tagline": "Custom frameworks, governed by API Management",
     "header.statusLive": "Azure Live",
@@ -344,6 +370,32 @@ export const translations: Record<Locale, Record<string, string>> = {
   },
   es: {
     "common.cancel": "Cancelar",
+
+    "gatewayNav.label": "Pantallas del gateway",
+    "gatewayNav.live": "En vivo",
+    "gatewayNav.reference": "Referencia",
+
+    "apim.title": "Referencia",
+    "apim.question": "¿Qué más ofrece API Management?",
+    "apim.bannerTitle": "Material de referencia — no es este despliegue",
+    "apim.bannerBody": "Esta pantalla describe el producto Azure API Management. La mayor parte no está configurada en este laboratorio, y nada de aquí se lee de Azure salvo el tier en uso, señalado abajo. Cada capacidad indica si este laboratorio la usa realmente.",
+    "apim.pillUsed": "Se usa aquí",
+    "apim.pillNotUsed": "No en este lab",
+
+    "apim.tiersTitle": "Elegir un tier tiene consecuencias medibles",
+    "apim.tiersSubtitle": "Ambos tiers se desplegaron y midieron en esta suscripción. El arranque en frío es una llamada que el gateway rechaza con 401 antes de llegar a ningún backend — mide al gateway despertando, nada más.",
+    "apim.tiersLive": "Este despliegue: {sku}",
+    "apim.tiersUnknown": "El broker no reportó el tier",
+    "apim.tierCurrent": "en uso",
+    "apim.colTier": "Tier",
+    "apim.colCost": "Costo",
+    "apim.colColdStart": "Arranque en frío",
+    "apim.colFit": "Sirve para",
+    "apim.tiersFootnote": "Con 12 minutos de reposo aparecen solo ~1,4 s y parece aceptable — la instancia sigue caliente. Medir con un hueco demasiado corto es como esta decisión se toma mal.",
+
+    "apim.routingTitle": "¿Cómo se decide qué modelo usa cada agente?",
+    "apim.routingLead": "API Management no lo sabe ni lo decide. No hay enrutamiento por agente — es una suposición común y razonable, pero no es lo que ocurre aquí.",
+    "apim.routingPunchline": "La decisión vive en la configuración del agente al registrarlo. Cambiar de modelo implica una nueva versión del agente con la variable de entorno actualizada — no es dinámico en tiempo de petición.",
 
     "header.productName": "Foundry Hosted Agents",
     "header.tagline": "Frameworks personalizados, gobernados por API Management",

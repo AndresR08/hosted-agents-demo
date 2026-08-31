@@ -13,12 +13,28 @@ environmentRouter.get("/environment", asyncHandler(async (_req, res) => {
     `https://management.azure.com/subscriptions/${config.subscriptionId}` +
     `/resourceGroups/${config.resourceGroup}/resources?api-version=2021-04-01`;
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  const body = response.ok ? ((await response.json()) as { value: unknown[] }) : { value: [] };
+  const body = response.ok
+    ? ((await response.json()) as { value: { type?: string; sku?: { name?: string } }[] })
+    : { value: [] };
+
+  /**
+   * The APIM tier actually deployed, read from the same ARM listing already
+   * fetched above - no second call. The reference panel ("what else APIM
+   * offers") compares tiers, and the row for the tier in use has to be marked
+   * from real state rather than from a constant that would quietly go stale
+   * the day someone deploys Consumption. Left undefined when the listing did
+   * not come back or carries no sku, so the panel can say nothing instead of
+   * guessing.
+   */
+  const apimSku = body.value.find(
+    (r) => r.type?.toLowerCase() === "microsoft.apimanagement/service",
+  )?.sku?.name;
 
   res.json({
     region: config.region,
     resourceGroupName: config.resourceGroup,
     resourceCount: body.value.length,
+    apimSku,
     /**
      * The address of a hosted agent, with the agent name left as a
      * placeholder. It is built by the same function the /ask and
