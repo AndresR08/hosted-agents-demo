@@ -170,6 +170,7 @@ Está instruido para responder como un arquitecto de soluciones de Azure experim
 
 ## Ver también
 
+- [`GUIA_CAPACIDADES_APIM.md`](GUIA_CAPACIDADES_APIM.md) — módulo de cierre opcional de 4–6 minutos sobre lo que ofrece API Management más allá de este laboratorio. Material de referencia, explícitamente no una lectura de este despliegue.
 - [`PROPOSITO_DEMO.md`](../01-general/PROPOSITO_DEMO.md) — el objetivo, alcance y filosofía completos.
 - [`CONTEXTO_COPILOTO.md`](../01-general/CONTEXTO_COPILOTO.md) — las instrucciones exactas que sigue el asistente integrado.
 - [`PREGUNTAS_FRECUENTES.md`](PREGUNTAS_FRECUENTES.md) — respuestas sugeridas a las preguntas difíciles típicas de un cliente.

@@ -170,6 +170,7 @@ It's instructed to respond like an experienced Azure solutions architect, in the
 
 ## See also
 
+- [`APIM_CAPABILITIES_GUIDE.md`](APIM_CAPABILITIES_GUIDE.md) — optional 4–6 minute closing module on what API Management offers beyond this lab. Reference material, explicitly not a reading of this deployment.
 - [`PURPOSE.md`](../01-general/PURPOSE.md) — the full goal, scope, and philosophy.
 - [`COPILOT_CONTEXT.md`](../01-general/COPILOT_CONTEXT.md) — the exact instructions the built-in assistant follows.
 - [`FAQ.md`](FAQ.md) — suggested answers to typical tough customer questions.

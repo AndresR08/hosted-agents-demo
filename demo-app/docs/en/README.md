@@ -33,6 +33,7 @@ Everything needed to present the demo to a customer.
 | [`PRESENTATION_GUIDE.md`](02-presentation/PRESENTATION_GUIDE.md) | Full word-for-word script: introduction, the four sections, closing. |
 | [`PRESENTATION_FLOW.md`](02-presentation/PRESENTATION_FLOW.md) | One-page quick view: timing, on-screen actions, and each segment's key message. |
 | [`FAQ.md`](02-presentation/FAQ.md) | Suggested answers to typical tough customer questions. |
+| [`APIM_CAPABILITIES_GUIDE.md`](02-presentation/APIM_CAPABILITIES_GUIDE.md) | Optional closing module on API Management beyond this lab — reference material, and how to present it without passing it off as live. |
 
 ## 03 — Development
 

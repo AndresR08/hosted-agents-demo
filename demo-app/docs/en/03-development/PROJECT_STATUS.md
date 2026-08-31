@@ -101,6 +101,27 @@ Complete. All project documentation was consolidated into `demo-app/docs/`, with
 - Frameworks are never compared on performance. No latency figure, token count, or throughput is rendered per framework anywhere, including "Ask both," which discards the real latency both calls return. Differences between the two agents are variance within a shared model.
 - The capability matrix is source code, not telemetry — it's read from `src/frameworks/*/main.py`, a truth about the code, not a measurement of the running containers. The only live differentiator is "Ask both."
 
+## 4b. APIM reference screen (2026-08-31)
+
+A second screen under the Gateway section, `apimCapabilities`, describing the
+Azure API Management product rather than this deployment: eight capabilities,
+a tier comparison, and how the model is chosen for an agent.
+
+It is reference material, and the separation from live data is structural
+rather than a caption — its own stop behind a Live/Reference tab pair, the
+`illustrative` band (§1.6), a permanent banner, and a per-capability pill
+saying whether this lab configures it (three of eight do).
+
+The one live value on it is the APIM tier, newly exposed by the broker from
+the ARM listing `/api/environment` already fetches. It highlights nothing when
+the broker omits it, and is not read at all in Simulation mode.
+
+The tier comparison carries this project's own measurement — Basicv2 against
+Consumption, 54 s cold start after 35 minutes idle — rather than datasheet
+guidance. See `labs/…-automation/docs/06-apim-consumption.md`.
+
+Presenter script: [`APIM_CAPABILITIES_GUIDE.md`](../02-presentation/APIM_CAPABILITIES_GUIDE.md).
+
 ## 5. Current architecture
 
 ```

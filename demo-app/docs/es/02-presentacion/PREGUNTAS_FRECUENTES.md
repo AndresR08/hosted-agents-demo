@@ -26,6 +26,9 @@ La arquitectura sí — cualquier framework de agentes puede convertirse en un H
 **"¿Cómo lo despliego yo mismo?"**
 Con el notebook `ai-foundry-hosted-agents-custom-framework.ipynb` del laboratorio oficial — corre de extremo a extremo, con una variable para elegir el framework (`strands` o `pydantic`), y no requiere Docker local porque la imagen se construye en Azure Container Registry.
 
+**"¿Cómo sabe APIM qué modelo usa cada agente?"**
+No lo sabe, y no lo decide. Al registrar el agente se le entrega el nombre del deployment como variable de entorno; su framework pone ese nombre en la URL de la petición, y API Management actúa como proxy genérico — lee el destino desde la URL, inyecta el token de identidad administrada y reenvía. No hay lógica de enrutamiento por agente en el gateway. Cambiar de modelo implica una nueva versión del agente con la variable actualizada, no un interruptor en tiempo de ejecución. *(Nota para el presentador: el guion completo de esto, y los seguimientos probables, están en [`GUIA_CAPACIDADES_APIM.md`](GUIA_CAPACIDADES_APIM.md).)*
+
 ## Ver también
 
 - [`GUIA_PRESENTACION.md`](GUIA_PRESENTACION.md) — el guion completo de la presentación.

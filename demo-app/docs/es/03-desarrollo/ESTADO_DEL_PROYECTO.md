@@ -101,6 +101,27 @@ Completada. Toda la documentación del proyecto se consolidó en `demo-app/docs/
 - Los frameworks nunca se comparan por rendimiento. Ninguna cifra de latencia, conteo de tokens o throughput se renderiza por framework en ningún lugar, incluido "Ask both", que descarta la latencia real que devuelven ambas llamadas. Las diferencias entre los dos agentes son variancia de un mismo modelo compartido.
 - La matriz de capacidades es código fuente, no telemetría — se lee de `src/frameworks/*/main.py`, es verdad sobre el código, no una medición de los contenedores en ejecución. El único diferenciador vivo es "Ask both".
 
+## 4b. Pantalla de referencia de APIM (2026-08-31)
+
+Una segunda pantalla en la sección Gateway, `apimCapabilities`, que describe el
+producto Azure API Management y no este despliegue: ocho capacidades, una
+comparación de tiers, y cómo se decide el modelo de un agente.
+
+Es material de referencia, y la separación de los datos en vivo es estructural,
+no una leyenda — su propio stop tras un par de pestañas En vivo/Referencia, la
+banda `illustrative` (§1.6), un banner permanente, y una píldora por capacidad
+que dice si este laboratorio la configura (tres de ocho lo hacen).
+
+El único valor en vivo de la pantalla es el tier de APIM, que el broker ahora
+expone desde el listado de ARM que `/api/environment` ya consultaba. No resalta
+nada cuando el broker no lo reporta, y no se lee en modo Simulación.
+
+La comparación de tiers lleva la medición propia de este proyecto — Basicv2
+frente a Consumption, 54 s de arranque en frío tras 35 minutos de reposo — en
+vez de guía de hoja de producto. Ver `labs/…-automation/docs/06-apim-consumption.md`.
+
+Guion para el presentador: [`GUIA_CAPACIDADES_APIM.md`](../02-presentacion/GUIA_CAPACIDADES_APIM.md).
+
 ## 5. Arquitectura actual
 
 ```

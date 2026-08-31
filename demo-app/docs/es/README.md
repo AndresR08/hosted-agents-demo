@@ -33,6 +33,7 @@ Todo lo necesario para presentar la demo frente a un cliente.
 | [`GUIA_PRESENTACION.md`](02-presentacion/GUIA_PRESENTACION.md) | Guion completo, palabra por palabra: introducción, las cuatro secciones, cierre. |
 | [`FLUJO_PRESENTACION.md`](02-presentacion/FLUJO_PRESENTACION.md) | Vista rápida de una página: tiempos, acciones en pantalla y mensaje clave de cada tramo. |
 | [`PREGUNTAS_FRECUENTES.md`](02-presentacion/PREGUNTAS_FRECUENTES.md) | Respuestas sugeridas a las preguntas difíciles típicas de un cliente. |
+| [`GUIA_CAPACIDADES_APIM.md`](02-presentacion/GUIA_CAPACIDADES_APIM.md) | Módulo de cierre opcional sobre API Management más allá de este laboratorio — material de referencia, y cómo presentarlo sin hacerlo pasar por datos en vivo. |
 
 ## 03 — Desarrollo
 

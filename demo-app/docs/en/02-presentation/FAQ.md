@@ -26,6 +26,9 @@ The architecture, yes — any agent framework can become a Hosted Agent followin
 **"How do I deploy this myself?"**
 With the official lab's `ai-foundry-hosted-agents-custom-framework.ipynb` notebook — it runs end to end, with a variable to choose the framework (`strands` or `pydantic`), and requires no local Docker because the image is built in Azure Container Registry.
 
+**"How does APIM know which model each agent uses?"**
+It doesn't, and it doesn't decide. When the agent is registered it receives the deployment name as an environment variable; its framework puts that name in the request URL, and API Management acts as a generic proxy — it reads the destination from the URL, injects the managed-identity token and forwards. There is no per-agent routing logic in the gateway. Changing the model means a new agent version with an updated variable, not a runtime switch. *(Presenter note: the full script for this, and the likely follow-ups, is in [`APIM_CAPABILITIES_GUIDE.md`](APIM_CAPABILITIES_GUIDE.md).)*
+
 ## See also
 
 - [`PRESENTATION_GUIDE.md`](PRESENTATION_GUIDE.md) — the full presentation script.
