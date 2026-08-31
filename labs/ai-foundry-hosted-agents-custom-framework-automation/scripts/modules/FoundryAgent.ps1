@@ -183,6 +183,89 @@ function Resolve-AgentVersionStatus {
     return ''
 }
 
+<#
+.SYNOPSIS
+  Waits until the Foundry project's data plane resolves its own subdomain.
+.DESCRIPTION
+  A Foundry account and project created moments earlier answer their
+  data-plane endpoint with one of two errors while they propagate:
+
+      ResourceNotFound: Subdomain does not map to a resource.   (the account)
+      NotFound: Project not found.                              (the project)
+
+  Both appear after ARM has reported Succeeded and while `az resource show`
+  lists the project as existing - the control plane is ahead of the data
+  plane, and the gap is minutes, not seconds.
+
+  Both were observed on real end-to-end runs. The subdomain one made an agent
+  GET fail, which was read as "the agent does not exist", and the create that
+  followed came back 409 Conflict. The project one then failed a genuinely
+  clean deployment outright, which is what proved the first diagnosis - a
+  Foundry account restored from soft-delete - wrong: a brand new account with
+  nothing to restore behaves exactly the same way.
+
+  This is the same shape as Wait-AcrDataPlaneReady in AgentImage.ps1, and for
+  the same reason: the ARM deployment finishing does not mean the data plane
+  is usable, and probing the real call beats sleeping a fixed amount of time.
+#>
+function Wait-FoundryProjectReady {
+    param(
+        [Parameter(Mandatory)][string]$ProjectEndpoint,
+        # Minutes, not seconds: the project-level window is the slower of the
+        # two and 5 minutes was not enough on a real run.
+        [int]$TimeoutSeconds = 900,
+        [int]$PollSeconds = 15
+    )
+
+    Write-Step 'Waiting for the Foundry project data plane'
+
+    $url = "$ProjectEndpoint/agents" + "?api-version=$($script:FoundryApiVersion)"
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $attempt = 0
+    $lastDetail = ''
+
+    while ((Get-Date) -lt $deadline) {
+        $attempt++
+        $result = Invoke-FoundryRest -Method GET -Url $url
+
+        if ($result.Success) {
+            Write-Ok "Project data plane is answering (attempt $attempt)"
+            return
+        }
+
+        $lastDetail = "$($result.Error) $($result.Text)".Trim()
+
+        # Only propagation errors are worth waiting on. Anything else - a 403 on
+        # the role, a wrong endpoint - will not improve by waiting, and sitting
+        # here for fifteen minutes would bury the real cause.
+        if ($lastDetail -notmatch '(?i)subdomain does not map|project not found') {
+            Write-Info 'data plane answered with a non-propagation error; continuing'
+            return
+        }
+
+        $what = if ($lastDetail -match '(?i)project not found') { 'project' } else { 'subdomain' }
+        $remaining = [int]($deadline - (Get-Date)).TotalSeconds
+        Write-Info "$what not published yet (${remaining}s before giving up)"
+        Start-Sleep -Seconds $PollSeconds
+    }
+
+    Write-Warn "The project data plane never resolved within $TimeoutSeconds seconds."
+    Write-Warn "  Endpoint : $ProjectEndpoint"
+    Write-Warn "  Last     : $lastDetail"
+    Write-Warn '  Continuing anyway - the registration step reports its own error if this was the cause.'
+}
+
+<#
+.SYNOPSIS
+  Reads a hosted agent, distinguishing "not there" from "could not tell".
+.DESCRIPTION
+  This used to return $null for ANY failed GET, so a 403 during role
+  propagation, or the subdomain error above, was indistinguishable from an
+  agent that genuinely does not exist - and the caller would then take the
+  create path and fail on a 409. Absence is now only inferred from an actual
+  agent-level 404; anything else is raised, because guessing here produces a
+  failure several steps away from its cause.
+#>
 function Get-HostedAgent {
     param(
         [Parameter(Mandatory)][string]$ProjectEndpoint,
@@ -192,7 +275,34 @@ function Get-HostedAgent {
     $url = "$ProjectEndpoint/agents/$AgentName" + "?api-version=$($script:FoundryApiVersion)"
     $result = Invoke-FoundryRest -Method GET -Url $url
     if ($result.Success) { return $result.Json }
-    return $null
+
+    $detail = "$($result.Error) $($result.Text)".Trim()
+
+    # The subdomain error also carries code ResourceNotFound, so it has to be
+    # matched BEFORE the generic 404 test - otherwise a data plane that is
+    # still propagating reads as "no such agent", which is the bug that made
+    # this function worth changing.
+    if ($detail -match '(?i)subdomain does not map|project not found') {
+        throw @(
+            'The Foundry project data plane is not published yet.',
+            "  Endpoint: $ProjectEndpoint",
+            "  Azure   : $detail",
+            '  Check   : a Foundry account created moments ago answers this way for a few',
+            '            minutes. Re-run with -SkipInfrastructure -SkipImageBuild -ImageTag <tag>.'
+        ) -join "`n"
+    }
+
+    if ($detail -match '(?i)\bagentnotfound\b|\b404\b|not found') {
+        return $null
+    }
+
+    throw @(
+        "Could not determine whether agent '$AgentName' exists.",
+        "  Endpoint: $ProjectEndpoint",
+        "  Azure   : $detail",
+        '  Check   : 403 here is usually Foundry Project Manager still propagating.',
+        '            Treating this as "the agent is absent" would create it and fail on a conflict.'
+    ) -join "`n"
 }
 
 <#
@@ -242,6 +352,19 @@ function New-HostedAgentVersion {
     }
 
     $result = Invoke-FoundryRest -Method POST -Url $url -BodyJson $body
+
+    # A 409 on the create path is the service telling us the existence check
+    # was wrong. That is recoverable and the recovery is the branch we did not
+    # take, so take it now rather than failing a whole deployment on a
+    # disagreement about state. Real occurrence: the data plane 404'd the GET
+    # and then rejected the create as a duplicate, seconds apart.
+    if ($null -eq $existing -and -not $result.Success -and
+        "$($result.Error) $($result.Text)" -match '(?i)conflict|already exists') {
+        Write-Info 'the service reports the agent already exists - adding a version instead'
+        $url = "$ProjectEndpoint/agents/$AgentName/versions" + "?api-version=$($script:FoundryApiVersion)"
+        $body = [ordered]@{ definition = $definition } | ConvertTo-Json -Depth 12
+        $result = Invoke-FoundryRest -Method POST -Url $url -BodyJson $body
+    }
 
     if (-not $result.Success) {
         throw @(

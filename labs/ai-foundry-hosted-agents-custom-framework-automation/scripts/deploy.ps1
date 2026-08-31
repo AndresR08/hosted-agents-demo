@@ -337,6 +337,11 @@ try {
             LOG_LEVEL                = $config.AgentLogLevel
         }
 
+        # The ARM deployment finishing does not mean the Foundry data plane is
+        # usable; a freshly created account answers "Subdomain does not map to
+        # a resource" for a few minutes. Probed once here rather than per agent.
+        Wait-FoundryProjectReady -ProjectEndpoint $outputs.FoundryAgentProjectEndpoint
+
         foreach ($target in $targets) {
             $target.AgentVersion = New-HostedAgentVersion -ProjectEndpoint $outputs.FoundryAgentProjectEndpoint `
                 -AgentName $target.AgentName -ImageUri $target.ImageUri -EnvironmentVariables $envVars `
