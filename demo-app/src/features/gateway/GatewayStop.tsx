@@ -1,16 +1,6 @@
 import { useEffect, useState } from "react";
-import type { ComponentType } from "react";
 import { Button } from "@fluentui/react-components";
-import {
-  ArrowClockwiseRegular,
-  BotRegular,
-  BrainCircuitRegular,
-  CodeRegular,
-  PersonRegular,
-  PlayCircleRegular,
-  PlugConnectedRegular,
-  ShieldKeyholeRegular,
-} from "@fluentui/react-icons";
+import { ArrowClockwiseRegular, CodeRegular, PlayCircleRegular, PlugConnectedRegular } from "@fluentui/react-icons";
 import { StopFrame } from "@/layout/StopFrame";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
 import { StatusPill } from "@/components/StatusPill";
@@ -19,69 +9,21 @@ import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useDemoDataService } from "@/services/provider";
 import type { AccessControlAttempt, JourneyTimings } from "@/services/contracts";
-import { cn } from "@/lib/cn";
 import { PolicyViewerDialog } from "./PolicyViewerDialog";
+import { RequestFlowDiagram } from "./RequestFlowDiagram";
 
-interface JourneyNode {
-  /** Translated (generic role names: Client, Agent). */
-  labelKey?: string;
-  /** Untranslated (Azure product / model names). */
-  label?: string;
-  fact: string;
-  icon: ComponentType<{ fontSize?: number }>;
-  isGateway?: boolean;
-  /** Label is replaced at render time with the agent actually in play. */
-  isAgent?: boolean;
-}
-
-const NODES: JourneyNode[] = [
-  { labelKey: "journey.nodeClient", fact: "api-key", icon: PersonRegular },
-  { label: "API Management", fact: "token · ai.azure.com", icon: ShieldKeyholeRegular, isGateway: true },
-  { labelKey: "journey.nodeAgent", fact: "container", icon: BotRegular, isAgent: true },
-  { label: "API Management", fact: "token · cognitiveservices.azure.com", icon: ShieldKeyholeRegular, isGateway: true },
-  { label: "gpt-5-mini", fact: "model", icon: BrainCircuitRegular },
-];
+/*
+ * The node list, the per-connector timing map and the ms formatter moved to
+ * RequestFlowDiagram.tsx with the animated path. They were only ever used by
+ * the block this screen now delegates, and leaving a second copy here is how
+ * the diagram and the numbers beside it drift apart.
+ *
+ * REVEAL_STAGGER_MS stays: it paces the three-credential test reveal below,
+ * which has nothing to do with the path diagram and was only sitting in the
+ * same region of the file.
+ */
 
 const REVEAL_STAGGER_MS = 400;
-
-/** ms under a second read better as integers; above it, seconds with one decimal. */
-function formatMs(ms: number): string {
-  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
-}
-
-/**
- * Maps a connector index to the measurement that belongs on it.
- *
- * The five nodes are Client → APIM → Agent → APIM → Model, so the four
- * connectors are, in order: the gateway's own cost on the inbound hop, the
- * agent's processing, the gateway's cost on the model hop, and the model call
- * itself. Agent processing is the one derived figure — hop 1's backend time
- * minus the whole of hop 2 — so it is shown only when both are measured, and
- * it is arithmetic on two real numbers rather than an estimate.
- */
-function segmentTiming(
-  index: number,
-  timings: JourneyTimings | null,
-): { ms: number; labelKey: string; isGatewayCost: boolean } | null {
-  if (!timings?.available) return null;
-  const { hop1, hop2 } = timings;
-
-  if (index === 0 && hop1) {
-    return { ms: hop1.gatewayOverheadMs, labelKey: "journey.segment.gateway", isGatewayCost: true };
-  }
-  if (index === 1 && hop1 && hop2) {
-    const agentMs = hop1.backendMs - hop2.totalMs;
-    if (agentMs <= 0) return null;
-    return { ms: agentMs, labelKey: "journey.segment.agent", isGatewayCost: false };
-  }
-  if (index === 2 && hop2) {
-    return { ms: hop2.gatewayOverheadMs, labelKey: "journey.segment.gateway", isGatewayCost: true };
-  }
-  if (index === 3 && hop2) {
-    return { ms: hop2.backendMs, labelKey: "journey.segment.model", isGatewayCost: false };
-  }
-  return null;
-}
 
 /**
  * GATEWAY — "how do clients reach the agent?"
@@ -224,74 +166,12 @@ export function GatewayStop() {
           <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
             {t("gw.path.title")}
           </p>
-          <div className="flex items-center justify-between">
-            {NODES.map((node, i) => {
-              const Icon = node.icon;
-              const label = node.isAgent
-                ? agentNodeLabel
-                : node.labelKey
-                  ? t(node.labelKey)
-                  : node.label;
-              const segment = segmentTiming(i, timings);
-
-              return (
-                <div key={i} className="flex flex-1 items-center">
-                  <div className="flex w-28 flex-col items-center gap-1.5 text-center">
-                    <div
-                      className={cn(
-                        "flex h-12 w-12 items-center justify-center border-2",
-                        node.isGateway ? "rotate-45 rounded-lg" : "rounded-full",
-                        "border-accent bg-accent/10 text-accent",
-                      )}
-                      aria-hidden="true"
-                    >
-                      <span className={cn(node.isGateway && "-rotate-45")}>
-                        <Icon fontSize={18} />
-                      </span>
-                    </div>
-                    <span
-                      className="max-w-full truncate text-caption font-medium text-ink"
-                      title={label}
-                    >
-                      {label}
-                    </span>
-                    <span className="max-w-full truncate text-caption text-ink-muted" title={node.fact}>
-                      {node.fact}
-                    </span>
-                  </div>
-
-                  {i < NODES.length - 1 && (
-                    <div className="relative mx-2 flex flex-1 flex-col items-center justify-center">
-                      {/*
-                        Two of the four segments are the gateway's own
-                        processing, shown in the affirmative colour because
-                        single-digit milliseconds beside a multi-second model
-                        call is the point being made. All four come from
-                        ApiManagementGatewayLogs; a segment with no measurement
-                        simply renders no label.
-                      */}
-                      {segment && (
-                        <span
-                          className={cn(
-                            "mb-1 whitespace-nowrap text-caption font-medium tabular-nums",
-                            segment.isGatewayCost ? "text-affirm" : "text-ink",
-                          )}
-                        >
-                          {formatMs(segment.ms)}
-                        </span>
-                      )}
-                      <div className="h-px w-full bg-accent" aria-hidden="true" />
-                      {segment && (
-                        <span className="mt-1 whitespace-nowrap text-caption text-ink-muted">
-                          {t(segment.labelKey)}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <RequestFlowDiagram
+            timings={timings}
+            agentLabel={agentNodeLabel}
+            runToken={runToken}
+            idle={totalLatencyMs == null}
+          />
 
           {(timings?.available || totalLatencyMs != null) && (
             <div className="mt-2 flex items-center justify-end gap-4">
