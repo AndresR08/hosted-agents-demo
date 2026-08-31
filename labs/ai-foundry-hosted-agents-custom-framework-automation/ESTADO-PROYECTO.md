@@ -5,8 +5,9 @@
 > `main.bicep` siguen siendo la fuente de verdad del **laboratorio**. Este
 > archivo no la reemplaza.
 
-Última actualización: **2026-08-26**. Repo autosuficiente (lab vendorizado y
-fijado), lab oficial externo limpio, invocación de agentes confirmada.
+Última actualización: **2026-08-31**. Repo autosuficiente (lab vendorizado y
+fijado, más un parche local documentado), lab oficial externo limpio,
+invocación de agentes verificada automáticamente en cada despliegue.
 
 ## 1. Objetivo
 
@@ -194,6 +195,23 @@ adentro y no hermana directa de `broker/`) se mantiene y se da por buena.
 4. **`docs/03-implementation-report.md` está desactualizado en la dirección
    pesimista.** Sus §2, §10 y §11 declaran no verificado lo que Azure confirma
    como funcionando. Debe actualizarse o marcarse como documento histórico.
+
+   Mientras tanto, **el estado real vive aquí**, no en ese informe:
+
+   | Para saber… | Mirar |
+   |---|---|
+   | Qué decisiones están tomadas y no se reabren | §6 de este archivo |
+   | Qué se cerró y cuándo | §7b de este archivo |
+   | Qué revisión de upstream está vendorizada, y con qué parches | `vendor/ai-gateway/NOTICE.md` |
+   | El tier de APIM y por qué no es `Consumption` | [`docs/06-apim-consumption.md`](docs/06-apim-consumption.md) |
+   | Qué cambió y cuándo, en formato de bitácora | `CHANGELOG.md` (raíz del repo) |
+   | Si el lab desplegado funciona **ahora** | Azure. Ningún documento sustituye una consulta en vivo (ver pendiente 1) |
+
+   Lo que el informe sí sigue siendo es el registro de **por qué** la
+   automatización se construyó como se construyó: §2 (el paso roto del
+   notebook), §2.5, §9 y la justificación de REST sobre el SDK siguen siendo
+   válidos y no están duplicados en ningún otro sitio. El desfase está en sus
+   afirmaciones de *estado*, no en las de *diseño*.
 5. **El escenario de teardown + redeploy con el mismo nombre nunca se ha
    probado** (ventana de soft-delete: ~48 h APIM/Foundry, hasta 14 días Log
    Analytics). `teardown.ps1` sí se ejecutó ya, contra un resource group
@@ -220,12 +238,45 @@ adentro y no hermana directa de `broker/`) se mantiene y se da por buena.
 
 ## 8. Próximo paso lógico recomendado
 
-Ejecutar la validación de invocación (pendiente 1). Es barato, no toca
-infraestructura, y cierra la única pregunta que impide decir "la demo
-funciona" en lugar de "la demo está desplegada".
+### Ya hecho: repositorio autosuficiente
 
-En paralelo está en diseño la **migración a repositorio autosuficiente**:
-vendorizar el lab oficial y sus módulos Bicep compartidos dentro de este repo
-bajo la licencia MIT de upstream, para que `deploy.ps1` deje de depender de
-tener `Azure-Samples/AI-Gateway` clonado al lado. Propuesta pendiente de
-aprobación; nada implementado todavía.
+La **migración a repositorio autosuficiente está implementada y en uso**, no en
+diseño. Este párrafo describía una propuesta "pendiente de aprobación, nada
+implementado todavía"; eso dejó de ser cierto hace tiempo y contradecía la
+cabecera de este mismo archivo.
+
+Lo que existe hoy:
+
+- `vendor/ai-gateway/` contiene el lab oficial completo y el cierre transitivo
+  de su `main.bicep`, bajo la licencia MIT de upstream (`LICENSE.md` intacto).
+- Está **fijado** en el commit `561d7199` (upstream del 2026-07-24, vendorizado
+  el 2026-08-27). Mover el pin es un acto deliberado, no un efecto secundario
+  de sincronizar. El motivo de no haber pasado a `e5d99225` está en §6 y en
+  [`docs/05-upstream-issue-deployments-bicep.md`](docs/05-upstream-issue-deployments-bicep.md).
+- `scripts/sync-vendor.ps1` reconstruye ese árbol desde cero, verifica que
+  compile antes de publicarlo, y aplica los parches de `patches/` fallando si
+  alguno deja de aplicar (§6).
+- `.github/workflows/sync-vendor.yml` lo ejecuta mensualmente y abre un pull
+  request; nunca fusiona solo.
+- `deploy.ps1` ya no depende de tener `Azure-Samples/AI-Gateway` clonado al
+  lado: resuelve el lab desde `vendor/` y solo cae a las ubicaciones hermanas
+  históricas si se le pasa `-LabPath`.
+
+También quedó cerrada la validación de invocación que este apartado
+recomendaba como siguiente paso: `Validate.ps1` comprueba en **cada**
+despliegue que ambos agentes responden, por la ruta directa a Foundry y a
+través de APIM, y así ocurrió en los despliegues del 2026-08-27.
+
+### Siguiente paso real
+
+**Resolver el pendiente 4**: decidir si `docs/03-implementation-report.md` se
+actualiza o se marca como documento histórico. Es el único documento que hoy
+afirma cosas falsas sobre el estado —en dirección pesimista, que es la que hace
+perder tiempo reverificando lo que ya funciona— y arreglarlo no cuesta
+infraestructura ni dinero.
+
+Después, por orden de valor: el pendiente 1 (`out/outputs.json` no es un
+artefacto de estado fiable) y el 5 (teardown + redespliegue con el mismo
+nombre, nunca probado), que ahora es más barato de ensayar porque
+`teardown.ps1` purga los recursos en soft-delete en vez de dejarlos reteniendo
+el nombre 48 h.
