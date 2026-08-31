@@ -149,6 +149,28 @@ adentro y no hermana directa de `broker/`) se mantiene y se da por buena.
 - El directorio de módulos se llama `scripts/modules/` (no `scripts/lib/`)
   porque `lib/` estaba en el `.gitignore` raíz del repo del lab oficial y
   ocultaba 6 de 8 archivos `.ps1` de git.
+- **APIM `Basicv2` sigue siendo el default; `Consumption` NO.** Consumption se
+  desplegó y validó completo (más barato: ~$0 en reposo frente a ~$197/mes, e
+  instala en ~14 min en vez de ~25-35), pero **la primera petición tras 35
+  minutos de reposo tardó 54 s**, medidos sobre el gateway solo: una llamada sin
+  API key que APIM rechaza con `401` sin llegar a ningún backend, sin generar un
+  token. La siguiente tardó 0,36 s. Eso descarta Consumption para cualquier
+  sesión con cliente en vivo. Sigue soportado y recomendado para entornos
+  desechables. **El dato y las dos formas de medirlo mal están en
+  `docs/06-apim-consumption.md`** — leerlo antes de volver a proponerlo, para no
+  repetir el experimento: con 12 min de reposo la penalización parece de ~1,4 s
+  porque la instancia sigue caliente, y una llamada de calentamiento es
+  necesaria pero no suficiente (una pausa larga durante la propia demo la vuelve
+  a dormir). El keep-alive se consideró y se descartó: su modo de fallo es
+  silencioso.
+- **`vendor/` es upstream más un delta conocido y revisable, no upstream
+  intacto.** Consumption exige `sku.capacity: 0` y el `apim.bicep` vendorizado
+  fija `1` sin exponerlo como parámetro, así que la plantilla vendorizada tiene
+  que cambiar. En vez de editarla a mano —que la siguiente sincronización
+  descartaría en silencio— el cambio vive en `patches/` y `sync-vendor.ps1` lo
+  aplica en cada sync, antes del build check, **fallando la sincronización** si
+  algún parche deja de aplicar. Es una personalización nuestra, no un bug de
+  upstream: no se reporta a Microsoft (contraste con `docs/05`, que sí lo es).
 
 ## 7. Pendientes, en orden de prioridad
 
