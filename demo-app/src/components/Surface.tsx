@@ -3,6 +3,18 @@ import { cn } from "@/lib/cn";
 
 export interface SurfaceProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
+  /**
+   * "reference" marks a card that is NOT a reading of the deployment: a
+   * dashed, lighter border and a raised ground, unmistakable at a glance and
+   * from across a room. Exactly one screen uses it (the APIM reference
+   * screen); every screen showing real data uses "default" and they all look
+   * identical, which is what makes the exception legible as one.
+   *
+   * A tone rather than a className override, because `cn` is a plain join
+   * with no conflict resolution - passing "bg-illustrative-bg" alongside the
+   * built-in "bg-surface" would leave which one wins to stylesheet order.
+   */
+  tone?: "default" | "reference";
 }
 
 /**
@@ -21,11 +33,14 @@ export interface SurfaceProps extends HTMLAttributes<HTMLDivElement> {
  * `min-h-0` they are what guarantee "panels never clip, the page never
  * scrolls".
  */
-export function Surface({ children, className, ...rest }: SurfaceProps) {
+export function Surface({ children, className, tone = "default", ...rest }: SurfaceProps) {
   return (
     <div
       className={cn(
-        "min-h-0 overflow-hidden rounded-lg border border-border bg-surface shadow-none",
+        "min-h-0 overflow-hidden rounded-lg shadow-none",
+        tone === "reference"
+          ? "border-2 border-dashed border-ink-muted/40 bg-illustrative-bg"
+          : "border border-border bg-surface",
         "transition-[border-color] duration-200",
         className,
       )}

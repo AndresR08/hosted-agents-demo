@@ -21,6 +21,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "apim.bannerBody": "This screen describes the Azure API Management product. Most of it is not configured in this lab, and nothing here is read from Azure except the tier in use, marked below. Each capability says whether this lab actually uses it.",
     "apim.pillUsed": "Used here",
     "apim.pillNotUsed": "Not in this lab",
+    "apim.footer": "Reference material about the API Management product. The only value read from this deployment is the tier in use, badged where it appears.",
 
     "apim.tiersTitle": "Choosing a tier has measurable consequences",
     "apim.tiersSubtitle": "Both tiers below were deployed and measured in this subscription. The cold start is a call the gateway rejects with 401 before reaching any backend — it times the gateway waking up, nothing else.",
@@ -381,6 +382,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "apim.bannerBody": "Esta pantalla describe el producto Azure API Management. La mayor parte no está configurada en este laboratorio, y nada de aquí se lee de Azure salvo el tier en uso, señalado abajo. Cada capacidad indica si este laboratorio la usa realmente.",
     "apim.pillUsed": "Se usa aquí",
     "apim.pillNotUsed": "No en este lab",
+    "apim.footer": "Material de referencia sobre el producto API Management. El único valor leído de este despliegue es el tier en uso, señalado donde aparece.",
 
     "apim.tiersTitle": "Elegir un tier tiene consecuencias medibles",
     "apim.tiersSubtitle": "Ambos tiers se desplegaron y midieron en esta suscripción. El arranque en frío es una llamada que el gateway rechaza con 401 antes de llegar a ningún backend — mide al gateway despertando, nada más.",

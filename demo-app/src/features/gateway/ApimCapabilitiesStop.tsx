@@ -18,12 +18,10 @@ import { CAPABILITIES, ROUTING_STEPS, TIER_ROWS } from "./apimCapabilities";
  *
  * THE SEPARATION, AND WHY IT IS BUILT RATHER THAN REMEMBERED
  *
- * Every other screen carries a `live` provenance badge over figures read from
- * Azure. This one carries `illustrative`, the band this application already
- * reserves for "not measured from this deployment" — the same badge the
- * Simulation mode uses. Three further things keep the boundary visible while
- * someone is presenting at speed:
- *
+ *   - The frame itself is re-skinned: dashed border and a tinted ground, over
+ *     the solid hairline border every other screen uses. This is the layer
+ *     that works at a glance, from the back of a room, for someone who walked
+ *     in mid-session and is not reading anything.
  *   - It is a separate stop. It never renders beside the live journey diagram;
  *     reaching it is a deliberate click on "Reference" in the Gateway sub-nav.
  *   - A banner states the rule in words, at the top, permanently.
@@ -31,10 +29,24 @@ import { CAPABILITIES, ROUTING_STEPS, TIER_ROWS } from "./apimCapabilities";
  *     Three of the eight do; the pill is what stops the list from being read
  *     aloud as a list of things that are switched on.
  *
- * The single live value on the screen is the APIM tier, from
- * `/api/environment`. It is marked as live where it appears, and when the
- * broker does not report it, the tier table simply highlights nothing rather
- * than assuming Basicv2 — a wrong "you are here" is worse than none.
+ * WHY THERE IS NO PROVENANCE BADGE ON THIS SCREEN
+ *
+ * It used to carry `illustrative`, and that was worse than nothing. The live
+ * Gateway screen shows the same `illustrative` badge until the first
+ * invocation has been measured — so in the state a presenter opens the console
+ * in, the badge was identical on both screens and distinguished nothing. A
+ * label that reads the same on the screen it is meant to separate from is not
+ * a weak safeguard, it is a misleading one.
+ *
+ * Removing it does not cost a claim, because this screen has no screen-level
+ * figure to qualify. Its one live value, the APIM tier, carries its own `live`
+ * badge inline at the point of use, which is what DESIGN_DECISIONS.md 1.6
+ * actually requires; the tier table's other numbers are this project's own
+ * measurements and say so in their own subtitle. The footer states what the
+ * screen is instead.
+ *
+ * When the broker does not report the tier, the table highlights nothing
+ * rather than assuming Basicv2 — a wrong "you are here" is worse than none.
  */
 export function ApimCapabilitiesStop() {
   const t = useTranslation();
@@ -70,7 +82,8 @@ export function ApimCapabilitiesStop() {
     <StopFrame
       title={t("apim.title")}
       question={t("apim.question")}
-      provenance={<ProvenanceBadge provenance={{ band: "illustrative" }} />}
+      tone="reference"
+      footer={t("apim.footer")}
     >
       <div className="flex flex-col gap-5">
         {/* The rule, in words, permanently on screen. */}

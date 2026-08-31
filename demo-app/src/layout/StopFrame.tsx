@@ -46,6 +46,7 @@ export function StopFrame({
   provenance,
   children,
   bodyClassName,
+  tone,
 }: {
   title: ReactNode;
   question: ReactNode;
@@ -54,9 +55,14 @@ export function StopFrame({
   provenance?: ReactNode;
   children: ReactNode;
   bodyClassName?: string;
+  /**
+   * "reference" re-skins the frame for the one screen that is not a reading
+   * of this deployment - see Surface. Everything else leaves it alone.
+   */
+  tone?: "default" | "reference";
 }) {
   return (
-    <Surface className="flex min-h-0 flex-1 animate-fade-slide-in flex-col gap-4 p-6">
+    <Surface tone={tone} className="flex min-h-0 flex-1 animate-fade-slide-in flex-col gap-4 p-6">
       <header className={cn("flex shrink-0 items-center justify-between gap-6", MEASURE)}>
         <div className="min-w-0">
           <p className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
