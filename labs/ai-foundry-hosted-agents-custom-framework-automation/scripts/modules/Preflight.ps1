@@ -79,6 +79,109 @@ function Test-Prerequisites {
   Container Registry and App Service have no soft-delete surface to query, so
   they are not checked; neither has ever produced this failure.
 #>
+<#
+.SYNOPSIS
+  Finds local dev servers still holding this repository's files.
+.DESCRIPTION
+  A Vite or broker dev server left running keeps handles on node_modules, and
+  `npm ci` then dies with
+
+      EPERM: operation not permitted, unlink '...\lightningcss.win32-x64-msvc.node'
+
+  minutes into a deployment, with an error that says nothing about a dev
+  server. This happened three times in one session, once far enough in to
+  waste a full deployment.
+
+  The specific trap: stopping a backgrounded `npm run dev` kills the npm
+  wrapper, not the node child it spawned. The terminal looks clean and the
+  orphan keeps the locks. Nothing in the deployment path would ever mention
+  it, which is why this check exists at all.
+
+  Detection is by command line rather than by port, because the lock is on
+  files, not on a socket: a dev server that failed to bind its port still
+  holds node_modules. Listening ports are reported as extra context when
+  Get-NetTCPConnection is available, not as the test.
+
+  Advisory by default - this kills nothing without being asked, because the
+  processes belong to the operator, not to this script, and one of them may
+  be a deliberately running server in another window. -StopLocalDevServers
+  turns it into a cleanup.
+#>
+function Test-OrphanedDevServers {
+    param(
+        [Parameter(Mandatory)][string]$RepoRoot,
+        [switch]$StopThem
+    )
+
+    Write-Step 'Checking for local dev servers holding this repository'
+
+    $processes = @()
+    try {
+        # -Filter on Name, then match the path ourselves: Win32_Process's WQL
+        # LIKE cannot express "contains this path" without escaping backslashes
+        # into unreadability.
+        $needle = $RepoRoot.TrimEnd('\')
+        $processes = @(
+            Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction Stop |
+                Where-Object { $_.CommandLine -and $_.CommandLine.Replace('/', '\') -like "*$needle*" }
+        )
+    }
+    catch {
+        Write-Info 'could not enumerate processes; skipping the check'
+        return
+    }
+
+    if ($processes.Count -eq 0) {
+        Write-Ok 'No dev server is holding this repository'
+        return
+    }
+
+    # Ports are context for the operator ("that is the console I left open"),
+    # never the detection itself.
+    $portsByPid = @{}
+    try {
+        foreach ($conn in (Get-NetTCPConnection -State Listen -ErrorAction Stop)) {
+            # [int] on both sides: OwningProcess is a UInt32 and ProcessId is
+            # read back as one too, so a hashtable keyed on the raw values
+            # never matches the [int] lookup below - the ports simply never
+            # appeared, silently. Found by running the check, not by reading it.
+            $key = [int]$conn.OwningProcess
+            if (-not $portsByPid.ContainsKey($key)) { $portsByPid[$key] = @() }
+            $portsByPid[$key] += $conn.LocalPort
+        }
+    }
+    catch { }
+
+    Write-Warn "$($processes.Count) node process(es) are running out of this repository:"
+    foreach ($proc in $processes) {
+        $ports = if ($portsByPid.ContainsKey([int]$proc.ProcessId)) {
+            ' - listening on ' + (($portsByPid[[int]$proc.ProcessId] | Sort-Object -Unique) -join ', ')
+        } else { '' }
+        $cmd = $proc.CommandLine
+        if ($cmd.Length -gt 120) { $cmd = $cmd.Substring(0, 117) + '...' }
+        Write-Warn "    pid $($proc.ProcessId)$ports"
+        Write-Warn "      $cmd"
+    }
+
+    if (-not $StopThem) {
+        Write-Warn '  These hold file handles in node_modules. npm ci fails with EPERM against them,'
+        Write-Warn '  several minutes into the deployment, with an error that does not mention them.'
+        Write-Warn '  Re-run with -StopLocalDevServers to end them, or stop them yourself. Note that'
+        Write-Warn '  stopping a backgrounded `npm run dev` leaves this node child behind.'
+        return
+    }
+
+    foreach ($proc in $processes) {
+        try {
+            Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
+            Write-Ok "Stopped pid $($proc.ProcessId)"
+        }
+        catch {
+            Write-Warn "Could not stop pid $($proc.ProcessId): $($_.Exception.Message)"
+        }
+    }
+}
+
 function Test-SoftDeletedCollisions {
     param([Parameter(Mandatory)][string]$ResourceGroupName)
 

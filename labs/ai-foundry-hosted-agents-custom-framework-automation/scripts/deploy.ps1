@@ -73,6 +73,11 @@
 .PARAMETER SkipValidation
   Skips the direct and APIM invocation tests.
 
+.PARAMETER StopLocalDevServers
+  Ends any node process running out of this repository before starting. Without
+  it they are only reported. They hold handles in node_modules, and npm ci dies
+  on them with EPERM minutes into the run - see Test-OrphanedDevServers.
+
 .EXAMPLE
   .\deploy.ps1
 
@@ -109,7 +114,8 @@ param(
     [switch]$SkipInfrastructure,
     [switch]$SkipImageBuild,
     [switch]$SkipAgent,
-    [switch]$SkipValidation
+    [switch]$SkipValidation,
+    [switch]$StopLocalDevServers
 )
 
 Set-StrictMode -Version Latest
@@ -239,6 +245,13 @@ try {
 
     # ----------------------------------------------------------- PREPARATION
     Test-Prerequisites -RequireNode:(-not $SkipDemoApp)
+
+    # Before anything long-running: a dev server left holding node_modules
+    # fails the demo package build several minutes from here, with an EPERM
+    # that names a lightningcss binary and not the server holding it. Checked
+    # even with -SkipDemoApp, because the broker build reads the same tree.
+    Test-OrphanedDevServers -RepoRoot (Split-Path -Parent (Split-Path -Parent $rootDir)) `
+        -StopThem:$StopLocalDevServers
     Test-Configuration -Config $config
     $ctx = Test-Authentication -SubscriptionId $SubscriptionId
     Test-LabSources -LabPath $LabPath -Framework $Framework -PatchDir (Join-Path $rootDir 'patches')
