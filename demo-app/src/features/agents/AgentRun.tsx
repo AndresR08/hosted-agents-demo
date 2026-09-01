@@ -6,6 +6,7 @@ import { type Fact, FactList } from "@/components/FactList";
 import { PanelBody } from "@/components/PanelBody";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
 import { Skeleton } from "@/components/Skeleton";
+import { LiveCallError } from "@/components/LiveCallError";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useDemoDataService } from "@/services/provider";
@@ -164,17 +165,13 @@ export function AgentRun({ agent }: { agent: AgentSummary | null }) {
         {isInvoking && <p className="text-caption text-ink-muted">{t("agents.run.invoking")}</p>}
 
         {invokeError && !isInvoking && (
-          <p className="text-caption text-ink">
-            {t("assistant.liveError")} ({invokeError})
-          </p>
+          <LiveCallError detail={invokeError} />
         )}
 
         {detailLoading && !isInvoking && <Skeleton className="h-40 w-full" />}
 
         {detailError && !detailLoading && !isInvoking && (
-          <p className="text-caption text-ink">
-            {t("assistant.liveError")} ({detailError})
-          </p>
+          <LiveCallError detail={detailError} />
         )}
 
         {runDetail && !isInvoking && !detailLoading && (

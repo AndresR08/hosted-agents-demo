@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { LiveCallError } from "@/components/LiveCallError";
 import {
   Button,
   Dialog,
@@ -17,7 +18,7 @@ import type { AgentName } from "@/state/types";
  * AGENT › DELETE — `DELETE /api/agents/:name` (`DemoDataService.deleteAgent`),
  * the one write this dialog performs. Mirrors `CreateAgentDialog`'s shape:
  * local form state reset on every open, the broker's own error surfaced
- * verbatim through `assistant.liveError`, no client-side re-validation of
+ * verbatim through `LiveCallError`, no client-side re-validation of
  * what only the broker can know (e.g. whether the agent has active
  * sessions — that reaches the caller as whatever Foundry said).
  *
@@ -112,9 +113,7 @@ export function DeleteAgentDialog({
               </label>
 
               {error && (
-                <p className="text-caption text-ink">
-                  {t("assistant.liveError")} ({error})
-                </p>
+                <LiveCallError detail={error} />
               )}
 
               <div className="mt-1 flex justify-end gap-2">

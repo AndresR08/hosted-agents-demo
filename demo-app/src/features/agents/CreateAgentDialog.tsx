@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { LiveCallError } from "@/components/LiveCallError";
 import {
   Button,
   Dialog,
@@ -33,7 +34,7 @@ const EMPTY_FORM: FormState = { name: "", image: "", cpu: "1", memory: "2Gi", de
  * anything about *whether a name is available* (409) or *whether an
  * environment variable key is platform-managed* (400) is the broker's own
  * check (broker/src/routes/agents.ts), not duplicated here. Whatever the
- * broker rejects with is shown through the same `assistant.liveError`
+ * broker rejects with is shown through the same `LiveCallError`
  * pattern every other write in this section uses — no per-status-code
  * branching, because the message already carries the reason.
  *
@@ -163,9 +164,7 @@ export function CreateAgentDialog({
               <p className="text-caption text-ink-muted">{t("agents.create.requiredNote")}</p>
 
               {error && (
-                <p className="text-caption text-ink">
-                  {t("assistant.liveError")} ({error})
-                </p>
+                <LiveCallError detail={error} />
               )}
 
               <div className="mt-1 flex justify-end gap-2">

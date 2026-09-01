@@ -25,7 +25,12 @@
   --text-display: 32px;
   --text-body-lg: 24px;
   --text-body: 16px;
-  --text-caption: 13px;
+  /* 14px, not 13. DESIGN_DECISIONS.md 4.5 sets 16px as the "projector
+     floor"; this token carries 135 of the app's 166 type usages, including
+     the per-hop latencies and the APIM policy captions - the content the room
+     is meant to read. 14px is a floor-raising step that keeps the hierarchy
+     against the 16px body. See UX_AUDIT.md F1/F7. */
+  --text-caption: 14px;
 
   --spacing-grid-gutter: 24px;
   --spacing-grid-margin: 48px;

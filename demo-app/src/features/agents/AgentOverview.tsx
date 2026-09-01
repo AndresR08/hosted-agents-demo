@@ -3,6 +3,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { type Fact, FactList } from "@/components/FactList";
 import { MaintenanceActionButton } from "@/components/MaintenanceActionButton";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
+import { LiveCallError } from "@/components/LiveCallError";
 import { useTranslation } from "@/i18n/useTranslation";
 import { formatTime } from "@/lib/format";
 import type { AgentDetail } from "@/services/contracts";
@@ -93,9 +94,7 @@ export function AgentOverview({
       </header>
 
       {error && !loading ? (
-        <p className="px-3 py-2.5 text-caption text-ink">
-          {t("assistant.liveError")} ({error})
-        </p>
+        <LiveCallError detail={error} className="px-3 py-2.5" />
       ) : (
         <FactList facts={facts} loading={loading} className="px-3 py-2.5" />
       )}

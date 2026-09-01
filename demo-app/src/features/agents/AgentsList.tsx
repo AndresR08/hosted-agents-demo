@@ -2,6 +2,7 @@ import { Badge, Button, Tooltip } from "@fluentui/react-components";
 import { AddRegular, ArrowClockwiseRegular, BotFilled, DeleteRegular } from "@fluentui/react-icons";
 import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/Skeleton";
+import { LiveCallError } from "@/components/LiveCallError";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { AgentName } from "@/state/types";
 import type { AgentSummary } from "@/services/contracts";
@@ -88,9 +89,7 @@ export function AgentsList({
           <Skeleton className="h-16 w-full" />
         </div>
       ) : error ? (
-        <p className="px-3 py-2.5 text-caption text-ink">
-          {t("assistant.liveError")} ({error})
-        </p>
+        <LiveCallError detail={error} className="px-3 py-2.5" />
       ) : agents.length === 0 ? (
         <EmptyState className="px-3">{emptyMessage ?? t("agents.list.empty")}</EmptyState>
       ) : (

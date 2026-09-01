@@ -10,6 +10,7 @@ import {
 import { StopFrame } from "@/layout/StopFrame";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
 import { EmptyState } from "@/components/EmptyState";
+import { LiveCallError } from "@/components/LiveCallError";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useDemoStore } from "@/state/store";
 import { useDemoDataService } from "@/services/provider";
@@ -205,7 +206,7 @@ function TelemetryEmptyState({
   // reuse the same error pattern every other write/read in this app shows,
   // rather than folding it into the same copy as the honest 404 case below.
   if (mode === "live" && error) {
-    return <EmptyState>{`${t("assistant.liveError")} (${error})`}</EmptyState>;
+    return <LiveCallError detail={error} className="py-10 text-center" />;
   }
 
   const message =

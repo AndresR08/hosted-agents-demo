@@ -3,6 +3,7 @@ import { type Fact, FactList } from "@/components/FactList";
 import { PanelBody } from "@/components/PanelBody";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
 import { Skeleton } from "@/components/Skeleton";
+import { LiveCallError } from "@/components/LiveCallError";
 import { useTranslation } from "@/i18n/useTranslation";
 import { formatTime } from "@/lib/format";
 import type { AgentVersionHistory } from "@/services/contracts";
@@ -49,9 +50,7 @@ export function AgentVersions({
 
       <PanelBody className="flex flex-col gap-2 p-3">
         {error && !loading ? (
-          <p className="text-caption text-ink">
-            {t("assistant.liveError")} ({error})
-          </p>
+          <LiveCallError detail={error} />
         ) : loading ? (
           <div className="flex flex-col gap-2">
             <Skeleton className="h-28 w-full" />

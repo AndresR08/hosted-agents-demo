@@ -67,6 +67,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "seq.prev": "Previous step",
     "seq.next": "Next step",
 
+    "error.liveCall": "The live call did not complete. The console is reading real Azure resources, so a slow or unavailable dependency shows up here rather than being hidden.",
+    "error.details": "Technical detail",
+    "settings.shortcuts": "Keyboard shortcuts",
+    "settings.shortcutCopilot": "Open or close the copilot",
+    "settings.shortcutCredentials": "Run the three-credential test",
+    "settings.shortcutMode": "Switch Azure Live / Simulation",
+    "settings.shortcutMove": "Move between sections",
+    "settings.shortcutBack": "Close the copilot, or return to the start",
+
     "header.productName": "Foundry Hosted Agents",
     "header.tagline": "Custom frameworks, governed by API Management",
     "header.statusLive": "Azure Live",
@@ -456,6 +465,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "seq.pause": "Pausar",
     "seq.prev": "Paso anterior",
     "seq.next": "Paso siguiente",
+
+    "error.liveCall": "La llamada en vivo no se completó. La consola está leyendo recursos reales de Azure, así que una dependencia lenta o no disponible aparece aquí en vez de ocultarse.",
+    "error.details": "Detalle técnico",
+    "settings.shortcuts": "Atajos de teclado",
+    "settings.shortcutCopilot": "Abrir o cerrar el copiloto",
+    "settings.shortcutCredentials": "Ejecutar la prueba de las tres credenciales",
+    "settings.shortcutMode": "Alternar Azure en vivo / Simulación",
+    "settings.shortcutMove": "Moverse entre secciones",
+    "settings.shortcutBack": "Cerrar el copiloto, o volver al inicio",
 
     "header.productName": "Foundry Hosted Agents",
     "header.tagline": "Frameworks personalizados, gobernados por API Management",

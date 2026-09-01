@@ -15,6 +15,7 @@ import {
   WeatherSunnyRegular,
   PulseRegular,
   SlideTransitionRegular,
+  KeyboardRegular,
 } from "@fluentui/react-icons";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -112,6 +113,45 @@ export function SettingsDrawer() {
             <Radio value="on" label={t("settings.reducedMotionOn")} />
             <Radio value="off" label={t("settings.reducedMotionOff")} />
           </RadioGroup>
+        </SettingSection>
+
+        <Divider />
+
+        {/*
+          The shortcuts were real and undiscoverable - bound in
+          useKeyboardShortcuts.ts, written down only in the presentation guide,
+          which is read before a session rather than during one. A presenter
+          who blanks on the credential-test key had nowhere on screen to look.
+
+          This drawer is the right home: it is already the presenter's private
+          surface, already out of the audience's attention, and putting a
+          shortcut legend on the stage itself would tell the room it is
+          watching a demo. See UX_AUDIT.md F3.
+        */}
+        <SettingSection icon={KeyboardRegular} label={t("settings.shortcuts")}>
+          <dl className="flex flex-col gap-1.5">
+            {[
+              { keys: ["C"], label: t("settings.shortcutCopilot") },
+              { keys: ["S"], label: t("settings.shortcutCredentials") },
+              { keys: ["L"], label: t("settings.shortcutMode") },
+              { keys: ["←", "→"], label: t("settings.shortcutMove") },
+              { keys: ["Esc"], label: t("settings.shortcutBack") },
+            ].map((row) => (
+              <div key={row.label} className="flex items-baseline gap-2">
+                <dt className="flex shrink-0 gap-1">
+                  {row.keys.map((k) => (
+                    <kbd
+                      key={k}
+                      className="rounded border border-border bg-illustrative-bg/60 px-1.5 py-0.5 text-caption font-medium text-ink"
+                    >
+                      {k}
+                    </kbd>
+                  ))}
+                </dt>
+                <dd className="text-caption text-ink-muted">{row.label}</dd>
+              </div>
+            ))}
+          </dl>
         </SettingSection>
       </DrawerBody>
     </OverlayDrawer>
