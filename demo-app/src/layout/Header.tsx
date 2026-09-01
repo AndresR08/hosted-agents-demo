@@ -37,7 +37,7 @@ import { cn } from "@/lib/cn";
  *
  * Per this milestone's brief, Demo Mode is never a dashboard-visible
  * switch — the coloured dot + label here is informational only (green =
- * Azure Live, blue = Simulation) and matches the accent/affirm tokens
+ * Azure Live, muted = Simulation) and matches the accent/illustrative tokens
  * already used elsewhere for the same meanings. The only way to change it
  * is the gear icon, which opens SettingsDrawer.
  *
@@ -139,7 +139,11 @@ export function Header({ className }: { className?: string }) {
           <span
             className={cn(
               "h-2 w-2 shrink-0 rounded-full transition-colors duration-300",
-              mode === "live" ? "bg-affirm" : "bg-accent",
+              // accent for Live, per DESIGN_DECISIONS 4.5 ("a single accent
+              // colour reserved for live status and primary actions"), and
+              // illustrative-fg for Simulation because that is exactly what
+              // Simulation serves. affirm is now the 401 and nothing else.
+              mode === "live" ? "bg-accent" : "bg-illustrative-fg",
             )}
             aria-hidden="true"
           />

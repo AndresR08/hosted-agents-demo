@@ -189,7 +189,9 @@ function SpanRow({
         <span
           className={cn(
             "absolute top-0 h-full rounded-sm",
-            isGateway ? "bg-accent" : "bg-affirm",
+            // Gateway spans take the accent, the rest recede - the same
+            // pairing the Live request path uses. Green is the 401's alone.
+            isGateway ? "bg-accent" : "bg-ink-muted/50",
             !span.success && "bg-ink-muted",
           )}
           style={{ left: `${leftPct}%`, width: `${Math.min(100 - leftPct, widthPct)}%` }}

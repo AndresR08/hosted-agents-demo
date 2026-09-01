@@ -178,7 +178,7 @@ export function GatewayStop() {
               {timings?.available && timings.totalGatewayOverheadMs != null && (
                 <p className="whitespace-nowrap text-caption text-ink-muted">
                   {t("journey.gatewayOverhead")}:{" "}
-                  <span className="font-medium tabular-nums text-affirm">
+                  <span className="font-medium tabular-nums text-accent">
                     {timings.totalGatewayOverheadMs} ms
                   </span>
                 </p>

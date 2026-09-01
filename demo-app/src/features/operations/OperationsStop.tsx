@@ -354,19 +354,21 @@ function ControlGroup({
         : t("obs.gov.statusAbsent");
 
   return (
-    <section className={cn("rounded-lg border", tone === "active" ? "border-affirm/40" : "border-border")}>
+    // accent for "enforced here" - the same "this is on" family as a Running
+    // agent and the Live badge. affirm belongs to the 401 alone.
+    <section className={cn("rounded-lg border", tone === "active" ? "border-accent/40" : "border-border")}>
       <header
         className={cn(
           "flex items-baseline justify-between gap-2 rounded-t-lg border-b px-3 py-2",
           tone === "active"
-            ? "border-affirm/30 bg-affirm/[0.06]"
+            ? "border-accent/30 bg-accent/[0.06]"
             : "border-border bg-illustrative-bg/50",
         )}
       >
         <p
           className={cn(
             "text-caption font-semibold uppercase tracking-[0.06em]",
-            tone === "active" ? "text-affirm" : "text-ink-muted",
+            tone === "active" ? "text-accent" : "text-ink-muted",
           )}
         >
           {title}
@@ -389,7 +391,7 @@ function ControlGroup({
               fontSize={15}
               className={cn(
                 "mt-0.5 shrink-0",
-                tone === "active" ? "text-affirm" : "text-ink-muted",
+                tone === "active" ? "text-accent" : "text-ink-muted",
               )}
             />
             <div className="min-w-0 flex-1">
@@ -406,7 +408,7 @@ function ControlGroup({
                   className={cn(
                     "shrink-0 rounded px-1.5 py-px text-caption uppercase tracking-[0.04em]",
                     tone === "active"
-                      ? "bg-affirm/10 text-affirm"
+                      ? "bg-accent/10 text-accent"
                       // Dashed outline, full-contrast text: the same vocabulary
                       // the Reference tab uses for "not in this lab", and it
                       // survives a projector where a dimmer fill does not.
@@ -424,7 +426,7 @@ function ControlGroup({
                   )}
                 >
                   {evidenced && c.evidence && (
-                    <span className="mr-1 font-medium text-affirm">{t("obs.gov.evidenced")}</span>
+                    <span className="mr-1 font-medium text-accent">{t("obs.gov.evidenced")}</span>
                   )}
                   {c.evidence ?? c.note}
                 </p>

@@ -52,6 +52,10 @@ import { cn } from "@/lib/cn";
  *
  * TWO COLOURS, BECAUSE THERE ARE TWO KINDS OF MEASUREMENT
  *
+ * Accent for the gateway, muted ink for the backend. Not the affirmative
+ * green, which DESIGN_DECISIONS 4.4 reserves for the 401 inversion and which
+ * this component previously helped overload - see UX_AUDIT.md F4.
+ *
  * The sequence on the Reference tab colours four kinds of event. Here there
  * are exactly two real categories — the gateway's own processing
  * (gatewayOverheadMs) and the backend's (backendMs, or arithmetic on it) —
@@ -150,7 +154,10 @@ function formatMs(ms: number): string {
  * already holds.
  */
 function Beam({ active, done, durationMs, kind }: { active: boolean; done: boolean; durationMs: number; kind: SegmentKind }) {
-  const stroke = kind === "gateway" ? "var(--color-affirm)" : "var(--color-accent)";
+  // The gateway is the subject of this screen, so it takes the accent; the
+  // backend is context and recedes to the muted ink. Two categories, still
+  // plainly distinguishable, and the affirmative green stays with the 401.
+  const stroke = kind === "gateway" ? "var(--color-accent)" : "var(--color-ink-muted)";
   const drawn = active || done;
   return (
     <svg className="h-4 w-full" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true">
@@ -250,7 +257,7 @@ export function RequestFlowDiagram({
             const activeKind = !idle && progress >= 0 && progress < segments.length
               ? segments[progress].kind
               : null;
-            const ringVar = activeKind === "gateway" ? "var(--color-affirm)" : "var(--color-accent)";
+            const ringVar = activeKind === "gateway" ? "var(--color-accent)" : "var(--color-ink-muted)";
             const isTravelling = !idle && (progress === i || progress === i - 1);
 
             return (
@@ -295,7 +302,7 @@ export function RequestFlowDiagram({
                       <span
                         className={cn(
                           "mb-0.5 whitespace-nowrap text-caption font-medium tabular-nums",
-                          segment.kind === "gateway" ? "text-affirm" : "text-ink",
+                          segment.kind === "gateway" ? "text-accent" : "text-ink",
                         )}
                       >
                         {formatMs(segment.ms)}
@@ -324,11 +331,11 @@ export function RequestFlowDiagram({
 
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="inline-flex items-center gap-1.5 text-caption text-ink-muted">
-          <span className="h-0.5 w-4 rounded bg-affirm" aria-hidden="true" />
+          <span className="h-0.5 w-4 rounded bg-accent" aria-hidden="true" />
           {t("flow.legend.gateway")}
         </span>
         <span className="inline-flex items-center gap-1.5 text-caption text-ink-muted">
-          <span className="h-0.5 w-4 rounded bg-accent" aria-hidden="true" />
+          <span className="h-0.5 w-4 rounded bg-ink-muted" aria-hidden="true" />
           {t("flow.legend.backend")}
         </span>
       </div>

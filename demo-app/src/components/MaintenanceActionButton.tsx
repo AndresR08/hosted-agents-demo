@@ -67,7 +67,7 @@ export function MaintenanceActionButton({
         <p className="flex min-w-0 items-center gap-1 text-caption">
           {status === "running" && <span className="text-accent">{t("maintenance.status.running")}</span>}
           {status === "completed" && (
-            <span className="flex items-center gap-1 text-affirm">
+            <span className="flex items-center gap-1 text-accent">
               <CheckmarkCircleFilled fontSize={12} />
               {t("maintenance.status.completed")}
             </span>

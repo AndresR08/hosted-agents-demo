@@ -149,10 +149,17 @@ aterrizar.
 del gateway, pasos de identidad). Introduje deriva en el sistema sobre el que
 ahora reporto.
 
-**No corregido aquí.** Resolverlo implica decidir qué significados conservan el
-tono y darle a los otros su propio token, en unos ocho archivos, dos de ellos
-verificados contra Azure real esta semana. Es un juicio sobre el lenguaje
-visual, no una limpieza, y necesita al dueño. Ver P2.
+**Corregido.** `affirm` es ahora el 401 y nada más - un solo uso en todo
+`src/`. No se introdujo ningún token nuevo, porque el sistema ya tenía la
+respuesta: §4.5 asigna el acento al "estado live y las acciones primarias", así
+que Running, Azure en vivo, un control aplicado y el costo propio del gateway
+pertenecen ahí, y Simulación pasó a `illustrative-fg`, que es lo que es. Los
+tramos de backend se repliegan a tinta atenuada.
+
+La tabla de arriba estaba **incompleta**: Observabilidad tenía el mismo
+costo-de-gateway-en-verde en tres sitios más (las barras por salto, la cascada
+de spans, el estado sub-400), que esta auditoría no vio y que encontró la
+implementación. Ahora coinciden exactamente con el camino En vivo.
 
 ---
 

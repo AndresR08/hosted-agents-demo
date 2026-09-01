@@ -137,7 +137,8 @@ function highlightXmlLine(text: string, query: string): ReactNode {
       return (
         <span key={i}>
           <span className="font-medium text-ink">{attrMatch[1]}</span>
-          <span className="text-affirm">{attrMatch[2]}</span>
+          {/* Syntax highlighting is its own axis; it does not get the 401 green. */}
+          <span className="text-accent">{attrMatch[2]}</span>
         </span>
       );
     }
@@ -311,7 +312,7 @@ export function PolicyViewerDialog({ open, onClose }: { open: boolean; onClose: 
               <Button
                 appearance="subtle"
                 size="small"
-                icon={copied ? <CheckmarkRegular className="text-affirm" /> : <CopyRegular />}
+                icon={copied ? <CheckmarkRegular className="text-accent" /> : <CopyRegular />}
                 onClick={copyAll}
               >
                 {copied ? t("assistant.copied") : t("accessControl.policyViewer.copy")}

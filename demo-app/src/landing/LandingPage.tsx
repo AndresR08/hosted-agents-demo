@@ -88,7 +88,7 @@ export function LandingPage() {
           <Separator />
           <span className="inline-flex items-center gap-1.5">
             <span
-              className={cn("h-1.5 w-1.5 rounded-full", mode === "live" ? "bg-affirm" : "bg-accent")}
+              className={cn("h-1.5 w-1.5 rounded-full", mode === "live" ? "bg-accent" : "bg-illustrative-fg")}
               aria-hidden="true"
             />
             {mode === "live" ? t("header.statusLive") : t("header.statusSimulation")}

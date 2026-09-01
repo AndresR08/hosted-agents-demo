@@ -200,3 +200,11 @@ body {
   from { stroke-dashoffset: 400; }
   to { stroke-dashoffset: 0; }
 }
+
+/* The per-kind dash pattern on the sequence beam, faded in after the draw-on
+   finishes - the draw itself owns strokeDasharray and cannot also carry a
+   pattern. See IdentityFlowSequence.tsx. */
+@keyframes seq-pattern {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -136,7 +136,7 @@ export function ObservabilityStop() {
             <Tooltip content={t("obs.copy")} relationship="label">
               <Button
                 appearance="subtle"
-                icon={copied ? <CheckmarkRegular className="text-affirm" /> : <CopyRegular />}
+                icon={copied ? <CheckmarkRegular className="text-accent" /> : <CopyRegular />}
                 onClick={copyRecord}
                 aria-label={t("obs.copy")}
               />
@@ -257,7 +257,7 @@ function KpiBand({ obs }: { obs: RequestObservability }) {
               format={tile.format}
               className={cn(
                 "text-body font-semibold tabular-nums",
-                tile.accent && tile.field?.available && "text-affirm",
+                tile.accent && tile.field?.available && "text-accent",
               )}
             />
           </p>
@@ -293,7 +293,7 @@ function AuditSection({ obs }: { obs: RequestObservability }) {
           <ObservableValue
             field={a.httpStatus}
             className={
-              a.httpStatus.available && Number(a.httpStatus.value) < 400 ? "text-affirm" : undefined
+              a.httpStatus.available && Number(a.httpStatus.value) < 400 ? "text-accent" : undefined
             }
           />
         </Chip>
@@ -376,11 +376,11 @@ function HopWaterfall({ obs }: { obs: RequestObservability }) {
 
   const agent = Math.max(0, total - modelCall - (gateway1 ?? 0));
   const stages = [
-    { key: "apim-in", label: t("obs.hop.apimInbound"), sub: t("obs.hop.apimInboundSub"), ms: gateway1, tone: "affirm" as const },
-    { key: "agent", label: t("obs.hop.agent"), sub: t("obs.hop.agentSub"), ms: agent, tone: "muted" as const },
-    { key: "apim-model", label: t("obs.hop.apimModel"), sub: t("obs.hop.apimModelSub"), ms: gateway2, tone: "affirm" as const },
-    { key: "model", label: t("obs.hop.model"), sub: t("obs.hop.modelSub"), ms: modelCall, tone: "accent" as const },
-  ].filter((s) => s.ms !== null) as { key: string; label: string; sub: string; ms: number; tone: "affirm" | "muted" | "accent" }[];
+    { key: "apim-in", label: t("obs.hop.apimInbound"), sub: t("obs.hop.apimInboundSub"), ms: gateway1, tone: "gateway" as const },
+    { key: "agent", label: t("obs.hop.agent"), sub: t("obs.hop.agentSub"), ms: agent, tone: "backend" as const },
+    { key: "apim-model", label: t("obs.hop.apimModel"), sub: t("obs.hop.apimModelSub"), ms: gateway2, tone: "gateway" as const },
+    { key: "model", label: t("obs.hop.model"), sub: t("obs.hop.modelSub"), ms: modelCall, tone: "backend" as const },
+  ].filter((s) => s.ms !== null) as { key: string; label: string; sub: string; ms: number; tone: "gateway" | "backend" }[];
 
   return (
     <section>
@@ -398,9 +398,10 @@ function HopWaterfall({ obs }: { obs: RequestObservability }) {
               <span
                 className={cn(
                   "block h-full rounded-full",
-                  s.tone === "affirm" && "bg-affirm",
-                  s.tone === "accent" && "bg-accent",
-                  s.tone === "muted" && "bg-ink-muted/40",
+                  // Matches the Live request path exactly: the gateway is the
+                  // subject and takes the accent, the backend recedes. Green
+                  // belongs to the 401 (UX_AUDIT.md F4).
+                  s.tone === "gateway" ? "bg-accent" : "bg-ink-muted/40",
                 )}
                 style={{ width: `${Math.max(1.5, (s.ms / total) * 100)}%` }}
               />
@@ -408,7 +409,7 @@ function HopWaterfall({ obs }: { obs: RequestObservability }) {
             <span
               className={cn(
                 "w-[70px] shrink-0 text-right text-caption font-medium tabular-nums",
-                s.tone === "affirm" ? "text-affirm" : "text-ink",
+                s.tone === "gateway" ? "text-accent" : "text-ink",
               )}
             >
               {fmt.ms(s.ms)}

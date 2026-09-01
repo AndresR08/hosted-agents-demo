@@ -122,7 +122,9 @@ export function AgentsList({
                     <span
                       className={cn(
                         "h-1.5 w-1.5 shrink-0 rounded-full",
-                        agent.status === "Running" ? "bg-affirm" : "bg-ink-muted",
+                        // accent, not affirm: "this is on" is the accent's
+                        // documented job. Green is reserved for the 401.
+                        agent.status === "Running" ? "bg-accent" : "bg-ink-muted",
                       )}
                       aria-hidden="true"
                     />

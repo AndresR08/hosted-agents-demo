@@ -145,10 +145,17 @@ up — loses the exclusivity that made it land.
 (gateway cost, identity steps). I introduced drift into the system I am now
 reporting on.
 
-**Not fixed here.** Resolving it means deciding which meanings keep the hue
-and giving the others their own token, across roughly eight files including
-two screens verified against live Azure this week. That is a judgement call
-about the visual language, not a cleanup, and it needs the owner. See P2.
+**Fixed.** `affirm` is now the 401 and nothing else - one usage in all of
+`src/`. No new token was introduced, because the system already had the
+answer: §4.5 assigns the accent to "live status and primary actions", so
+Running, Azure Live, an enforced control and the gateway's own cost all
+belong there, and Simulation moved to `illustrative-fg`, which is what it
+is. The backend segments recede to muted ink.
+
+The table above was **incomplete**: Observability carried the same
+gateway-cost-in-green in three more places (the hop bars, the trace
+waterfall, the sub-400 status), which this audit missed and the
+implementation found. They now match the Live request path exactly.
 
 ---
 

@@ -24,9 +24,10 @@ import { LANES, STEPS, type StepKind } from "./identitySequence";
  *
  * COLOUR
  *
- * Four kinds of event, two hues. The palette has `accent` and `affirm` and
- * this component does not introduce a third: request and response share the
- * accent at different weights, identity steps take affirm, and internal
+ * Four kinds of event, two hues - accent and muted ink. It does not use the
+ * affirmative green: DESIGN_DECISIONS 4.4 reserves that for the 401
+ * inversion, and this component was one of the two that overloaded it (see
+ * UX_AUDIT.md F4). Request, response and identity share the accent; internal
  * processing is muted. Every step also names its kind in words, so the colour
  * reinforces rather than carries — which is what makes four categories legible
  * on two hues, and what keeps it working for a viewer who cannot separate them.
@@ -39,17 +40,32 @@ import { LANES, STEPS, type StepKind } from "./identitySequence";
 
 const AUTOPLAY_MS = 4200;
 
-function kindColour(kind: StepKind): { stroke: string; text: string; dim: boolean } {
+/**
+ * Four kinds on two hues, separated by stroke pattern rather than by a third
+ * colour.
+ *
+ * Dropping the affirmative green left request, identity and response all on
+ * the accent, which made the identity steps - the entire subject of this
+ * sequence - indistinguishable from the requests around them. Rather than
+ * reintroduce a hue, each kind takes its own dash rhythm: solid for a request,
+ * a tight dot pattern for the identity round trip, a long dash for the
+ * response, and muted ink for internal work.
+ *
+ * That also happens to be the more robust encoding. A dash pattern survives a
+ * projector's contrast curve and a colour-blind viewer, neither of which a
+ * fourth hue would have.
+ */
+function kindStyle(kind: StepKind): { stroke: string; text: string; dash?: string } {
   switch (kind) {
     case "token":
-      return { stroke: "var(--color-affirm)", text: "text-affirm", dim: false };
+      return { stroke: "var(--color-accent)", text: "text-accent", dash: "2 5" };
     case "self":
-      return { stroke: "var(--color-ink-muted)", text: "text-ink-muted", dim: true };
+      return { stroke: "var(--color-ink-muted)", text: "text-ink-muted" };
     case "resp":
-      return { stroke: "var(--color-accent)", text: "text-ink", dim: true };
+      return { stroke: "var(--color-accent)", text: "text-ink", dash: "9 5" };
     case "req":
     default:
-      return { stroke: "var(--color-accent)", text: "text-ink", dim: false };
+      return { stroke: "var(--color-accent)", text: "text-ink" };
   }
 }
 
@@ -74,7 +90,7 @@ export function IdentityFlowSequence() {
   }, [playing]);
 
   const step = STEPS[index];
-  const colour = kindColour(step.kind);
+  const colour = kindStyle(step.kind);
   const laneX = (i: number) => i * LANE_W + LANE_W / 2;
 
   // A self-call loops back into its own lane; everything else is a shallow arc
@@ -152,9 +168,22 @@ export function IdentityFlowSequence() {
             <path
               d={path} fill="none" stroke={colour.stroke} strokeWidth={2}
               strokeLinecap="round"
-              strokeDasharray={step.kind === "resp" ? "6 4" : undefined}
-              style={{ strokeDasharray: 400, strokeDashoffset: 400, animation: "seq-draw 900ms ease-out forwards" }}
+              style={{
+                // The draw-on animation owns strokeDasharray, so a per-kind
+                // pattern cannot also live there. The pattern is painted by a
+                // second stroke layered on top once the beam has arrived.
+                strokeDasharray: 400,
+                strokeDashoffset: 400,
+                animation: "seq-draw 900ms ease-out forwards",
+              }}
             />
+            {colour.dash && (
+              <path
+                d={path} fill="none" stroke={colour.stroke} strokeWidth={2.5}
+                strokeLinecap="round" strokeDasharray={colour.dash}
+                style={{ opacity: 0, animation: "seq-pattern 300ms ease-out 700ms forwards" }}
+              />
+            )}
           </g>
         </svg>
       </div>
