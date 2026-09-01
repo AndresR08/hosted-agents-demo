@@ -55,6 +55,28 @@ export interface DemoStore {
   toggleCopilot: () => void;
   setCopilotOpen: (open: boolean) => void;
 
+  /**
+   * Clears everything that belongs to one demonstration, keeping everything
+   * that belongs to the operator.
+   *
+   * Most of a reset already happens for free: App.tsx swaps LandingPage for
+   * AppShell rather than hiding it, so returning to the landing page unmounts
+   * the console and takes the copilot history and the journey timings with it,
+   * and `startDemonstration` already cleared `lastAskId`. What survived that
+   * round trip were the flags below.
+   *
+   * `hasActiveConversation` is the one that misbehaved: it is set when the
+   * copilot is first used and was never set back, so the session after a
+   * copilot demo opened with a stale `true` and asked the presenter to confirm
+   * losing a conversation that had already been unmounted.
+   *
+   * Language, theme, reduced motion and Live/Simulation are deliberately NOT
+   * touched — they are the operator's settings, not demo state, and silently
+   * flipping a rehearsing presenter back to Live would be the more dangerous
+   * bug of the two.
+   */
+  resetDemoState: () => void;
+
   /** Landing page primary button / `Enter` — begins the fade into the console. */
   startDemonstration: () => void;
   /** Header Home button / `Esc` — fades back to the landing page. Callers are responsible for confirming data loss first (see Header.tsx). */
@@ -112,6 +134,15 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
   toggleCopilot: () => set((state) => ({ copilotOpen: !state.copilotOpen })),
   setCopilotOpen: (copilotOpen) => set({ copilotOpen }),
 
+  resetDemoState: () =>
+    set({
+      lastAskId: null,
+      hasActiveConversation: false,
+      targetAgent: "pydantic-agent",
+      accessControlRunToken: 0,
+      capturedAt: null,
+    }),
+
   startDemonstration: () => {
     set({ transitioning: true });
     const delay = get().reducedMotion ? 0 : TRANSITION_MS;
@@ -121,7 +152,12 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
         transitioning: false,
         stop: "frameworks",
         copilotOpen: false,
+        // The same clearing the Settings button performs, so the two routes
+        // into a fresh demonstration cannot drift apart.
         lastAskId: null,
+        hasActiveConversation: false,
+        targetAgent: "pydantic-agent",
+        accessControlRunToken: 0,
       });
     }, delay);
   },

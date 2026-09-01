@@ -76,6 +76,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.shortcutMove": "Move between sections",
     "settings.shortcutBack": "Close the copilot, or return to the start",
 
+    "settings.reset": "Between demonstrations",
+    "settings.resetAction": "Clear this session",
+    "settings.resetNote": "Clears the last request, the copilot conversation flag and the selected agent. Language, theme and Azure Live / Simulation are left alone.",
+    "settings.resetDone": "Session cleared",
+
     "header.productName": "Foundry Hosted Agents",
     "header.tagline": "Custom frameworks, governed by API Management",
     "header.statusLive": "Azure Live",
@@ -474,6 +479,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.shortcutMode": "Alternar Azure en vivo / Simulación",
     "settings.shortcutMove": "Moverse entre secciones",
     "settings.shortcutBack": "Cerrar el copiloto, o volver al inicio",
+
+    "settings.reset": "Entre demostraciones",
+    "settings.resetAction": "Limpiar esta sesión",
+    "settings.resetNote": "Limpia la última petición, la marca de conversación del copiloto y el agente seleccionado. El idioma, el tema y Azure en vivo / Simulación no se tocan.",
+    "settings.resetDone": "Sesión limpiada",
 
     "header.productName": "Foundry Hosted Agents",
     "header.tagline": "Frameworks personalizados, gobernados por API Management",

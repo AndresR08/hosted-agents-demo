@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import {
   OverlayDrawer,
@@ -16,6 +17,8 @@ import {
   PulseRegular,
   SlideTransitionRegular,
   KeyboardRegular,
+  ArrowResetRegular,
+  CheckmarkRegular,
 } from "@fluentui/react-icons";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -35,6 +38,8 @@ import type { Locale, ThemePreference } from "@/state/types";
 export function SettingsDrawer() {
   const t = useTranslation();
   const open = useDemoStore((s) => s.settingsOpen);
+  const resetDemoState = useDemoStore((s) => s.resetDemoState);
+  const [justReset, setJustReset] = useState(false);
   const closeSettings = useDemoStore((s) => s.closeSettings);
   const language = useDemoStore((s) => s.language);
   const setLanguage = useDemoStore((s) => s.setLanguage);
@@ -128,6 +133,40 @@ export function SettingsDrawer() {
           shortcut legend on the stage itself would tell the room it is
           watching a demo. See UX_AUDIT.md F3.
         */}
+        {/*
+          An explicit button, deliberately not an inactivity timer.
+
+          The risks are asymmetric. A forgotten reset shows the previous
+          session's agent selection - visible, real, correctable in one click.
+          A timer that fires while the presenter is fielding ten minutes of
+          architecture questions would wipe the screen the room is looking at,
+          with nobody having touched anything, and the recovery is a fresh
+          invocation and ten seconds of silence. Idle here is not idle; it is
+          the demonstration working.
+
+          It lives in this drawer rather than on the stage because a visible
+          control labelled "reset the demo" tells the room it is watching a
+          demo (DESIGN_DECISIONS.md 4.2).
+        */}
+        <SettingSection icon={ArrowResetRegular} label={t("settings.reset")}>
+          <div className="flex flex-col items-start gap-1.5">
+            <Button
+              size="small"
+              icon={justReset ? <CheckmarkRegular /> : <ArrowResetRegular />}
+              onClick={() => {
+                resetDemoState();
+                setJustReset(true);
+                window.setTimeout(() => setJustReset(false), 2000);
+              }}
+            >
+              {justReset ? t("settings.resetDone") : t("settings.resetAction")}
+            </Button>
+            <p className="text-caption leading-snug text-ink-muted">{t("settings.resetNote")}</p>
+          </div>
+        </SettingSection>
+
+        <Divider />
+
         <SettingSection icon={KeyboardRegular} label={t("settings.shortcuts")}>
           <dl className="flex flex-col gap-1.5">
             {[

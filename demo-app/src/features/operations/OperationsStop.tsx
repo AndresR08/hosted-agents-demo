@@ -390,7 +390,6 @@ function ControlGroup({
               className={cn(
                 "mt-0.5 shrink-0",
                 tone === "active" ? "text-affirm" : "text-ink-muted",
-                tone === "absent" && "opacity-60",
               )}
             />
             <div className="min-w-0 flex-1">
@@ -406,7 +405,12 @@ function ControlGroup({
                 <span
                   className={cn(
                     "shrink-0 rounded px-1.5 py-px text-caption uppercase tracking-[0.04em]",
-                    tone === "active" ? "bg-affirm/10 text-affirm" : "bg-illustrative-bg text-ink-muted",
+                    tone === "active"
+                      ? "bg-affirm/10 text-affirm"
+                      // Dashed outline, full-contrast text: the same vocabulary
+                      // the Reference tab uses for "not in this lab", and it
+                      // survives a projector where a dimmer fill does not.
+                      : "border border-dashed border-border bg-transparent text-ink-muted",
                   )}
                 >
                   {statusLabel}
@@ -417,7 +421,6 @@ function ControlGroup({
                 <p
                   className={cn(
                     "mt-0.5 break-words text-caption leading-snug text-ink-muted",
-                    tone === "absent" && "opacity-80",
                   )}
                 >
                   {evidenced && c.evidence && (

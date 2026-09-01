@@ -178,13 +178,24 @@ returns to the landing page, but the store keeps `lastAskId`, `targetAgent`
 and the journey timings. A second demo therefore opens with the first demo's
 request path already drawn and its numbers on screen.
 
-**Why it matters here.** Two sessions back to back is the normal case. The
-presenter opens Gateway for client B and it is showing client A's latency, in
-the `Live` band, which is true but for the wrong conversation.
+**Correction, recorded rather than quietly edited.** The headline claim above
+was **wrong**, and implementing the fix is what proved it. `App.tsx` renders
+`view === "landing" ? <LandingPage /> : <AppShell />` — returning to the
+landing page *unmounts the console*, taking the copilot history and the
+journey timings with it, and `startDemonstration` already cleared `lastAskId`.
+A second demonstration does **not** open showing the first one's request path.
 
-**Not fixed here.** Needs a store action with a clear contract about what
-survives a reset (language and theme should; agent selection probably should
-not). See P2.
+What survived that round trip were three flags, and one of them misbehaved:
+`hasActiveConversation` is set when the copilot is first used and was never set
+back, so the session after a copilot demo opened with a stale `true` and asked
+the presenter to confirm losing a conversation that had already been
+unmounted. `targetAgent` and `accessControlRunToken` also persisted.
+
+**Fixed** as `resetDemoState()`, wired into both routes into a fresh
+demonstration and exposed as an explicit button. The residual problem worth
+solving was never the stale data — it was that the only way to reset at all
+was a full landing-page round trip, four actions and a visible reset in front
+of the client.
 
 ---
 
@@ -230,13 +241,16 @@ Reported so the audit is not read as a list of everything that could be said:
 | F2 | Raw broker errors projected | Shared error component, detail behind a disclosure |
 | F3 | Shortcuts invisible | Shortcut list in the Settings drawer |
 
-## High impact / high effort — needs your decision first
+## High impact / high effort
+
+F4, F5 and F6 were approved and implemented after this audit was first
+written; F5 and F6 are described above with their outcomes. F7 remains
+deferred to a session of its own, on the risk noted below.
+
+
 
 | | Finding | Why it needs a decision |
 |---|---|---|
-| F4 | `affirm` means six things | Which meanings keep the hue is a call about the visual language. ~8 files, two of them verified against live Azure this week. |
-| F5 | "Not enabled" signal on opacity | Restructures the Controls catalogue's visual encoding — an honesty surface, so the replacement must be at least as unambiguous. |
-| F6 | No reset between demos | Needs a contract for what survives a reset; touches shared store state every screen reads. |
 | F7 | Reaching the real 16 px floor | 135 sites, layout reflow, under a no-scroll constraint. The highest-value item on this list and the one most likely to break something verified. |
 
 ## Low impact — noted, not acted on

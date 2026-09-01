@@ -182,13 +182,25 @@ de esa pantalla. Ver P2.
 `targetAgent` y los tiempos del journey. Una segunda demo abre entonces con el
 camino de la petición de la demo anterior ya dibujado y sus números en pantalla.
 
-**Por qué importa aquí.** Dos sesiones seguidas es el caso normal. El
-presentador abre Gateway para el cliente B y está mostrando la latencia del
-cliente A, en banda `Live`, que es cierta pero de otra conversación.
+**Corrección, registrada en vez de editada en silencio.** La afirmación
+principal de arriba era **falsa**, y implementarla es lo que lo demostró.
+`App.tsx` hace `view === "landing" ? <LandingPage /> : <AppShell />` — volver a
+la pantalla de inicio *desmonta la consola*, y con ella el historial del
+copiloto y los tiempos del journey; además `startDemonstration` ya limpiaba
+`lastAskId`. Una segunda demostración **no** abre mostrando el camino de la
+petición de la primera.
 
-**No corregido aquí.** Necesita una acción del store con un contrato claro
-sobre qué sobrevive a un reset (idioma y tema sí; la selección de agente
-probablemente no). Ver P2.
+Lo que sí sobrevivía a ese viaje eran tres banderas, y una se portaba mal:
+`hasActiveConversation` se activa al usar el copiloto por primera vez y nunca
+se desactivaba, así que la sesión siguiente abría con un `true` obsoleto y le
+pedía al presentador confirmar la pérdida de una conversación ya desmontada.
+`targetAgent` y `accessControlRunToken` también persistían.
+
+**Corregido** como `resetDemoState()`, enganchado en las dos rutas hacia una
+demostración nueva y expuesto como botón explícito. El problema residual real
+nunca fueron los datos obsoletos — era que la única forma de reiniciar era un
+viaje completo a la pantalla de inicio: cuatro acciones y un reinicio visible
+delante del cliente.
 
 ---
 
@@ -237,13 +249,16 @@ podría decir:
 | F2 | Errores crudos del broker proyectados | Componente de error compartido, detalle tras un desplegable |
 | F3 | Atajos invisibles | Lista de atajos en el cajón de Configuración |
 
-## Alto impacto / alto esfuerzo — requieren tu decisión primero
+## Alto impacto / alto esfuerzo
+
+F4, F5 y F6 se aprobaron e implementaron después de escribir esta auditoría;
+F5 y F6 quedan descritos arriba con su desenlace. F7 sigue pospuesto a una
+sesión propia, por el riesgo anotado abajo.
+
+
 
 | | Hallazgo | Por qué necesita decisión |
 |---|---|---|
-| F4 | `affirm` significa seis cosas | Qué significados conservan el tono es una decisión sobre el lenguaje visual. ~8 archivos, dos verificados contra Azure real esta semana. |
-| F5 | Señal "no habilitado" sobre opacidad | Reestructura la codificación visual del catálogo de controles — es superficie de honestidad, así que el reemplazo debe ser al menos igual de inequívoco. |
-| F6 | Sin reset entre demos | Necesita un contrato sobre qué sobrevive al reset; toca estado compartido que leen todas las pantallas. |
 | F7 | Alcanzar el piso real de 16 px | 135 sitios, reflujo de layout, bajo restricción de no-scroll. El ítem de mayor valor de esta lista y el que más probablemente rompa algo ya verificado. |
 
 ## Bajo impacto — anotados, sin actuar
