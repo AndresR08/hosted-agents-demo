@@ -40,7 +40,15 @@ export function FactList({
     <dl className={cn("flex flex-col gap-0.5", className)}>
       {facts.map((fact) => (
         <div key={fact.label} className="flex items-baseline gap-2">
-          <dt className="w-[160px] shrink-0 text-caption text-ink-muted">{fact.label}</dt>
+          {/*
+            230px, not 160. The old width was set when caption type was 13px;
+            CP2 raised it to the 16px projector floor and never revisited this,
+            so the longest labels started wrapping to three lines - "Versiones
+            de protocolo del contenedor" cost 60px for a field with no value at
+            all. Widening the column is a pure layout fix: no row is removed and
+            no "unavailable" statement is softened.
+          */}
+          <dt className="w-[230px] shrink-0 text-caption text-ink-muted">{fact.label}</dt>
           <dd className="min-w-0 flex-1 text-caption">
             {loading ? (
               <Skeleton className="w-1/2" />

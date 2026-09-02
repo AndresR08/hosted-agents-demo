@@ -1,7 +1,5 @@
-import { FlashRegular, PlugConnectedRegular } from "@fluentui/react-icons";
 import { EmptyState } from "@/components/EmptyState";
 import { type Fact, FactList } from "@/components/FactList";
-import { MaintenanceActionButton } from "@/components/MaintenanceActionButton";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
 import { LiveCallError } from "@/components/LiveCallError";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -54,14 +52,21 @@ export function AgentOverview({
     );
   }
 
+  /*
+   * Name, CPU and memory are deliberately absent: all three are already on
+   * this same screen. The agent name appears in the registry list, in this
+   * panel's own header and in the header badge; CPU and memory appear under
+   * every agent in the list ("CPU 1 · Memoria 2Gi"). Repeating them cost 62px
+   * on a screen that was hiding 135px of its own content below the fold.
+   *
+   * Nothing that is only stated here was touched, including the rows that
+   * report a field as not returned - those are honesty statements, not blanks.
+   */
   const facts: Fact[] = [
-    { label: t("agents.detail.name"), value: agent?.name },
     { label: t("agents.detail.description"), value: agent?.description || undefined },
     { label: t("ha.fact.status"), value: agent?.status },
     { label: t("agents.detail.version"), value: agent ? `:${agent.latestVersion}` : undefined },
     { label: t("ha.fact.image"), value: agent?.image, mono: true },
-    { label: t("ha.fact.cpu"), value: agent?.cpu },
-    { label: t("ha.fact.memory"), value: agent?.memory },
     { label: t("ha.fact.protocol"), value: formatProtocolVersions(agent?.protocolVersions) },
     {
       label: t("agents.detail.containerProtocolVersions"),
@@ -99,27 +104,6 @@ export function AgentOverview({
         <FactList facts={facts} loading={loading} className="px-3 py-2.5" />
       )}
 
-      {agent && !error && (
-        <div className="border-t border-border px-3 py-2.5">
-          <p className="mb-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
-            {t("agents.overview.actionsTitle")}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <MaintenanceActionButton
-              action="warm-agent"
-              agentName={agent.name}
-              icon={<FlashRegular />}
-              label={t("maintenance.action.warm-agent")}
-            />
-            <MaintenanceActionButton
-              action="test-hosted-agent"
-              agentName={agent.name}
-              icon={<PlugConnectedRegular />}
-              label={t("maintenance.action.test-hosted-agent")}
-            />
-          </div>
-        </div>
-      )}
 
       {agent && !loading && !error && (
         <div className="border-t border-border px-3 py-2">

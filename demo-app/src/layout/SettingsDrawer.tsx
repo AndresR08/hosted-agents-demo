@@ -23,6 +23,7 @@ import {
   FlashRegular,
   GlobeRegular,
   WrenchRegular,
+  PlugConnectedRegular,
 } from "@fluentui/react-icons";
 import { MaintenanceActionButton } from "@/components/MaintenanceActionButton";
 import { useDemoStore } from "@/state/store";
@@ -44,6 +45,7 @@ export function SettingsDrawer() {
   const t = useTranslation();
   const open = useDemoStore((s) => s.settingsOpen);
   const resetDemoState = useDemoStore((s) => s.resetDemoState);
+  const targetAgent = useDemoStore((s) => s.targetAgent);
   const [justReset, setJustReset] = useState(false);
   const closeSettings = useDemoStore((s) => s.closeSettings);
   const language = useDemoStore((s) => s.language);
@@ -109,6 +111,25 @@ export function SettingsDrawer() {
               action="refresh-deployment-info"
               icon={<FlashRegular />}
               label={t("maintenance.action.refresh-deployment-info")}
+            />
+            {/*
+              These two are agent-scoped and came off the Agent Summary panel
+              for the same reason as the rest. They follow the console's current
+              target agent rather than a panel selection, which is the same
+              value the header badge and the keyboard shortcuts already act on -
+              so "warm the agent" here warms the agent the room is looking at.
+            */}
+            <MaintenanceActionButton
+              action="warm-agent"
+              agentName={targetAgent}
+              icon={<FlashRegular />}
+              label={t("maintenance.action.warm-agent")}
+            />
+            <MaintenanceActionButton
+              action="test-hosted-agent"
+              agentName={targetAgent}
+              icon={<PlugConnectedRegular />}
+              label={t("maintenance.action.test-hosted-agent")}
             />
           </div>
         </SettingSection>
