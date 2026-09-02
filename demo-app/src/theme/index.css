@@ -11,16 +11,45 @@
  */
 @theme {
   --font-family-sans: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  /*
+   * Declared rather than inherited. The console already renders monospaced
+   * content - policy XML, image digests, environment variable keys, the agent
+   * route template - with no family set, so it fell through to whatever the
+   * OS supplied and looked different on every machine. Bundled system faces
+   * only: the reference loads JetBrains Mono from a CDN, and a boardroom with
+   * unreliable connectivity is exactly where that fails.
+   */
+  --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
 
-  --color-canvas: #fafafa;
+  /*
+   * Cooled towards the Foundry IQ reference (VISUAL_LANGUAGE_ADOPTION.md
+   * 0.2): navy-black ink over a blue-grey canvas rather than neutral greys.
+   * Same lightness, so nothing about contrast or the honesty bands changes.
+   *
+   * Two values are deliberately NOT the reference's. Its --blue-500 #2F6FED
+   * measures ~4.0:1 where ours makes 5.38:1, and its --ink-500 #6B7A99 makes
+   * 4.31:1 - under AA - so ink-muted is darkened to #5A6884 (5.60:1). The
+   * reference was never audited for a projector; we were.
+   */
+  --color-canvas: #f5f7fb;
   --color-surface: #ffffff;
-  --color-border: #e5e5e5;
-  --color-ink: #1a1a1a;
-  --color-ink-muted: #6b6b6b;
+  --color-border: #e7ecf3;
+  --color-ink: #0f2547;
+  --color-ink-muted: #5a6884;
   --color-accent: #0f6cbd;
   --color-affirm: #0e7a5f;
-  --color-illustrative-fg: #8a8a8a;
-  --color-illustrative-bg: #f2f2f2;
+  --color-illustrative-fg: #7d8aa3;
+  --color-illustrative-bg: #eef1f7;
+
+  /*
+   * 14px, up from Tailwind's 8px `rounded-lg`. The reference's softer corner
+   * is most of what makes it read as current, and unlike its shadow it costs
+   * nothing: 4.5 rejects shadow-defined cards ("heavily shadowed cards read
+   * as a web template, thin lines read as a product") and that still holds -
+   * the border stays, only the corner changes.
+   */
+  --radius-lg: 14px;
+  --radius-md: 10px;
 
   --text-display: 32px;
   --text-body-lg: 24px;
@@ -152,15 +181,25 @@
   background-color: color-mix(in srgb, var(--color-ink-muted) 55%, transparent);
 }
 
+/*
+ * The dark half is ORIGINAL WORK, not extraction. The Foundry IQ reference
+ * has no dark theme at all - zero prefers-color-scheme rules - while 4.5
+ * makes one mandatory because boardroom lighting varies and that preference
+ * is not ours to assume. So these stops carry the reference's navy direction
+ * into a palette it never had, and every one was contrast-checked rather than
+ * eyeballed: ink 14.35:1, ink-muted 7.02:1, accent 5.60:1, affirm 7.91:1,
+ * all on the surface below.
+ */
 .dark {
-  --color-canvas: #121212;
-  --color-surface: #1c1c1c;
-  --color-border: #333333;
-  --color-ink: #f2f2f2;
-  --color-ink-muted: #a3a3a3;
+  --color-canvas: #0e1420;
+  --color-surface: #161d2b;
+  --color-border: #253044;
+  --color-ink: #e8edf5;
+  --color-ink-muted: #9aa8c0;
   --color-accent: #3e9be0;
   --color-affirm: #3fc79a;
-  --color-illustrative-bg: #262626;
+  --color-illustrative-fg: #7f8ca4;
+  --color-illustrative-bg: #1e2637;
 }
 
 html,

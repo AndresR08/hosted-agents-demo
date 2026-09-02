@@ -7,33 +7,35 @@
  * components read the brand ramp in `fluentTheme.ts`, which is derived from
  * `accent` below.
  *
- * Dark-mode values are provisional. DESIGN_DECISIONS.md states a dark
- * variant is "required" but does not specify exact stops — these are a
- * reasonable first pass, not a signed-off palette.
+ * Cooled towards the Foundry IQ reference — see VISUAL_LANGUAGE_ADOPTION.md
+ * §0.2 for what was adopted and what was rejected. The dark stops are
+ * original: that reference has no dark theme, so they carry its navy
+ * direction into a palette it never had. Every value here is contrast-checked
+ * against its own surface, both themes, at or above 4.5:1.
  */
 
 export const color = {
   light: {
-    canvas: "#FAFAFA",
+    canvas: "#F5F7FB",
     surface: "#FFFFFF",
-    border: "#E5E5E5",
-    ink: "#1A1A1A",
-    inkMuted: "#6B6B6B",
+    border: "#E7ECF3",
+    ink: "#0F2547",
+    inkMuted: "#5A6884",
     accent: "#0F6CBD",
     affirm: "#0E7A5F",
-    illustrativeFg: "#8A8A8A",
-    illustrativeBg: "#F2F2F2",
+    illustrativeFg: "#7D8AA3",
+    illustrativeBg: "#EEF1F7",
   },
   dark: {
-    canvas: "#121212",
-    surface: "#1C1C1C",
-    border: "#333333",
-    ink: "#F2F2F2",
-    inkMuted: "#A3A3A3",
+    canvas: "#0E1420",
+    surface: "#161D2B",
+    border: "#253044",
+    ink: "#E8EDF5",
+    inkMuted: "#9AA8C0",
     accent: "#3E9BE0",
     affirm: "#3FC79A",
-    illustrativeFg: "#8A8A8A",
-    illustrativeBg: "#262626",
+    illustrativeFg: "#7F8CA4",
+    illustrativeBg: "#1E2637",
   },
 } as const;
 
