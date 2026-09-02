@@ -598,6 +598,8 @@ reference screen instead, which is the whole reason this tab exists.
 
 ### 4.10 The KPI card — six real sources, no trend, and above all no cost
 
+**Status: definitive. The exclusions below are the point of the section — a future contributor adding a cost or trend card would be undoing a decision, not filling a gap.**
+
 CP4 adopted the Foundry IQ reference's KPI card shape on the one screen that
 already had six real measurements to put in it: Observability → Measurements.
 Icon, label, large value, mono sub-line. What it did **not** adopt is the part

@@ -606,6 +606,8 @@ pantalla de referencia, que es la razón entera por la que existe esta pestaña.
 
 ### 4.10 La tarjeta KPI — seis fuentes reales, sin tendencia, y sobre todo sin costo
 
+**Estado: definitiva. Las exclusiones de abajo son el punto de la sección — quien añada en el futuro una tarjeta de costo o de tendencia estaría deshaciendo una decisión, no llenando un hueco.**
+
 CP4 adoptó la forma de tarjeta KPI de la referencia Foundry IQ en la única
 pantalla que ya tenía seis mediciones reales que poner en ella: Observabilidad →
 Mediciones. Ícono, etiqueta, valor grande, sub-línea mono. Lo que **no** adoptó

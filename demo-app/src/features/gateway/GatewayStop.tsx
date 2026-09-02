@@ -40,9 +40,9 @@ import { RequestFlowDiagram } from "./RequestFlowDiagram";
  * The third part — **the terms**, i.e. which credentials the gateway accepts
  * — is no longer here. It is CredentialTestStop, on its own tab, because
  * three arguments do not fit one screen at the 16px projector floor: this stop
- * was hiding 220px of itself below the fold. That split is PROVISIONAL and its
- * cost is recorded in DESIGN_DECISIONS.md §4.8 — read it before treating the
- * tab as settled.
+ * was hiding 220px of itself below the fold. That split was provisional until
+ * CP3 re-measured it under the sidebar's chrome; DESIGN_DECISIONS.md §4.8 is
+ * now resolved and records both the measurement and what it costs.
  *
  * The address and the path now share one heading rather than carrying one
  * each. They were always one argument stated twice — the URL says the agent
