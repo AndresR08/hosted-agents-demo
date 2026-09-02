@@ -8,19 +8,45 @@ Duración sugerida: **12–15 minutos** de recorrido + preguntas. Es un guion, n
 
 ## Antes de empezar (checklist del presentador)
 
-- [ ] Modo **Azure Live** activo (no Simulación) — es el modo por defecto, confírmalo en la esquina superior del encabezado.
-- [ ] Abre el menú de configuración (ícono de engranaje) → Presenter Tools → Maintenance, y ejecuta al menos:
+- [ ] Modo **Azure Live** activo (no Simulación) — es el modo por defecto, confírmalo abajo en el riel izquierdo, donde el punto y la región están de forma permanente.
+- [ ] Abre el cajón de configuración (engranaje, abajo en el riel) → **Mantenimiento**, la primera sección, y ejecuta al menos:
   - **Comprobar broker** (`ping`) — confirma que el backend local responde.
   - **Precalentar agente** (`warm-agent`) — el primer arranque de un contenedor puede tardar 10–17s; hacerlo antes evita ese silencio incómodo en vivo.
 - [ ] Confirma que los dos agentes (`pydantic-agent`, `strands-agent`) aparecen como *Running* en la sección Agentes.
 - [ ] Ten una pregunta de respaldo lista para el copiloto en caso de que quieras mostrarlo (ver sección "El copiloto" más abajo).
 - [ ] Si vas a presentar sin conexión confiable a internet, ten Simulación como red de seguridad — pero avisa que es rehearsal, nunca la presentes como datos reales.
 
-**Navegación:** las cuatro secciones (Agentes, Gateway, Observabilidad, Plataforma) son pestañas en la parte superior — haz clic para moverte entre ellas, en el orden que prefieras. Atajos de teclado útiles durante la presentación:
+**Navegación:** las cuatro secciones viven en el riel oscuro del costado izquierdo — haz clic para moverte entre ellas, en el orden que prefieras. Dos de ellas llevan sub-pestañas en su propia fila de encabezado, que es donde está en realidad la mayor parte de la consola: **nueve destinos, no cuatro.** Aprende el mapa de abajo antes de presentar; es la diferencia entre mostrar el argumento y saltárselo.
+
+El riel se pliega a una tira de íconos de 64px cuando abres el copiloto a 1366×768, y vuelve al cerrarlo. Nada se mueve — los íconos quedan en el mismo orden y el mismo sitio.
+
+Atajos de teclado útiles durante la presentación:
 - `C` — abrir/cerrar el copiloto integrado.
-- `S` — ejecutar la prueba de las tres credenciales (útil en la sección Gateway, ver más abajo).
+- `S` — ejecutar la prueba de las tres credenciales **y saltar a la pestaña que muestra el resultado**. Es la ruta más rápida al 401; ver Beat 3.
 - `L` — alternar entre Azure Live y Simulación.
 - `Esc` — cerrar el copiloto, o volver a la pantalla de inicio.
+
+### El mapa — nueve destinos
+
+| # | Sección → pestaña | La pregunta que responde | No te la saltes |
+|---|---|---|---|
+| 1 | **Agentes** → Resumen | ¿Qué hay desplegado y en qué estado? | |
+| 2 | Agentes → Versiones | ¿Qué se ha publicado y cuándo? | |
+| 3 | Agentes → Ejecutar | Preguntar directo a este agente | |
+| 4 | **Gateway** → En vivo | ¿Cómo llegan los clientes al agente? | Los dos saltos por APIM |
+| 5 | **Gateway → Credenciales** | ¿Qué credenciales se aceptan? | **El 401. Ver Beat 3.** |
+| 6 | Gateway → Referencia | ¿Qué más puede hacer API Management? | Se desplaza — ver abajo |
+| 7 | **Observabilidad** → Registro | ¿Qué se preguntó y qué se respondió? | |
+| 8 | Observabilidad → Mediciones | ¿Cuánto costó esta solicitud? | La cascada por salto |
+| 9 | **Plataforma** | ¿Qué está desplegado y qué administra el equipo de operaciones? | |
+
+Todo lo que hay en esta consola está en una de esas nueve pantallas. Si te encuentras buscando algo en medio de la demo, está en esta tabla.
+
+**Dónde quedaron el entorno y el indicador de modo.** En el pie del riel, de forma permanente: el agente actual, el punto Live/Simulación con la región y el grupo de recursos, y el engranaje. Ya no tienes que salir de una pantalla para comprobar en qué despliegue estás, y la sala tampoco.
+
+**El cajón de configuración** (engranaje, abajo en el riel) abre con **Mantenimiento primero** — ocho acciones, entre ellas `ping`, `warm-agent`, `test-apim` y `reload-policies`. Las dos últimas estaban en la pantalla de Gateway; son instrumentos del presentador, así que ahora están en el menú del presentador.
+
+**Una pantalla se desplaza, y solo una.** Gateway → Referencia es material de referencia sobre API Management como producto, no una lectura de este despliegue, y es más larga que una pantalla a propósito. Puedes desplazarla con calma frente a la sala — es una excepción declarada (`DECISIONES_DE_DISENO.md` §4.9), no un fallo de layout. Todas las demás pantallas caben sin scroll a 1366×768; si alguna deja de caber, eso sí es un defecto que conviene reportar, no algo que se pasa desplazando.
 
 ---
 
@@ -70,7 +96,7 @@ Cambia a la pestaña **Ejecutar** y, si el tiempo lo permite, invoca al agente e
 
 ---
 
-## 2. Gateway (4:00 – 8:00) — la sección más larga, el cierre del trato
+## 2. Gateway → En vivo (4:00 – 6:15) — los dos saltos
 
 **Pregunta del cliente que responde esta sección:** *"¿Cómo llegan los clientes al agente, y quién controla eso?"*
 
@@ -84,39 +110,89 @@ Esta es, en la mayoría de las conversaciones, la sección que decide si el clie
 >
 > La mayoría de las arquitecturas gobiernan solo la puerta de entrada y dejan sin control el tráfico que el agente genera hacia el modelo. Aquí, las dos direcciones cruzan el mismo punto de control que el equipo de plataforma ya posee."
 
-Muestra las credenciales aceptadas / el diagrama de la ruta:
+Señala la URL enrutada encima del diagrama:
 
-> "El cliente solo necesita una clave de suscripción de API Management — no una credencial de Azure AD, no una clave de Foundry, no una clave de modelo. APIM intercambia esa clave por un token de identidad administrada, generado por solicitud y nunca almacenado."
+> "El nombre del agente es un segmento de esa URL. Por eso una sola API sirve a cualquier número de agentes — desplegar el décimo no cambia ni una línea de configuración del gateway."
 
-**Demostración en vivo — la prueba de las tres credenciales** (botón de prueba de acceso, o atajo `S`):
-
-> "Voy a intentar tres formas de llegar al agente en este momento, en vivo."
-
-Ejecuta la prueba y narra el resultado mientras aparece:
-
-> "Con la clave de suscripción: 200, funciona. Sin la clave: 401, rechazado por APIM antes de que la solicitud llegue a Foundry. Yendo directo al endpoint de Foundry, sin pasar por el gateway: también 401, porque no hay token de Azure AD. Esos dos rechazos son el resultado esperado, no un error — es la prueba de que el perímetro realmente hace su trabajo."
-
-**Revelar la política XML:**
-
-> "Esta es la política que está corriendo en el gateway en este momento — no un archivo de ejemplo, sino lo que Azure Resource Manager devuelve ahora mismo. Aquí es donde se adquiere el token de identidad administrada y se sobrescribe el encabezado de autorización antes de reenviar la solicitud."
-
-**Mensaje clave para cerrar la sección:**
+**Mensaje clave para cerrar este beat:**
 
 > "Todo esto agrega, en esta implementación, un costo de latencia de milisegundos de un solo dígito por salto — comparado con varios segundos que toma la generación del modelo. Poner un punto de control gobernado en el camino no cuesta rendimiento perceptible."
 
+Y luego di la frase que te lleva al siguiente beat, para que no llegues al
+cierre habiéndotelo saltado:
+
+> "Eso es *a dónde* va la solicitud. La otra mitad de la pregunta es *quién tiene permiso de enviarla* — y eso se los puedo mostrar en vivo en vez de describirlo."
+
 ---
 
-## 3. Observabilidad (8:00 – 10:30)
+## 3. Gateway → Credenciales (6:15 – 8:00) — el 401, y el único verde de la consola
+
+> **Este beat no es opcional, y tiene pestaña propia por una razón.**
+>
+> La prueba de las tres credenciales estaba al final de la pantalla En vivo. Ya
+> no: en el piso de 16px de proyector, En vivo y Credenciales no caben en una
+> sola pantalla — medido, dos veces, bajo dos layouts distintos
+> (`DECISIONES_DE_DISENO.md` §4.8). La ganancia es una pantalla que cabe. El
+> costo es que **el 401 ahora es un destino al que hay que ir**, y un
+> presentador que olvide que la pestaña existe terminará la sección de Gateway
+> sin haber mostrado lo más persuasivo de toda la demo.
+>
+> Dos formas de no olvidarlo: es el **#5 del mapa** en el checklist de arriba, y
+> pulsar **`S` desde cualquier sitio** ejecuta los tres intentos *y* te lleva
+> allí. Si te vas a acordar de un solo atajo en toda la demo, que sea este.
+
+**Pregunta del cliente que responde este beat:** *"¿Quién tiene permiso de llamar al agente, y qué le pasa a todos los demás?"*
+
+**En pantalla:** Gateway → **Credenciales**.
+
+**Guion:**
+
+> "El cliente solo necesita una clave de suscripción de API Management — no una credencial de Azure AD, no una clave de Foundry, no una clave de modelo. APIM intercambia esa clave por un token de identidad administrada, generado por solicitud y nunca almacenado."
+
+**Demostración en vivo — la prueba de las tres credenciales** (`Ejecutar los tres`, o atajo `S`):
+
+> "Voy a intentar tres formas de llegar al agente en este momento, en vivo."
+
+Ejecuta la prueba y narra el resultado mientras aparece. Baja el ritmo aquí:
+los tres resultados caen en segundo y medio, y la sala necesita leerlos:
+
+> "Con la clave de suscripción: 200, funciona. Sin la clave: 401, rechazado por APIM antes de que la solicitud llegue a Foundry. Yendo directo al endpoint de Foundry, sin pasar por el gateway: también 401, porque no hay token de Azure AD. Esos dos rechazos son el resultado esperado, no un error — es la prueba de que el perímetro realmente hace su trabajo."
+
+Si quieres dejar una sola frase en la sala, que sea esta:
+
+> "Nada de lo que hay en esta pantalla está escenificado. Son tres solicitudes HTTPS reales hechas hace un segundo, y la puerta de enlace decidió cada una."
+
+**Revelar la política XML** (`Mostrar la política en vivo`):
+
+> "Esta es la política que está corriendo en el gateway en este momento — no un archivo de ejemplo, sino lo que Azure Resource Manager devuelve ahora mismo. Aquí es donde se adquiere el token de identidad administrada y se sobrescribe el encabezado de autorización antes de reenviar la solicitud."
+
+**Una nota sobre lo que estás viendo, si presentas seguido:** el verde aparece
+exactamente una vez en toda la consola, y es el escudo de esos rechazos. Todo
+lo demás que está "encendido" — un agente corriendo, el estado en vivo, un
+control aplicado — es azul. Es deliberado: cuando la sala ve verde, significa
+que algo fue *rechazado*, y no debería significar ninguna otra cosa.
+
+**Si alguien pregunta "¿qué más puede hacer API Management?"** — eso es la
+pestaña **Referencia**, la tercera. Di claramente que es material de capacidades
+de producto y no una lectura de este despliegue; la consola también lo dice, con
+marco punteado, banner y una píldora "se usa aquí / no en este lab" en cada
+elemento. Es además la única pantalla que puedes desplazar con calma (§4.9).
+
+---
+
+## 4. Observabilidad (8:00 – 10:30)
 
 **Pregunta del cliente que responde esta sección:** *"¿Qué evidencia genera la plataforma?"*
 
-**En pantalla:** el registro de auditoría de la última solicitud, con el detalle expandido.
+**En pantalla:** Observabilidad → **Registro**. Esta sección tiene dos pestañas y el beat usa las dos — Registro responde *qué se preguntó y qué se respondió*, Mediciones responde *cuánto costó*. Están separadas porque vienen de consultas distintas y le importan a gente distinta: una función de cumplimiento quiere la primera, un arquitecto quiere la segunda.
+
+**Un detalle de tiempos que conviene saber antes de presentar.** Log Analytics ingesta los registros del gateway entre uno y tres minutos después de la respuesta. Si llegas aquí inmediatamente después de preguntar, los números por salto dirán honestamente que aún no están disponibles en vez de estimarlos — eso es la consola funcionando bien. Haz tu pregunta durante el beat de Agentes y esta sección ya estará poblada cuando llegues.
 
 **Guion:**
 
 > "Ninguno de estos datos fue agregado escribiendo código adicional dentro del agente. El despliegue de Bicep ya crea el workspace de Log Analytics y Application Insights, y conecta API Management a ambos — así que el propio gateway escribe el prompt completo, la respuesta completa, el conteo de tokens y la duración de cada salto."
 
-Expande el detalle de una solicitud para mostrar la línea de tiempo de spans:
+Cambia a la pestaña **Mediciones** y muestra la cascada por salto; luego abre `Detalles técnicos` para la línea de tiempo de spans:
 
 > "Esto es una traza distribuida real, no una reconstrucción a partir de marcas de tiempo. Se puede seguir una sola solicitud a través del gateway, del runtime de Foundry y del contenedor del agente — incluyendo el momento exacto en que se adquiere el token de identidad administrada, que aparece aquí como su propio span."
 
@@ -126,29 +202,29 @@ Expande el detalle de una solicitud para mostrar la línea de tiempo de spans:
 
 ---
 
-## 4. Plataforma (10:30 – 12:30)
+## 5. Plataforma (10:30 – 12:30)
 
 **Pregunta del cliente que responde esta sección:** *"¿Qué está desplegado, y qué administra el equipo de operaciones?"*
 
-**En pantalla:** la sección Plataforma, con el entorno y el catálogo de controles.
+**En pantalla:** la sección Plataforma, mostrando el catálogo de controles.
 
-**Guion:**
+**Guion** — señala el pie del riel en vez del escenario, porque ahí es donde vive ahora el entorno, de forma permanente y en todas las pantallas:
 
-> "Aquí está el entorno real: región, grupo de recursos, y el conteo de recursos que Azure Resource Manager devuelve en este momento — no una cifra documentada de forma manual."
+> "Aquí está el entorno real, y ha estado en pantalla todo este rato: región, grupo de recursos, y el conteo de recursos que Azure Resource Manager devuelve en este momento — no una cifra documentada de forma manual."
 
 Muestra el catálogo de controles, destacando las tres categorías:
 
-> "Este catálogo tiene tres estados, y esa distinción es deliberada. **Activo** son controles evidenciados por la solicitud que acabamos de hacer — cada uno cita la observación exacta que lo demuestra. **Disponible** son controles que este mismo punto de control soporta pero que no están encendidos en este entorno — límite de tasa, caché semántica, redes privadas, autenticación exclusiva con Entra, gestión de secretos con Key Vault. Encenderlos es un cambio de configuración en un gateway que la empresa ya posee, no una reconstrucción.
+> "Este catálogo tiene tres estados, y esa distinción es deliberada. **Activo** son controles evidenciados por la solicitud que acabamos de hacer — haz clic en cualquiera y cita la observación exacta que lo demuestra, abajo en la franja bajo la lista. **Disponible** son controles que este mismo punto de control soporta pero que no están encendidos en este entorno — límite de tasa, caché semántica, redes privadas, autenticación exclusiva con Entra, gestión de secretos con Key Vault. Encenderlos es un cambio de configuración en un gateway que la empresa ya posee, no una reconstrucción.
 >
 > Y lo que no está en esta lista en absoluto, se los digo directamente en lugar de dejarlos adivinar."
 
-Si el tiempo lo permite, ejecuta una de las acciones de mantenimiento en vivo (por ejemplo, **Actualizar estado de Azure**):
+Si el tiempo lo permite, ejecuta una de las acciones de mantenimiento en vivo desde el cajón de configuración (engranaje al pie del riel — por ejemplo, **Actualizar estado de Azure**):
 
 > "Estas son las mismas comprobaciones que un ingeniero correría antes de una sesión — aquí están al alcance de un clic, contra la infraestructura real."
 
 ---
 
-## 5. Cierre (12:30 – 14:00)
+## 6. Cierre (12:30 – 14:00)
 
 **Guion:**
 

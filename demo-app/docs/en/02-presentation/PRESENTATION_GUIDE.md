@@ -8,19 +8,45 @@ Suggested duration: **12–15 minutes** of walkthrough + questions. This is a sc
 
 ## Before you start (presenter checklist)
 
-- [ ] **Azure Live** mode active (not Simulation) — it's the default mode, confirm it in the top corner of the header.
-- [ ] Open the settings menu (gear icon) → Presenter Tools → Maintenance, and run at least:
+- [ ] **Azure Live** mode active (not Simulation) — it's the default mode, confirm it at the bottom of the left rail, where the dot and the region sit permanently.
+- [ ] Open the settings drawer (gear icon, bottom of the rail) → **Maintenance**, the first section, and run at least:
   - **Check broker** (`ping`) — confirms the local backend is responding.
   - **Warm up agent** (`warm-agent`) — a container's first cold start can take 10–17s; doing this ahead of time avoids that awkward silence live.
 - [ ] Confirm both agents (`pydantic-agent`, `strands-agent`) show as *Running* in the Agents section.
 - [ ] Have a backup question ready for the copilot in case you want to demo it (see the "The copilot" section below).
 - [ ] If you're presenting without a reliable internet connection, keep Simulation as a safety net — but state clearly that it's a rehearsal, never present it as real data.
 
-**Navigation:** the four sections (Agents, Gateway, Observability, Platform) are tabs at the top — click to move between them, in whatever order you prefer. Useful keyboard shortcuts during the presentation:
+**Navigation:** the four sections live in the dark rail down the left side — click to move between them, in whatever order you prefer. Two of them carry sub-tabs in their own header row, which is where most of the console actually is: **nine destinations, not four.** Learn the map below before you present; it is the difference between showing the argument and skipping it.
+
+The rail folds to a 64px icon strip when you open the copilot at 1366×768, and comes back when you close it. Nothing moves — the icons stay in the same order and the same place.
+
+Useful keyboard shortcuts during the presentation:
 - `C` — open/close the built-in copilot.
-- `S` — run the three-credential test (useful in the Gateway section, see below).
+- `S` — run the three-credential test **and jump to the tab that shows the result**. This is the fastest route to the 401; see Beat 3.
 - `L` — toggle between Azure Live and Simulation.
 - `Esc` — close the copilot, or return to the home screen.
+
+### The map — nine destinations
+
+| # | Section → tab | The question it answers | Do not skip |
+|---|---|---|---|
+| 1 | **Agents** → Summary | What is deployed, and in what state? | |
+| 2 | Agents → Versions | What has been released, and when? | |
+| 3 | Agents → Run | Ask this specific agent directly | |
+| 4 | **Gateway** → Live | How do clients reach the agent? | The two APIM hops |
+| 5 | **Gateway → Credentials** | Which credentials are accepted? | **The 401. See Beat 3.** |
+| 6 | Gateway → Reference | What else can API Management do? | Scrolls — see below |
+| 7 | **Observability** → Record | What was asked, and what was answered? | |
+| 8 | Observability → Measurements | What did this request cost? | The per-hop waterfall |
+| 9 | **Platform** | What is deployed, and what does the operations team administer? | |
+
+Everything in this console is on one of those nine screens. If you find yourself hunting for something mid-demo, it is on this table.
+
+**Where the environment and the mode indicator went.** They are in the rail's footer, permanently: the current agent, the Live/Simulation dot with the region and resource group, and the gear. You no longer have to leave a screen to check which deployment you are on, and neither does the room.
+
+**The settings drawer** (gear, bottom of the rail) opens with **Maintenance first** — eight actions including `ping`, `warm-agent`, `test-apim` and `reload-policies`. Those last two used to sit on the Gateway screen; they are presenter instruments, so they are in the presenter's menu now.
+
+**One screen scrolls, and only one.** Gateway → Reference is reference material about API Management as a product, not a reading of this deployment, and it is longer than a screen on purpose. You can scroll it calmly with the room — that is a declared exception (`DESIGN_DECISIONS.md` §4.9), not a layout fault. Every other screen fits without scrolling at 1366×768; if one of them ever does not, that is a bug worth reporting, not something to scroll past.
 
 ---
 
@@ -70,7 +96,7 @@ Switch to the **Run** tab and, if time allows, invoke the agent live with a simp
 
 ---
 
-## 2. Gateway (4:00 – 8:00) — the longest section, the deal-closer
+## 2. Gateway → Live (4:00 – 6:15) — the two hops
 
 **Customer question this section answers:** *"How do clients reach the agent, and who controls that?"*
 
@@ -84,39 +110,89 @@ In most conversations, this is the section that decides whether the customer sta
 >
 > Most architectures only govern the front door and leave the traffic the agent generates toward the model uncontrolled. Here, both directions cross the same control point the platform team already owns."
 
-Show the accepted credentials / the route diagram:
+Point at the routed URL above the diagram:
 
-> "The client only needs an API Management subscription key — not an Azure AD credential, not a Foundry key, not a model key. APIM exchanges that key for a managed identity token, generated per request and never stored."
+> "The agent's name is a path segment in that URL. That is why one API serves any number of agents — deploying the tenth one changes no gateway configuration at all."
 
-**Live demo — the three-credential test** (access test button, or shortcut `S`):
-
-> "I'm going to try three ways of reaching the agent right now, live."
-
-Run the test and narrate the result as it appears:
-
-> "With the subscription key: 200, it works. Without the key: 401, rejected by APIM before the request ever reaches Foundry. Going straight to the Foundry endpoint, bypassing the gateway: also 401, because there's no Azure AD token. Those two rejections are the expected outcome, not an error — they're proof the perimeter is actually doing its job."
-
-**Reveal the XML policy:**
-
-> "This is the policy running on the gateway right now — not a sample file, but what Azure Resource Manager is returning at this very moment. This is where the managed identity token gets acquired and the authorization header gets overwritten before the request is forwarded."
-
-**Key message to close the section:**
+**Key message to close this beat:**
 
 > "In this implementation, all of this adds single-digit millisecond latency per hop — compared to the several seconds the model generation itself takes. Putting a governed control point in the path costs no noticeable performance."
 
+Then say the sentence that carries you into the next beat, so you cannot
+arrive at the wrap-up having skipped it:
+
+> "So that is *where* the request goes. The other half of the question is *who is allowed to send it* — and I can show you that live rather than describe it."
+
 ---
 
-## 3. Observability (8:00 – 10:30)
+## 3. Gateway → Credentials (6:15 – 8:00) — the 401, and the only green in the console
+
+> **This beat is not optional, and it has its own tab for a reason.**
+>
+> The three-credential test used to sit at the bottom of the Live screen. It
+> does not any more: at the 16px projector floor, Live and Credentials do not
+> fit on one screen — measured, twice, under two different layouts
+> (`DESIGN_DECISIONS.md` §4.8). The upside is a screen that fits. The cost is
+> that **the 401 is now a destination you have to go to**, and a presenter who
+> forgets the tab exists will finish the Gateway section without ever showing
+> the single most persuasive thing in the demo.
+>
+> Two ways not to forget: it is **#5 on the map** in the checklist above, and
+> pressing **`S` from anywhere** runs the three attempts *and* takes you there.
+> If you remember one shortcut for the whole demo, make it this one.
+
+**Customer question this beat answers:** *"Who is allowed to call the agent, and what happens to everyone else?"*
+
+**On screen:** Gateway → **Credentials**.
+
+**Script:**
+
+> "The client only needs an API Management subscription key — not an Azure AD credential, not a Foundry key, not a model key. APIM exchanges that key for a managed identity token, generated per request and never stored."
+
+**Live demo — the three-credential test** (`Run all three`, or shortcut `S`):
+
+> "I'm going to try three ways of reaching the agent right now, live."
+
+Run the test and narrate the result as it appears. Slow down here — three
+outcomes land in about a second and a half, and the room needs to read them:
+
+> "With the subscription key: 200, it works. Without the key: 401, rejected by APIM before the request ever reaches Foundry. Going straight to the Foundry endpoint, bypassing the gateway: also 401, because there's no Azure AD token. Those two rejections are the expected outcome, not an error — they're proof the perimeter is actually doing its job."
+
+If you want one line to leave in the room, it is this one:
+
+> "Nothing on this screen is staged. Those are three real HTTPS requests made just now, and the gateway decided each one."
+
+**Reveal the XML policy** (`Show the live policy`):
+
+> "This is the policy running on the gateway right now — not a sample file, but what Azure Resource Manager is returning at this very moment. This is where the managed identity token gets acquired and the authorization header gets overwritten before the request is forwarded."
+
+**A note on what you are looking at, if you present often:** green appears
+exactly once in this entire console, and it is the shield on those rejections.
+Everything else that is "on" — a running agent, live status, an enforced
+control — is blue. That is deliberate: when the room sees green, it means
+something was *refused*, and it should mean nothing else.
+
+**If someone asks "what else can API Management do?"** — that is the
+**Reference** tab, the third one. Say plainly that it is product capability
+material and not a reading of this deployment; the console says so too, with a
+dashed frame, a banner and a "used here / not in this lab" pill on every item.
+It is also the one screen you can scroll calmly (§4.9).
+
+---
+
+## 4. Observability (8:00 – 10:30)
 
 **Customer question this section answers:** *"What evidence does the platform generate?"*
 
-**On screen:** the audit log of the latest request, with the detail expanded.
+**On screen:** Observability → **Record**. This section has two tabs, and the beat uses both — Record answers *what was asked and answered*, Measurements answers *what it cost*. They are separate because they come from different queries and different people care about them: a compliance function wants the first, an architect wants the second.
+
+**A timing note worth knowing before you present.** Log Analytics ingests the gateway's logs one to three minutes after an answer. If you come here immediately after asking, the per-hop numbers will honestly say they are not available yet rather than estimate — that is the console working correctly. Ask your question during the Agents beat and this section will be populated by the time you reach it.
 
 **Script:**
 
 > "None of this data was added by writing extra code inside the agent. The Bicep deployment already creates the Log Analytics workspace and Application Insights, and connects API Management to both — so the gateway itself writes the full prompt, the full response, the token count, and the duration of every hop."
 
-Expand a request's detail to show the span timeline:
+Switch to the **Measurements** tab and show the per-hop waterfall, then open `Technical details` for the span timeline:
 
 > "This is a real distributed trace, not a reconstruction from timestamps. You can follow a single request through the gateway, through the Foundry runtime, and into the agent's container — including the exact moment the managed identity token is acquired, which shows up here as its own span."
 
@@ -126,29 +202,29 @@ Expand a request's detail to show the span timeline:
 
 ---
 
-## 4. Platform (10:30 – 12:30)
+## 5. Platform (10:30 – 12:30)
 
 **Customer question this section answers:** *"What's deployed, and what does the operations team manage?"*
 
-**On screen:** the Platform section, with the environment and the controls catalog.
+**On screen:** the Platform section, showing the controls catalog.
 
-**Script:**
+**Script** — point at the rail's footer rather than the stage, because that is where the environment now lives, permanently and on every screen:
 
-> "Here's the real environment: region, resource group, and the resource count that Azure Resource Manager returns right now — not a manually documented figure."
+> "Here's the real environment, and it has been on screen this whole time: region, resource group, and the resource count that Azure Resource Manager returns right now — not a manually documented figure."
 
 Show the controls catalog, highlighting the three categories:
 
-> "This catalog has three states, and that distinction is deliberate. **Active** are controls evidenced by the request we just made — each one cites the exact observation that proves it. **Available** are controls that this same control point supports but aren't turned on in this environment — rate limiting, semantic caching, private networking, Entra-only authentication, secrets management with Key Vault. Turning them on is a configuration change on a gateway the company already owns, not a rebuild.
+> "This catalog has three states, and that distinction is deliberate. **Active** are controls evidenced by the request we just made — click any one of them and it cites the exact observation that proves it, down in the strip below the list. **Available** are controls that this same control point supports but aren't turned on in this environment — rate limiting, semantic caching, private networking, Entra-only authentication, secrets management with Key Vault. Turning them on is a configuration change on a gateway the company already owns, not a rebuild.
 >
 > And whatever isn't on this list at all, I'll tell you directly instead of letting you guess."
 
-If time allows, run one of the maintenance actions live (for example, **Refresh Azure status**):
+If time allows, run one of the maintenance actions live from the settings drawer (gear at the bottom of the rail — for example, **Refresh Azure status**):
 
 > "These are the same checks an engineer would run before a session — here they're a click away, against the real infrastructure."
 
 ---
 
-## 5. Wrap-up (12:30 – 14:00)
+## 6. Wrap-up (12:30 – 14:00)
 
 **Script:**
 
