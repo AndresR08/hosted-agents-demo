@@ -423,6 +423,8 @@ The page is a stage with four lighting states: **Opening** (load or reset — he
 
 **Resolution degradation:** designed for 1920×1080 with no scroll; scales proportionally down to 1600×900; at 1366×768 (a common boardroom resolution) the Journey shrinks, the bottom band compresses, and the Audit Record collapses to an expandable summary line — but **there is still no scroll**; below 1366 there is no support, the presenter must use an adequate screen.
 
+This rule has exactly one declared exception — the Gateway Reference tab, which is a document rather than a stage screen. See §4.9 for the exception and, more importantly, for the test that keeps it from spreading to a second screen.
+
 ---
 
 ### 4.8 The Gateway Credentials tab — a PROVISIONAL navigation decision
@@ -478,6 +480,58 @@ much vertical budget a screen has. When it lands:
 
 Do not conclude that the tab is correct merely because it is still there. It
 solved a space problem on 2026-09-02; it was never argued for on its merits.
+
+---
+
+### 4.9 §4.7's no-scroll rule does not apply to the Gateway Reference tab
+
+**Status: a declared exception, not an oversight. Exactly one screen is exempt.**
+
+Measured at the 1366×768 floor with the same probe used everywhere else, the
+Reference tab holds **1939px of content in a 409px budget**. Every other screen
+in the console is at 0px hidden with real margin. This one is not, it never was,
+and it is not going to be — which is a decision, and decisions of that size do
+not get to live as a silent gap in a table.
+
+**Why the rule exists.** §4.7 forbids scroll because the four stage screens are
+things a presenter *speaks over*. Their content is a live reading of this
+deployment — measured latencies, the routed URL, the credential outcomes, the
+control catalogue — and the presenter is arguing from it in real time, to a room
+that is looking at the projector rather than at the presenter's hands. Content
+below the fold on those screens is content the room never sees, and the
+presenter has no way to know it was missed. Scroll there is not an
+inconvenience; it silently deletes part of the argument.
+
+**Why it does not apply here.** The Reference tab is not a reading of this
+deployment and is not spoken over. It is reference material about API Management
+as a product: eight capabilities with a "used here" / "not in this lab" pill
+each, the tier comparison, and the identity sequence. Three things follow from
+that, and all three are the opposite of the stage screens' situation:
+
+- **Nothing on it is live or time-sensitive**, so nothing is lost by being
+  reached a moment later. Its one live value — the APIM tier — carries its own
+  inline `live` badge and sits near the top.
+- **It is read, not narrated.** The realistic use is a solutions architect
+  opening it in answer to "what else can it do?", scrolling through it with the
+  room, or sending a colleague to it after the session. That is a document, and
+  documents scroll. Forcing 1939px of curated capability text into 409px would
+  mean either cutting the catalogue down to what fits — making the platform look
+  smaller than it is — or dropping below the 16px projector floor, which §4.5
+  does not permit.
+- **The honesty system does not depend on layout here.** The separation between
+  reference and live is carried by the dashed `tone="reference"` frame, a
+  permanent banner, a separate stop, and a per-capability pill (§4.8's neighbour
+  screen and the component's own header comment). None of those weaken when the
+  page scrolls; a pill scrolled past is not a pill that misleads, because it
+  travels attached to the capability it qualifies.
+
+**The boundary of this exception, stated so it cannot spread.** It covers the
+Gateway Reference tab and nothing else. The test for any future screen claiming
+it is not "is this screen long" but **"is a presenter arguing from live data on
+it while the room watches?"** If yes, §4.7 applies in full and the screen must
+reach 0px hidden with margin. Adding reference-style reading material to a stage
+screen does not exempt that screen — it means the material belongs on a
+reference screen instead, which is the whole reason this tab exists.
 
 ---
 

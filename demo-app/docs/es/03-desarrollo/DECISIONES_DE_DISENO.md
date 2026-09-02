@@ -423,6 +423,8 @@ La página es un escenario con cuatro estados de iluminación: **Opening** (carg
 
 **Degradación de resolución:** diseñada para 1920×1080 sin scroll; escala proporcional a 1600×900; a 1366×768 (resolución común en salas de juntas) la Journey se reduce, la banda inferior se comprime y el Audit Record colapsa a una línea resumen expandible — pero **sigue sin haber scroll**; por debajo de 1366 no hay soporte, el presentador debe usar una pantalla adecuada.
 
+Esta regla tiene exactamente una excepción declarada — la pestaña Referencia del Gateway, que es un documento y no una pantalla de escenario. Ver §4.9 para la excepción y, sobre todo, para la prueba que impide que se propague a una segunda pantalla.
+
 ---
 
 ### 4.8 La pestaña Credenciales del Gateway — una decisión de navegación PROVISIONAL
@@ -483,6 +485,60 @@ presupuesto vertical tiene una pantalla. Cuando llegue:
 
 No concluir que la pestaña es correcta solo porque siga ahí. Resolvió un problema
 de espacio el 2026-09-02; nunca se argumentó por sus propios méritos.
+
+---
+
+### 4.9 La regla de no-scroll de §4.7 no aplica a la pestaña Referencia del Gateway
+
+**Estado: una excepción declarada, no un descuido. Exactamente una pantalla está exenta.**
+
+Medida en el piso de 1366×768 con el mismo método usado en todas las demás, la
+pestaña Referencia contiene **1939px de contenido en un presupuesto de 409px**.
+Cada otra pantalla de la consola está en 0px oculto con margen real. Esta no lo
+está, nunca lo estuvo, y no va a estarlo — lo cual es una decisión, y las
+decisiones de ese tamaño no pueden vivir como un hueco silencioso en una tabla.
+
+**Por qué existe la regla.** §4.7 prohíbe el scroll porque las cuatro pantallas
+del escenario son cosas sobre las que un presentador *habla*. Su contenido es una
+lectura en vivo de este despliegue — latencias medidas, la URL enrutada, los
+resultados de credenciales, el catálogo de controles — y el presentador argumenta
+a partir de ellas en tiempo real, ante una sala que mira el proyector y no las
+manos del presentador. El contenido bajo el pliegue en esas pantallas es
+contenido que la sala no ve nunca, y el presentador no tiene forma de saber que
+se perdió. Ahí el scroll no es una molestia: borra en silencio parte del
+argumento.
+
+**Por qué no aplica aquí.** La pestaña Referencia no es una lectura de este
+despliegue y no se narra por encima. Es material de referencia sobre API
+Management como producto: ocho capacidades con su píldora "se usa aquí" / "no en
+este lab", la comparación de niveles y la secuencia de identidad. De ahí se
+siguen tres cosas, y las tres son lo contrario de la situación de las pantallas
+del escenario:
+
+- **Nada en ella es en vivo ni sensible al tiempo**, así que nada se pierde por
+  alcanzarlo un momento después. Su único valor en vivo — el nivel de APIM —
+  lleva su propia insignia `live` en línea y está cerca del inicio.
+- **Se lee, no se narra.** El uso realista es un arquitecto de soluciones
+  abriéndola para responder "¿qué más puede hacer?", recorriéndola con la sala, o
+  enviando a un colega a ella después de la sesión. Eso es un documento, y los
+  documentos se desplazan. Forzar 1939px de texto curado de capacidades dentro de
+  409px significaría o recortar el catálogo a lo que quepa — haciendo que la
+  plataforma parezca más pequeña de lo que es — o bajar del piso de 16px, que
+  §4.5 no permite.
+- **El sistema de honestidad no depende del layout aquí.** La separación entre
+  referencia y vivo la sostienen el marco punteado `tone="reference"`, un banner
+  permanente, un stop separado, y una píldora por capacidad. Ninguno de ellos se
+  debilita cuando la página se desplaza; una píldora que quedó arriba no es una
+  píldora que engañe, porque viaja pegada a la capacidad que califica.
+
+**El límite de esta excepción, dicho para que no se propague.** Cubre la pestaña
+Referencia del Gateway y nada más. La prueba para cualquier pantalla futura que
+la reclame no es "¿esta pantalla es larga?" sino **"¿hay un presentador
+argumentando sobre datos en vivo en ella mientras la sala mira?"**. Si la
+respuesta es sí, §4.7 aplica por completo y la pantalla debe llegar a 0px oculto
+con margen. Añadir material de lectura tipo referencia a una pantalla de
+escenario no exime a esa pantalla — significa que el material pertenece a una
+pantalla de referencia, que es la razón entera por la que existe esta pestaña.
 
 ---
 

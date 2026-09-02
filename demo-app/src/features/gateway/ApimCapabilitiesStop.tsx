@@ -31,6 +31,22 @@ import { IdentityFlowSequence } from "./IdentityFlowSequence";
  *     Three of the eight do; the pill is what stops the list from being read
  *     aloud as a list of things that are switched on.
  *
+ * WHY THIS SCREEN SCROLLS AND THE OTHER FOUR DO NOT
+ *
+ * It holds ~1939px of content in a ~409px budget at 1366x768, and that is a
+ * declared exception to DESIGN_DECISIONS.md 4.7, written down in 4.9 rather
+ * than left as a silent gap. The short version: 4.7 forbids scroll because a
+ * presenter argues from live data on the stage screens while the room watches
+ * the projector, so content below the fold is argument the room never gets.
+ * Nothing here is live or narrated - it is a document, read rather than spoken
+ * over - and the reference/live separation is carried by the dashed frame, the
+ * banner, the separate stop and the per-capability pills, none of which weaken
+ * when the page scrolls.
+ *
+ * Do not "fix" this screen by trimming the catalogue to fit. That would make
+ * the platform look smaller than it is, which is the one thing this screen
+ * exists to prevent. Read 4.9 before treating the overflow as a defect.
+ *
  * WHY THERE IS NO PROVENANCE BADGE ON THIS SCREEN
  *
  * It used to carry `illustrative`, and that was worse than nothing. The live
