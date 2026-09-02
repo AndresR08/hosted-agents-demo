@@ -427,9 +427,68 @@ This rule has exactly one declared exception — the Gateway Reference tab, whic
 
 ---
 
-### 4.8 The Gateway Credentials tab — a PROVISIONAL navigation decision
+### 4.8 The Gateway Credentials tab — measured twice, and it stays
 
-**Status: provisional. To be re-examined during CP3 (the sidebar restructure). Do not treat as settled.**
+**Status: RESOLVED at CP3 (2026-09-02). The tab stays. It was re-examined under the new chrome exactly as this section required, and the measurement below is why it is no longer provisional.**
+
+**The re-examination, step by step, as §4.8 originally specified it.**
+
+*Step 1 — re-measure under the sidebar's chrome.* The navigation rail removed
+the 72px environment header and the 48px section row, taking the vertical
+budget from 411px to 507px. The live Gateway screen, measured with real data
+loaded, is 423px of content in that 507px budget: **84px of margin**. On its
+own it now fits comfortably, which is precisely the condition that made the
+question worth reopening.
+
+*Step 2 — does the credential test fit back on the live screen, with real
+margin?* **No.** Not estimated: the credential body was grafted onto the live
+screen in a running browser and measured.
+
+| | px |
+|---|---|
+| Live screen alone | 423 |
+| Credential body + its section heading | 138 |
+| **Merged** | **561** |
+| Budget | 507 |
+| **Hidden** | **54** |
+
+And that is the credential test in its *empty* state. Once the three attempts
+have run — the state the presenter is actually in when the 401 matters — the
+body grows to 132px, so the merged screen hides **64px**. The rail's extra 96px
+of budget is real, and it is still 64px short of what reintegration costs.
+
+*Step 3 — decide neighbourhood rather than leaving it by default.* The tab
+stays between **Live** and **Reference**, and that order is now deliberate
+rather than incidental. Live and Credentials are both readings of this
+deployment; Reference is not. Putting Credentials after Reference would place a
+measured screen on the far side of the boundary that the dashed frame, the
+banner and the pills exist to draw, which is the one arrangement the tab set
+must not have.
+
+**What this costs, still stated plainly.** The 401 rejection is one click away
+rather than on screen. It is the most important beat in the gateway story and
+the only green in the console. That has not stopped being a cost because the
+measurement went against reintegration — it is simply a cost with no cheaper
+alternative, and the honest thing is to mitigate it rather than pretend it away:
+
+- The `S` shortcut runs the three attempts *and* navigates to this tab. That
+  was broken by the original split — it set `stop` to `"gateway"` and so
+  navigated away from the results it had just triggered — and was fixed when
+  the bug was found by running it.
+- The presenter guide should carry the Credentials tab as its own numbered
+  beat, so it cannot be skipped by a presenter who forgets the tab exists.
+
+**What would reopen this.** Not a preference, and not a redesign of the flow
+diagram to buy 64px. Only a change that removes an argument from the live
+screen for a reason of its own, or a resolution above 1366×768 becoming the
+floor. Absent either, this is settled: it was measured twice, under two
+different chromes, and both times reintegration did not fit.
+
+---
+
+<details>
+<summary>The original provisional record, kept as written</summary>
+
 
 Measured against the 1366×768 floor with the corrected probe (content height read
 from `panel.firstElementChild.offsetHeight`, budget derived as `728 − (innerHeight
@@ -480,6 +539,8 @@ much vertical budget a screen has. When it lands:
 
 Do not conclude that the tab is correct merely because it is still there. It
 solved a space problem on 2026-09-02; it was never argued for on its merits.
+
+</details>
 
 ---
 

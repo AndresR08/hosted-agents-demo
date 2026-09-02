@@ -36,9 +36,11 @@ export type StopId =
   /**
    * The three-credential test, split off the live Gateway screen.
    *
-   * PROVISIONAL - see DESIGN_DECISIONS.md 4.8. It earns its own stop for a
-   * space reason, not an argument reason, and that is exactly the kind of
-   * decision that should be revisited rather than inherited.
+   * It earns its own stop for a space reason rather than an argument one,
+   * which is why 4.8 held it open as provisional until CP3. Re-measured under
+   * the sidebar's chrome it still does not fit back on the live screen - 561px
+   * merged against a 507px budget, 64px once the three attempts have run - so
+   * 4.8 is now resolved and the stop is permanent.
    */
   | "gatewayCredentials"
   | "observability"

@@ -427,9 +427,69 @@ Esta regla tiene exactamente una excepción declarada — la pestaña Referencia
 
 ---
 
-### 4.8 La pestaña Credenciales del Gateway — una decisión de navegación PROVISIONAL
+### 4.8 La pestaña Credenciales del Gateway — medida dos veces, y se queda
 
-**Estado: provisional. A revisar durante CP3 (la reestructuración del sidebar). No darla por resuelta.**
+**Estado: RESUELTO en CP3 (2026-09-02). La pestaña se queda. Se reevaluó bajo el nuevo cromo tal como esta sección exigía, y la medición de abajo es la razón por la que ya no es provisional.**
+
+**La reevaluación, paso a paso, como §4.8 la especificó originalmente.**
+
+*Paso 1 — volver a medir bajo el cromo del sidebar.* El riel de navegación
+eliminó la cabecera de entorno de 72px y la fila de secciones de 48px, llevando
+el presupuesto vertical de 411px a 507px. La pantalla Gateway "En vivo", medida
+con datos reales cargados, tiene 423px de contenido en ese presupuesto de 507px:
+**84px de margen**. Por sí sola ahora cabe con holgura, que es precisamente la
+condición que hacía que valiera la pena reabrir la pregunta.
+
+*Paso 2 — ¿cabe el test de credenciales de vuelta en la pantalla en vivo, con
+margen real?* **No.** No estimado: el cuerpo de credenciales se injertó en la
+pantalla en vivo en un navegador en ejecución y se midió.
+
+| | px |
+|---|---|
+| Pantalla en vivo sola | 423 |
+| Cuerpo de credenciales + su título de sección | 138 |
+| **Fusionadas** | **561** |
+| Presupuesto | 507 |
+| **Oculto** | **54** |
+
+Y eso es el test de credenciales en su estado *vacío*. Una vez ejecutados los
+tres intentos —el estado en el que el presentador está de verdad cuando el 401
+importa— el cuerpo crece a 132px, así que la pantalla fusionada oculta **64px**.
+Los 96px extra de presupuesto que dio el riel son reales, y aun así se quedan
+64px cortos de lo que cuesta la reintegración.
+
+*Paso 3 — decidir vecindad en vez de dejarla por defecto.* La pestaña se queda
+entre **En vivo** y **Referencia**, y ese orden ahora es deliberado y no
+incidental. En vivo y Credenciales son ambas lecturas de este despliegue;
+Referencia no lo es. Poner Credenciales después de Referencia colocaría una
+pantalla medida al otro lado de la frontera que el marco punteado, el banner y
+las píldoras existen para trazar, que es la única disposición que este conjunto
+de pestañas no debe tener.
+
+**Lo que esto cuesta, dicho igual de claro.** El rechazo 401 está a un clic en
+vez de en pantalla. Es el beat más importante de la historia del gateway y el
+único verde de la consola. Eso no ha dejado de ser un costo porque la medición
+saliera en contra de la reintegración — simplemente es un costo sin alternativa
+más barata, y lo honesto es mitigarlo, no fingir que no existe:
+
+- El atajo `S` ejecuta los tres intentos *y* navega a esta pestaña. La
+  separación original lo rompió —ponía `stop` en `"gateway"` y por tanto
+  navegaba fuera de los resultados que acababa de disparar— y se corrigió cuando
+  el fallo apareció al ejecutarlo.
+- La guía del presentador debería llevar la pestaña Credenciales como beat
+  numerado propio, para que no pueda saltarla quien olvide que existe.
+
+**Qué reabriría esto.** No una preferencia, y no rediseñar el diagrama de flujo
+para arañar 64px. Solo un cambio que quite un argumento de la pantalla en vivo
+por una razón propia, o que una resolución superior a 1366×768 pase a ser el
+piso. Sin ninguna de las dos, esto queda cerrado: se midió dos veces, bajo dos
+cromos distintos, y las dos veces la reintegración no cupo.
+
+---
+
+<details>
+<summary>El registro provisional original, tal como se escribió</summary>
+
 
 Medida contra el piso de 1366×768 con el método corregido (alto de contenido leído
 de `panel.firstElementChild.offsetHeight`, presupuesto derivado como `728 −
@@ -485,6 +545,8 @@ presupuesto vertical tiene una pantalla. Cuando llegue:
 
 No concluir que la pestaña es correcta solo porque siga ahí. Resolvió un problema
 de espacio el 2026-09-02; nunca se argumentó por sus propios méritos.
+
+</details>
 
 ---
 

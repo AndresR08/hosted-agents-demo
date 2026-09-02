@@ -22,13 +22,18 @@ const REVEAL_STAGGER_MS = 400;
  * and terms are three arguments, and three arguments do not fit on one screen
  * at the 16px projector floor.
  *
- * PROVISIONAL, and recorded as such in DESIGN_DECISIONS.md 4.8. The cost is
- * real and named there: until this split, the 401 rejection - the single most
- * important beat in the whole gateway story, and the only green in the console
- * - was on screen without the presenter navigating anywhere. Now it is one
- * click away. That was traded for space, not because a separate screen is a
- * better argument, and the trade must be re-examined when CP3's sidebar
- * changes how much vertical budget a screen actually has.
+ * It was PROVISIONAL until CP3, because it was traded for space rather than
+ * because a separate screen is a better argument. CP3 re-examined it: the
+ * sidebar took the budget from 411px to 507px, and reintegration was measured
+ * in a running browser at 561px merged - 64px over once the three attempts
+ * have run. So DESIGN_DECISIONS.md 4.8 is resolved and this screen is
+ * permanent.
+ *
+ * The cost is unchanged and still worth knowing: the 401 rejection - the most
+ * important beat in the gateway story, and the only green in the console - is
+ * one click away rather than on screen. `S` runs the three attempts and
+ * navigates here, and the presenter guide should carry this tab as its own
+ * numbered beat so it cannot be skipped.
  *
  * Nothing about the test itself changed in the move: the same three genuine
  * HTTPS requests through the broker (routes/accessControl.ts), the same

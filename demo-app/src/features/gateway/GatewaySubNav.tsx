@@ -31,10 +31,12 @@ const TABS: { stop: StopId; labelKey: string; icon: typeof FlashRegular }[] = [
  * The labels carry that meaning too: "Live", "Credentials" and "Reference",
  * not "Overview" and "More". Modelled on the tab set inside `AgentsView`.
  *
- * The Credentials tab is PROVISIONAL — DESIGN_DECISIONS.md §4.8. Splitting it
- * out bought the live screen the space it needed, but it also means the 401
- * rejection is no longer on screen without navigating, and that is a real
- * loss to weigh again once CP3's sidebar changes the space budget.
+ * The Credentials tab was provisional until CP3 re-measured it under the
+ * sidebar's chrome — DESIGN_DECISIONS.md §4.8, now resolved: reintegration
+ * measures 561px against a 507px budget. Its order is deliberate. Live and
+ * Credentials are both readings of this deployment and Reference is not, so
+ * Credentials sits before Reference; the other order would put a measured
+ * screen on the far side of the boundary the dashed frame exists to draw.
  */
 export function GatewaySubNav({ className }: { className?: string }) {
   const t = useTranslation();
