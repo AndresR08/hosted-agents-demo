@@ -270,8 +270,17 @@ function ControlGroup({
         suppressed on the first row instead.
       */}
       <ul className="grid grid-cols-2 [&>li]:border-t [&>li]:border-border/60 [&>li:nth-child(-n+2)]:border-t-0">
+        {/*
+          Rows are py-1, not py-1.5. Platform landed at exactly 411px of
+          content in a 411px budget - technically compliant and practically
+          not: a zero margin means the next control added to the catalogue, or
+          one label wrapping to a second line on a narrower projector, silently
+          pushes content below the fold again. 4px of padding on a 22px row
+          buys 28px of real slack across the thirteen rows and costs nothing
+          that can be seen; the rows are separated by borders, not whitespace.
+        */}
         {controls.map((c) => (
-          <li key={c.id} className="flex items-start gap-2 px-3 py-1.5">
+          <li key={c.id} className="flex items-start gap-2 px-3 py-1">
             <Icon
               fontSize={15}
               className={cn(
