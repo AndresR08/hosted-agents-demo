@@ -8,6 +8,7 @@ import { AgentsView } from "@/features/agents/AgentsView";
 import { CredentialTestStop } from "@/features/gateway/CredentialTestStop";
 import { GatewayStop } from "@/features/gateway/GatewayStop";
 import { ApimCapabilitiesStop } from "@/features/gateway/ApimCapabilitiesStop";
+import { MeasurementsStop } from "@/features/observability/MeasurementsStop";
 import { ObservabilityStop } from "@/features/observability/ObservabilityStop";
 import { OperationsStop } from "@/features/operations/OperationsStop";
 
@@ -80,6 +81,7 @@ export function AppShell() {
           {stop === "gatewayCredentials" && <CredentialTestStop />}
           {stop === "apimCapabilities" && <ApimCapabilitiesStop />}
           {stop === "observability" && <ObservabilityStop />}
+          {stop === "observabilityMeasurements" && <MeasurementsStop />}
           {stop === "operations" && <OperationsStop />}
         </div>
 

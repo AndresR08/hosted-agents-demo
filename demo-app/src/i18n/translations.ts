@@ -177,6 +177,13 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "obs.heading": "Observability",
     "obs.question": "What evidence does the platform generate?",
+    "obsNav.label": "Observability screens",
+    "obsNav.record": "Record",
+    "obsNav.measurements": "Measurements",
+    "obsRecord.question": "What was asked, and what was answered?",
+    "obsMeasurements.question": "What did this request cost?",
+    "obsMeasurements.caption":
+      "Only stages API Management actually measured carry a number. Nothing here is estimated.",
     "obs.kpi.totalTokens": "Total tokens",
     "obs.kpi.promptTokens": "Prompt",
     "obs.kpi.completionTokens": "Completion",
@@ -592,6 +599,13 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "obs.heading": "Observabilidad",
     "obs.question": "¿Qué evidencia genera la plataforma?",
+    "obsNav.label": "Pantallas de observabilidad",
+    "obsNav.record": "Registro",
+    "obsNav.measurements": "Mediciones",
+    "obsRecord.question": "¿Qué se preguntó y qué se respondió?",
+    "obsMeasurements.question": "¿Cuánto costó esta solicitud?",
+    "obsMeasurements.caption":
+      "Solo los tramos que API Management midió de verdad llevan un número. Aquí no se estima nada.",
     "obs.kpi.totalTokens": "Tokens totales",
     "obs.kpi.promptTokens": "Entrada",
     "obs.kpi.completionTokens": "Salida",

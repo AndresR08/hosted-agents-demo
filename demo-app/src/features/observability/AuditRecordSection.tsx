@@ -8,9 +8,22 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { useDemoDataService } from "@/services/provider";
 import type { AuditRecord } from "@/services/contracts";
 
+/**
+ * Two lines of prompt and two of completion, expandable.
+ *
+ * A line clamp rather than a character budget: see the comment at the point of
+ * use. `-webkit-line-clamp` is the only cross-browser way to do this today and
+ * works in every Chromium and WebKit browser this console is presented from.
+ */
+const CLAMP_2_LINES: React.CSSProperties = {
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
+
 /** Freshness only — this section is supplementary evidence, not something being awaited. */
 const POLL_INTERVAL_MS = 30_000;
-const LONG = 280;
 
 /**
  * The durable audit record — `GET /api/audit-record` (`getAuditRecord()`),
@@ -70,7 +83,6 @@ export function AuditRecordSection() {
 
   const prompt = record?.prompt ?? "";
   const completion = record?.completion ?? "";
-  const clip = (s: string) => (expanded || s.length <= LONG ? s : `${s.slice(0, LONG)}…`);
 
   return (
     <section className="flex flex-col gap-2">
@@ -97,7 +109,7 @@ export function AuditRecordSection() {
       ) : !record ? (
         <EmptyState>{t("obs.auditRecord.empty")}</EmptyState>
       ) : (
-        <div className="flex flex-col gap-2 rounded-md border border-border bg-illustrative-bg/40 p-3">
+        <div className="flex flex-col gap-1.5 rounded-md border border-border bg-illustrative-bg/40 p-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption">
             {record.attributionAvailable ? (
               <span className="font-medium text-ink">
@@ -112,27 +124,47 @@ export function AuditRecordSection() {
             <Chip mono>{new Date(record.timestamp).toLocaleString()}</Chip>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          {/*
+        Clamped by LINES, not by characters.
+
+        This was `s.slice(0, 280)`, and a character count cannot know how many
+        lines it becomes: the same 280 characters were three lines on the old
+        full-width stage and six once the navigation rail took 250px off it.
+        That is most of why this screen was 149px over budget at 1366x768 while
+        the arithmetic said it should fit. Two lines is two lines at every
+        width, so the block has a height the layout can rely on.
+
+        Nothing is hidden that was not already hidden - "show full messages" is
+        the same control it always was, and it now toggles the clamp rather
+        than a substring, so expanding shows the whole artefact instead of the
+        first 280 characters of it.
+      */}
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <div className="min-w-0">
               <p className="mb-0.5 text-caption font-medium uppercase tracking-[0.04em] text-ink-muted">
                 {t("obs.prompt")}
               </p>
-              <p className="max-w-[70ch] whitespace-pre-wrap break-words text-body leading-relaxed text-ink">
-                {clip(prompt)}
+              <p
+                className="max-w-[70ch] whitespace-pre-wrap break-words text-body leading-relaxed text-ink"
+                style={expanded ? undefined : CLAMP_2_LINES}
+              >
+                {prompt}
               </p>
             </div>
             <div className="min-w-0">
               <p className="mb-0.5 text-caption font-medium uppercase tracking-[0.04em] text-ink-muted">
                 {t("obs.completion")}
               </p>
-              <p className="max-w-[70ch] whitespace-pre-wrap break-words text-body leading-relaxed text-ink">
-                {clip(completion)}
+              <p
+                className="max-w-[70ch] whitespace-pre-wrap break-words text-body leading-relaxed text-ink"
+                style={expanded ? undefined : CLAMP_2_LINES}
+              >
+                {completion}
               </p>
             </div>
           </div>
 
-          {(prompt.length > LONG || completion.length > LONG) && (
-            <Button
+                      <Button
               appearance="subtle"
               size="small"
               className="self-start"
@@ -140,7 +172,6 @@ export function AuditRecordSection() {
             >
               {expanded ? t("obs.showLess") : t("obs.showMore")}
             </Button>
-          )}
 
           {record.contextInjected && (
             <p className="text-caption italic text-ink-muted">{t("obs.contextInjected")}</p>

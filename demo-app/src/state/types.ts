@@ -42,6 +42,14 @@ export type StopId =
    */
   | "gatewayCredentials"
   | "observability"
+  /**
+   * The measurements half of Observability. Split off the record when the
+   * screen was measured with real data loaded: 936px of content in a 508px
+   * budget. Unlike gatewayCredentials this is not provisional - "what was
+   * asked and answered" and "what did it cost" are two questions with two
+   * audiences and two queries behind them.
+   */
+  | "observabilityMeasurements"
   | "operations";
 
 /** Stage order. The rail, the arrow keys and `R` all read this. */
@@ -52,6 +60,7 @@ export const STOP_ORDER: StopId[] = [
   "gatewayCredentials",
   "apimCapabilities",
   "observability",
+  "observabilityMeasurements",
   "operations",
 ];
 
@@ -76,7 +85,7 @@ export const SECTION_ORDER: SectionId[] = ["agents", "gateway", "observability",
 export const SECTION_STOPS: Record<SectionId, StopId[]> = {
   agents: ["frameworks", "hostedAgents"],
   gateway: ["gateway", "gatewayCredentials", "apimCapabilities"],
-  observability: ["observability"],
+  observability: ["observability", "observabilityMeasurements"],
   platform: ["operations"],
 };
 
