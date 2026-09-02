@@ -604,6 +604,73 @@ pantalla de referencia, que es la razón entera por la que existe esta pestaña.
 
 ---
 
+### 4.10 La tarjeta KPI — seis fuentes reales, sin tendencia, y sobre todo sin costo
+
+CP4 adoptó la forma de tarjeta KPI de la referencia Foundry IQ en la única
+pantalla que ya tenía seis mediciones reales que poner en ella: Observabilidad →
+Mediciones. Ícono, etiqueta, valor grande, sub-línea mono. Lo que **no** adoptó
+es justo lo que alguien intentará añadir de vuelta, y por eso existe esta
+sección.
+
+**Sin elemento de tendencia.** La tarjeta de la referencia está construida
+alrededor de un hueco `+12%`. §1.6 pone las tendencias históricas en la banda
+roja — el grupo de recursos es nuevo, no existe historia, no hay líneas de
+tendencia en ninguna parte — así que ese hueco no tiene de dónde sacar un número
+real. Una tarjeta diseñada alrededor de una tendencia, con la tendencia vacía o
+inventada, es peor que una diseñada sin ella.
+
+**Sin tarjeta de costo, y esta es la importante.** La tarjeta principal de la
+referencia es el gasto acumulado. El costo también está en la banda roja: Cost
+Management tiene 8–24h de latencia y el grupo de recursos es demasiado joven
+para reportarlo. Una cifra de costo con el mismo estilo que cinco mediciones en
+vivo sería lo más peligroso de toda esta adopción — heredaría su credibilidad
+sin su evidencia. Si alguna vez se muestra costo, va en un panel ilustrativo
+etiquetado como modelo de precios, nunca en esta rejilla.
+
+**Las seis que sí son reales**, cada una imprimiendo en su sub-línea mono la
+columna de Log Analytics de la que salió:
+
+| Tarjeta | Fuente |
+|---|---|
+| Latencia | `ApiManagementGatewayLogs TotalTime` |
+| Gateway | `ApiManagementGatewayLogs — TotalTime − BackendTime, both hops` |
+| Latencia del modelo | `ApiManagementGatewayLogs TotalTime (inference-api)` |
+| Tokens totales | `ApiManagementGatewayLlmLog TotalTokens` |
+| Entrada | `ApiManagementGatewayLlmLog PromptTokens` |
+| Salida | `ApiManagementGatewayLlmLog CompletionTokens` |
+
+Esa sub-línea es la razón por la que valía la pena adoptar la tarjeta, y no un
+adorno encima de ella. Todos los campos de esta pantalla ya llegan como
+`{ value, source, available }`; el `source` se estaba obteniendo y luego solo se
+mostraba dentro del diálogo de detalle. Imprimirlo bajo el número hace que cada
+cifra diga de dónde vino, en la pantalla donde la sala la está mirando. Es el
+sistema de honestidad ganando presentación, que es la única dirección en la que
+se le permite moverse.
+
+**Tres por fila, no seis.** Seis tarjetas en el escenario de 1020px posterior al
+riel daban unos 160px a cada una — ya envolviendo las etiquetas, y sin sitio
+alguno para el nombre de una columna de Log Analytics. Tres por fila dan ~330px,
+que caben en una línea.
+
+**Un cuadrado tintado, dos glifos.** §0.6 permite el cuadrado de ícono tintado y
+lo restringe a azul; tres tintes por categoría reintroducirían exactamente la
+sobrecarga de color que eliminó el hallazgo F4 de la auditoría. Los dos glifos —
+un cronómetro para las tres duraciones, un signo de número para los tres conteos
+de tokens — codifican una distinción real en los datos, en vez de decorar cada
+tarjeta por separado.
+
+**Una inexactitud que este cambio sacó a la luz y corrigió.** Un campo *ausente*
+del payload y un campo presente con `available: false` son hechos distintos, y
+la banda le estaba diciendo lo mismo a la sala sobre ambos. El segundo trae su
+propia razón exacta ("Cost Management no puede reportar sobre un grupo de
+recursos tan joven"). El primero simplemente aún no se ha ingestado — Log
+Analytics va de uno a tres minutos por detrás — así que "No disponible en este
+despliegue" era falso sobre él, y con seis tarjetas era falso tres veces a la
+vez. Los campos pendientes ahora dicen que esperan la ingesta, que es lo que
+`HopWaterfall`, justo debajo, venía diciendo correctamente todo el tiempo.
+
+---
+
 ## 5. Coreografía de la demo, riesgos y preparación
 
 El guion recomendado ocupa 12 a 15 minutos: abrir con un intercambio de pregunta/respuesta (~90 s, "eso es un agente gobernado en tu nube"), seguir con las tres pruebas de Access Control y la revelación de la política en vivo (~3:30, el momento pivote), continuar con Agent Governance — dos frameworks, un modelo de gobernanza, cadena de procedencia, RBAC en vivo (~3 min), animar los seis pasos de la Request Journey (~3 min), y cerrar con Platform Control — registro de auditoría real, catálogo de controles, encuadre honesto de costos (~3 min), dejando el catálogo de controles como el artefacto natural de la siguiente conversación.

@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { ChevronDownRegular, ChevronRightRegular } from "@fluentui/react-icons";
+import {
+  ChevronDownRegular,
+  ChevronRightRegular,
+  NumberSymbolRegular,
+  TimerRegular,
+} from "@fluentui/react-icons";
 import { StopFrame } from "@/layout/StopFrame";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -78,49 +83,155 @@ export function MeasurementsStop() {
  * and a KPI tile whose value is a name is not a measurement — it is a label
  * dressed as one.
  */
+/**
+ * Did the broker make a claim about the deployment, or just fail to find a
+ * value in the row?
+ *
+ * Only the first justifies "Unavailable in this deployment" on screen. The
+ * broker prefixes those reasons exactly that way; everything else comes back
+ * as its generic "Not returned by this source", which says nothing about what
+ * the deployment can do.
+ */
+function isDeploymentClaim(field: ObservableField<string | number>): boolean {
+  return Boolean(field.reason?.startsWith("Unavailable in this deployment"));
+}
+
 function KpiBand({ obs }: { obs: RequestObservability }) {
   const t = useTranslation();
   const i = obs.inference;
 
-  const tiles: { label: string; field?: ObservableField<string | number>; format?: (v: string | number) => string; accent?: boolean }[] = [
-    { label: t("obs.kpi.totalLatency"), field: i.latencyMs, format: fmt.ms },
-    { label: t("obs.kpi.gatewayOverhead"), field: gatewayTotal(obs), format: fmt.ms, accent: true },
-    { label: t("obs.kpi.modelLatency"), field: i.modelCallMs, format: fmt.ms },
-    { label: t("obs.kpi.totalTokens"), field: i.totalTokens, format: fmt.int },
-    { label: t("obs.kpi.promptTokens"), field: i.inputTokens, format: fmt.int },
-    { label: t("obs.kpi.completionTokens"), field: i.outputTokens, format: fmt.int },
+  const tiles: {
+    label: string;
+    field?: ObservableField<string | number>;
+    format?: (v: string | number) => string;
+    accent?: boolean;
+    kind: "time" | "tokens";
+  }[] = [
+    { label: t("obs.kpi.totalLatency"), field: i.latencyMs, format: fmt.ms, kind: "time" },
+    { label: t("obs.kpi.gatewayOverhead"), field: gatewayTotal(obs), format: fmt.ms, accent: true, kind: "time" },
+    { label: t("obs.kpi.modelLatency"), field: i.modelCallMs, format: fmt.ms, kind: "time" },
+    { label: t("obs.kpi.totalTokens"), field: i.totalTokens, format: fmt.int, kind: "tokens" },
+    { label: t("obs.kpi.promptTokens"), field: i.inputTokens, format: fmt.int, kind: "tokens" },
+    { label: t("obs.kpi.completionTokens"), field: i.outputTokens, format: fmt.int, kind: "tokens" },
   ];
 
   return (
-    <div className="grid grid-cols-6 gap-2">
-      {tiles.map((tile) => (
-        <div
-          key={tile.label}
-          className="min-w-0 rounded-md border border-border bg-illustrative-bg/40 px-2.5 py-2"
-        >
-          {/*
-            Wrapping, not truncating. The rail took 250px off the stage and six
-            tiles across 1020px left "Latencia del modelo" rendering as
-            "LATENCIA DEL ...", which the room cannot read and a tooltip does
-            not help with from the back of a room. The tile grows by one line
-            instead; this screen has 243px of margin and a label that does not
-            say what it labels is not a saving.
-          */}
-          <p className="text-caption uppercase leading-tight tracking-[0.04em] text-ink-muted">
-            {tile.label}
-          </p>
-          <p className="mt-0.5 truncate">
-            <ObservableValue
-              field={tile.field}
-              format={tile.format}
-              className={cn(
-                "text-body font-semibold tabular-nums",
-                tile.accent && tile.field?.available && "text-accent",
-              )}
-            />
-          </p>
-        </div>
-      ))}
+    /*
+      Three across, two down - not six across.
+
+      Six tiles on a 1020px stage gave each one about 160px, which was already
+      making "Latencia del modelo" wrap and left no room at all for the line
+      that is the point of this change. Three across gives ~330px, which fits a
+      Log Analytics column name on one line.
+    */
+    <div className="grid grid-cols-3 gap-2">
+      {tiles.map((tile) => {
+        const Icon = tile.kind === "time" ? TimerRegular : NumberSymbolRegular;
+        return (
+          <div
+            key={tile.label}
+            className="min-w-0 rounded-lg border border-border bg-illustrative-bg/40 px-3 py-2"
+          >
+            <div className="flex items-start gap-2">
+              {/*
+                One tinted square per card, and only two icons across the six:
+                a timer for the three durations, a number sign for the three
+                token counts. 0.6 permits a tinted icon square and restricts it
+                to blue - three tints by category would reintroduce exactly the
+                colour overload F4 removed - and two glyphs encode a real
+                distinction in the data rather than decorating each card
+                individually.
+              */}
+              <span
+                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent"
+                aria-hidden="true"
+              >
+                <Icon fontSize={16} />
+              </span>
+
+              <div className="min-w-0 flex-1">
+                {/*
+                  Wrapping, not truncating. Six tiles across 1020px left
+                  "Latencia del modelo" rendering as "LATENCIA DEL ...", which
+                  the room cannot read and a tooltip does not help with from the
+                  back of a room.
+                */}
+                <p className="text-caption uppercase leading-tight tracking-[0.04em] text-ink-muted">
+                  {tile.label}
+                </p>
+                {/*
+                  "Unavailable in this deployment" is a claim about the
+                  DEPLOYMENT, and this band was making it on the console's
+                  behalf for values that were merely late.
+
+                  The broker distinguishes the two cases and this screen was
+                  flattening them. When it genuinely knows - "Cost Management
+                  cannot report on a resource group this young", "no
+                  queue-depth telemetry is emitted" - it says so in the field's
+                  reason, and that claim is true. When a value simply is not in
+                  the Log Analytics row yet, the reason is the generic "Not
+                  returned by this source", and Log Analytics runs one to three
+                  minutes behind, so the value is usually on its way. Saying
+                  the deployment cannot produce it is false, and with six cards
+                  it was false five times at once on a fresh request.
+
+                  So the card does not guess in either direction. It reports
+                  what is actually known - the value is not in this record -
+                  and "yet" is accurate because the record fills in. The
+                  specific deployment claim is still shown whenever the broker
+                  is the one making it.
+                */}
+                <p className="mt-0.5 truncate">
+                  {tile.field && !tile.field.available && !isDeploymentClaim(tile.field) ? (
+                    <span className="text-caption italic leading-tight text-ink-muted">
+                      {t("obs.kpi.pending")}
+                    </span>
+                  ) : (
+                    <ObservableValue
+                      field={tile.field}
+                      format={tile.format}
+                      className={cn(
+                        "text-body-lg font-semibold tabular-nums",
+                        tile.accent && tile.field?.available && "text-accent",
+                      )}
+                    />
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/*
+              The sub-line, and the reason this card was worth adopting at all.
+
+              VISUAL_LANGUAGE_ADOPTION.md 0.4 adopts the reference's KPI card
+              shape and drops its trend element, because 1.6 puts historical
+              trends in the red band and a card built around an empty slot is
+              worse than one built without it. What it keeps is the mono
+              sub-line, and this is what goes in it: the field's OWN `source`
+              string - the Log Analytics column the number was read from.
+
+              That is not new data and it is not decoration. Every field on
+              this screen already arrives as { value, source, available }; the
+              source was being fetched and then shown only inside the detail
+              dialog. Printing it under the number makes each figure state
+              where it came from, on the screen where the room is looking at
+              it, which is the honesty system improving in presentation rather
+              than a pattern being filled.
+
+              When a field is unavailable, ObservableValue above already says
+              so and there is no source to print - so nothing is claimed.
+            */}
+            {tile.field?.available && tile.field.source && (
+              <p
+                className="mt-1 break-words font-mono text-caption leading-tight text-ink-muted"
+                title={tile.field.source}
+              >
+                {tile.field.source}
+              </p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

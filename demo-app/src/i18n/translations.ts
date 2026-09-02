@@ -213,6 +213,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // ── ⑤ Operations (telemetry + governance catalogue) ────────────────
     "obs.unavailable": "Unavailable in this deployment",
+    "obs.kpi.pending": "Not in this record yet",
     "obs.unavailableReason": "This value is not produced by the deployed lab.",
     "obs.sourceLabel": "Source:",
     "obs.copy": "Copy record",
@@ -636,6 +637,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // ── ⑤ Operaciones (telemetría + catálogo de gobernanza) ────────────
     "obs.unavailable": "No disponible en este despliegue",
+    "obs.kpi.pending": "Aún no está en este registro",
     "obs.unavailableReason": "Este valor no lo produce el laboratorio desplegado.",
     "obs.sourceLabel": "Origen:",
     "obs.copy": "Copiar registro",

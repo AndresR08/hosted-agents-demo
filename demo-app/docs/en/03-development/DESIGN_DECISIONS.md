@@ -596,6 +596,69 @@ reference screen instead, which is the whole reason this tab exists.
 
 ---
 
+### 4.10 The KPI card — six real sources, no trend, and above all no cost
+
+CP4 adopted the Foundry IQ reference's KPI card shape on the one screen that
+already had six real measurements to put in it: Observability → Measurements.
+Icon, label, large value, mono sub-line. What it did **not** adopt is the part
+someone will eventually try to add back, so this section exists to say why.
+
+**No trend element.** The reference's card is built around a `+12%` slot.
+§1.6 puts historical trends in the red band — the resource group is new, no
+history exists, no trend lines anywhere — so that slot has nowhere to get a
+real number from. A card designed around a trend, with the trend empty or
+invented, is worse than a card designed without one.
+
+**No cost card, and this is the important one.** The reference's headline card
+is accumulated spend. Cost is in the red band too: Cost Management has 8–24h
+latency and the resource group is too young to report on. A cost figure styled
+identically to five live measurements would be the single most dangerous thing
+in this entire adoption — it would inherit their credibility without their
+evidence. If cost is ever shown, it belongs in an illustrative panel labelled
+as a pricing model, never in this grid.
+
+**The six that are real**, each printing the Log Analytics column it came from
+in the card's mono sub-line:
+
+| Card | Source |
+|---|---|
+| Latency | `ApiManagementGatewayLogs TotalTime` |
+| Gateway | `ApiManagementGatewayLogs — TotalTime − BackendTime, both hops` |
+| Model latency | `ApiManagementGatewayLogs TotalTime (inference-api)` |
+| Total tokens | `ApiManagementGatewayLlmLog TotalTokens` |
+| Prompt tokens | `ApiManagementGatewayLlmLog PromptTokens` |
+| Completion tokens | `ApiManagementGatewayLlmLog CompletionTokens` |
+
+That sub-line is the reason the card was worth adopting rather than a
+decoration on top of it. Every field on this screen already arrives as
+`{ value, source, available }`; the `source` was being fetched and then shown
+only inside the detail dialog. Printing it under the number makes each figure
+state where it came from, on the screen where the room is looking at it. It is
+the honesty system gaining presentation, which is the only direction it is
+allowed to move.
+
+**Three across, not six.** Six tiles on the post-rail 1020px stage gave each
+about 160px — already wrapping the labels, and with no room for a Log Analytics
+column name. Three across gives ~330px, which fits one on a line.
+
+**One tinted square, two glyphs.** §0.6 permits a tinted icon square and
+restricts it to blue; three tints by category would reintroduce exactly the
+colour overload the UX audit's F4 removed. The two glyphs — a timer for the
+three durations, a number sign for the three token counts — encode a real
+distinction in the data rather than decorating each card individually.
+
+**An inaccuracy this change surfaced and fixed.** A field *absent* from the
+payload and a field present with `available: false` are different facts, and
+the band was telling the room the same thing about both. The second carries its
+own accurate reason ("Cost Management cannot report on a resource group this
+young"). The first simply has not been ingested yet — Log Analytics runs one to
+three minutes behind — so "Unavailable in this deployment" was wrong about it,
+and with six cards it was wrong three times at once. Pending fields now say
+they are waiting for ingestion, which is what `HopWaterfall` directly below had
+been saying correctly all along.
+
+---
+
 ## 5. Demo choreography, risks, and prep
 
 The recommended script runs 12 to 15 minutes: open with a question/answer exchange (~90 s, "that's a governed agent in your cloud"), move into the three Access Control tests and the live policy reveal (~3:30, the pivot moment), continue with Agent Governance — two frameworks, one governance model, provenance chain, live RBAC (~3 min), animate the six steps of the Request Journey (~3 min), and close with Platform Control — real audit record, controls catalog, honest cost framing (~3 min), leaving the controls catalog as the natural artifact for the next conversation.
