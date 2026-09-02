@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
-import { Button } from "@fluentui/react-components";
-import { ArrowClockwiseRegular, CodeRegular, PlayCircleRegular, PlugConnectedRegular } from "@fluentui/react-icons";
 import { StopFrame } from "@/layout/StopFrame";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
-import { StatusPill } from "@/components/StatusPill";
-import { MaintenanceActionButton } from "@/components/MaintenanceActionButton";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useDemoDataService } from "@/services/provider";
-import type { AccessControlAttempt, JourneyTimings } from "@/services/contracts";
-import { PolicyViewerDialog } from "./PolicyViewerDialog";
+import type { JourneyTimings } from "@/services/contracts";
+import { GatewaySubNav } from "./GatewaySubNav";
 import { RequestFlowDiagram } from "./RequestFlowDiagram";
 
 /*
@@ -18,12 +14,9 @@ import { RequestFlowDiagram } from "./RequestFlowDiagram";
  * the block this screen now delegates, and leaving a second copy here is how
  * the diagram and the numbers beside it drift apart.
  *
- * REVEAL_STAGGER_MS stays: it paces the three-credential test reveal below,
- * which has nothing to do with the path diagram and was only sitting in the
- * same region of the file.
+ * REVEAL_STAGGER_MS went with the credential test to CredentialTestStop.tsx;
+ * it paced that reveal and nothing on this screen.
  */
-
-const REVEAL_STAGGER_MS = 400;
 
 /**
  * GATEWAY — "how do clients reach the agent?"
@@ -44,13 +37,21 @@ const REVEAL_STAGGER_MS = 400;
  *   2. **The path.** The five stages, always shown, with API Management's own
  *      measured cost on each gateway connector once a matching request has
  *      been made — no reveal animation gating this on a presenter's beat.
- *   3. **The terms.** Three real credential attempts (Credential Test) and
- *      the policy document running in the gateway (Policy Viewer), fetched
- *      from ARM at the moment it is shown.
+ * The third part — **the terms**, i.e. which credentials the gateway accepts
+ * — is no longer here. It is CredentialTestStop, on its own tab, because
+ * three arguments do not fit one screen at the 16px projector floor: this stop
+ * was hiding 220px of itself below the fold. That split is PROVISIONAL and its
+ * cost is recorded in DESIGN_DECISIONS.md §4.8 — read it before treating the
+ * tab as settled.
  *
- * Actions below the terms run the same broker diagnostics Presenter Tools →
- * Maintenance exposes (`test-apim`, `reload-policies`) — first-class here
- * rather than hidden in a presenter-only dialog.
+ * The address and the path now share one heading rather than carrying one
+ * each. They were always one argument stated twice — the URL says the agent
+ * name is a path segment, the diagram shows the request travelling that path
+ * — and two headings asked the room to hold them apart for no reason.
+ *
+ * `test-apim` and `reload-policies` moved to Settings → Maintenance. §4.4
+ * puts presenter instruments in the presenter menu; they were on the stage,
+ * which contradicted it.
  *
  * Nothing here is staged: the attempts are genuine HTTPS requests through the
  * broker (routes/accessControl.ts) and the timings come from
@@ -64,15 +65,11 @@ export function GatewayStop() {
   const lastAskId = useDemoStore((s) => s.lastAskId);
   const targetAgent = useDemoStore((s) => s.targetAgent);
   const runToken = useDemoStore((s) => s.accessControlRunToken);
-  const runAccessControlTest = useDemoStore((s) => s.runAccessControlTest);
 
   const [routeTemplate, setRouteTemplate] = useState<string | null>(null);
   const [totalLatencyMs, setTotalLatencyMs] = useState<number | null>(null);
   const [servedByAgent, setServedByAgent] = useState<string | null>(null);
   const [timings, setTimings] = useState<JourneyTimings | null>(null);
-  const [attempts, setAttempts] = useState<AccessControlAttempt[]>([]);
-  const [revealedCount, setRevealedCount] = useState(0);
-  const [policyOpen, setPolicyOpen] = useState(false);
 
   // The route. Read once per mode — it is deployment configuration, not
   // per-request data.
@@ -120,29 +117,13 @@ export function GatewayStop() {
     };
   }, [mode, lastAskId, service]);
 
-  // The three credential attempts, on demand. Simulation cannot make these
-  // calls, so it shows no attempts rather than three invented outcomes.
-  useEffect(() => {
-    if (runToken === 0 || mode !== "live") return;
-    setRevealedCount(0);
-    setAttempts([]);
-    service
-      .runAccessControlTests()
-      .then((result) => {
-        setAttempts(result.attempts);
-        result.attempts.forEach((_, i) =>
-          window.setTimeout(() => setRevealedCount(i + 1), (i + 1) * REVEAL_STAGGER_MS),
-        );
-      })
-      .catch(() => setAttempts([]));
-  }, [runToken, mode, service]);
-
   const agentNodeLabel = servedByAgent ?? targetAgent;
 
   return (
     <StopFrame
       title={t("gw.heading")}
       question={t("gw.question")}
+      action={<GatewaySubNav />}
       footer={t("journey.caption")}
       provenance={
         <ProvenanceBadge
@@ -150,21 +131,24 @@ export function GatewayStop() {
         />
       }
     >
-      <div className="flex flex-col gap-5">
-        {/* 1 — the address. */}
-        <section>
-          <p className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
-            {t("gw.route.title")}
-          </p>
-          <RouteLine template={routeTemplate} agentName={targetAgent} />
-          <p className="mt-1.5 text-caption leading-relaxed text-ink-muted">{t("gw.route.note")}</p>
-        </section>
+      <div className="flex flex-col gap-3">
+        {/*
+          The address and the path, under one heading. Always shown at full
+          presence — a console states what the route is, it does not stage a
+          reveal of it.
 
-        {/* 2 — the path. Always shown at full presence — a console states
-            what the route is, it does not stage a reveal of it. */}
+          `gw.route.title` is retired rather than deleted: the string still
+          names the argument accurately, and the next reader deserves to find
+          it in translations.ts rather than wonder whether the address stopped
+          being addressed at all.
+        */}
         <section>
           <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
             {t("gw.path.title")}
+          </p>
+          <RouteLine template={routeTemplate} agentName={targetAgent} />
+          <p className="mb-2 mt-1.5 text-caption leading-relaxed text-ink-muted">
+            {t("gw.route.note")}
           </p>
           <RequestFlowDiagram
             timings={timings}
@@ -192,78 +176,7 @@ export function GatewayStop() {
           )}
         </section>
 
-        {/* 3 — the terms. */}
-        <section>
-          <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
-            {t("gw.boundary.title")}
-          </p>
-          <p className="mb-2 text-body font-medium text-ink">{t("accessControl.statement")}</p>
-
-          {/*
-            Three outcomes side by side rather than stacked. They are one
-            comparison — the same request with three credentials — and reading
-            them across is both what the argument wants and ~96px of height
-            back, which is what keeps this stop off a scrollbar at 1366×768.
-          */}
-          {revealedCount === 0 ? (
-            <p className="rounded-md border border-dashed border-border px-3 py-3 text-caption text-ink-muted">
-              {mode === "live" ? t("accessControl.emptyState") : t("accessControl.simulationNote")}
-            </p>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {attempts.slice(0, revealedCount).map((attempt, i) => (
-                <div
-                  key={attempt.id}
-                  className="animate-fade-slide-in"
-                  style={{ animationDelay: `${i * 40}ms` }}
-                >
-                  <StatusPill attempt={attempt} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-3 flex items-center gap-2">
-            <Button
-              appearance="primary"
-              icon={<PlayCircleRegular />}
-              disabled={mode !== "live"}
-              onClick={runAccessControlTest}
-            >
-              {t("accessControl.runAll")}
-            </Button>
-            <Button
-              appearance="secondary"
-              icon={<CodeRegular />}
-              onClick={() => setPolicyOpen(true)}
-            >
-              {t("accessControl.showPolicy")}
-            </Button>
-          </div>
-        </section>
-
-        {/* 4 — the same broker diagnostics Presenter Tools → Maintenance
-            exposes, scoped to what this screen is actually about. */}
-        <section className="border-t border-border pt-4">
-          <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
-            {t("agents.overview.actionsTitle")}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <MaintenanceActionButton
-              action="test-apim"
-              icon={<PlugConnectedRegular />}
-              label={t("maintenance.action.test-apim")}
-            />
-            <MaintenanceActionButton
-              action="reload-policies"
-              icon={<ArrowClockwiseRegular />}
-              label={t("maintenance.action.reload-policies")}
-            />
-          </div>
-        </section>
       </div>
-
-      <PolicyViewerDialog open={policyOpen} onClose={() => setPolicyOpen(false)} />
     </StopFrame>
   );
 }
@@ -280,14 +193,14 @@ function RouteLine({ template, agentName }: { template: string | null; agentName
 
   if (!template) {
     return (
-      <p className="mt-1.5 text-caption italic text-ink-muted">{t("gw.route.unavailable")}</p>
+      <p className="text-caption italic text-ink-muted">{t("gw.route.unavailable")}</p>
     );
   }
 
   const [before, after] = template.split("{agentName}");
 
   return (
-    <p className="mt-1.5 break-all rounded-md border border-border bg-illustrative-bg/50 px-3 py-2 font-mono text-caption text-ink">
+    <p className="break-all rounded-md border border-border bg-illustrative-bg/50 px-3 py-2 font-mono text-caption text-ink">
       <span className="text-ink-muted">POST </span>
       {before}
       <span className="rounded bg-accent/15 px-1 font-semibold text-accent" title={t("gw.route.segmentLabel")}>

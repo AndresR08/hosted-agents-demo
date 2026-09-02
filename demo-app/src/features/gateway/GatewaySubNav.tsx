@@ -1,4 +1,4 @@
-import { BookInformationRegular, FlashRegular } from "@fluentui/react-icons";
+import { BookInformationRegular, FlashRegular, ShieldKeyholeRegular } from "@fluentui/react-icons";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { StopId } from "@/state/types";
@@ -6,12 +6,20 @@ import { cn } from "@/lib/cn";
 
 const TABS: { stop: StopId; labelKey: string; icon: typeof FlashRegular }[] = [
   { stop: "gateway", labelKey: "gatewayNav.live", icon: FlashRegular },
+  { stop: "gatewayCredentials", labelKey: "gatewayNav.credentials", icon: ShieldKeyholeRegular },
   { stop: "apimCapabilities", labelKey: "gatewayNav.reference", icon: BookInformationRegular },
 ];
 
 /**
- * The Gateway section's two screens: the live request journey, and the
- * reference material about API Management as a product.
+ * The Gateway section's three screens: the live request journey, the
+ * credential test, and the reference material about API Management as a
+ * product.
+ *
+ * It renders inside each screen's StopFrame header rather than as a row of
+ * its own above the card. The row cost 36px of vertical budget that only the
+ * Gateway screens paid — every other section gets 412px to work with and
+ * these got 375 — and the header line beside the question was already there,
+ * empty, on all three.
  *
  * This exists to make the boundary a navigational fact rather than a caption.
  * The reference screen could have been a panel appended to the bottom of the
@@ -20,9 +28,13 @@ const TABS: { stop: StopId; labelKey: string; icon: typeof FlashRegular }[] = [
  * breath as measured latencies, and the room has no way to tell which was
  * which. Two tabs cannot be scrolled into one another.
  *
- * The labels carry that meaning too: "Live" and "Reference", not "Overview"
- * and "More". Modelled on the tab set inside `AgentsView`, and like it, this
- * changes navigation only — neither screen's content or ids change.
+ * The labels carry that meaning too: "Live", "Credentials" and "Reference",
+ * not "Overview" and "More". Modelled on the tab set inside `AgentsView`.
+ *
+ * The Credentials tab is PROVISIONAL — DESIGN_DECISIONS.md §4.8. Splitting it
+ * out bought the live screen the space it needed, but it also means the 401
+ * rejection is no longer on screen without navigating, and that is a real
+ * loss to weigh again once CP3's sidebar changes the space budget.
  */
 export function GatewaySubNav({ className }: { className?: string }) {
   const t = useTranslation();
@@ -33,7 +45,7 @@ export function GatewaySubNav({ className }: { className?: string }) {
     <div
       role="tablist"
       aria-label={t("gatewayNav.label")}
-      className={cn("mx-auto flex w-full max-w-[1200px] shrink-0 items-center gap-1 pb-2", className)}
+      className={cn("flex shrink-0 items-center gap-1", className)}
     >
       {TABS.map((tab) => {
         const isActive = stop === tab.stop;

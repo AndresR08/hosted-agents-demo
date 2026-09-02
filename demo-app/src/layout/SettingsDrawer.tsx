@@ -24,6 +24,7 @@ import {
   GlobeRegular,
   WrenchRegular,
   PlugConnectedRegular,
+  ArrowClockwiseRegular,
 } from "@fluentui/react-icons";
 import { MaintenanceActionButton } from "@/components/MaintenanceActionButton";
 import { useDemoStore } from "@/state/store";
@@ -106,6 +107,16 @@ export function SettingsDrawer() {
               action="reload-audit-logs"
               icon={<DocumentBulletListRegular />}
               label={t("maintenance.action.reload-audit-logs")}
+            />
+            <MaintenanceActionButton
+              action="test-apim"
+              icon={<PlugConnectedRegular />}
+              label={t("maintenance.action.test-apim")}
+            />
+            <MaintenanceActionButton
+              action="reload-policies"
+              icon={<ArrowClockwiseRegular />}
+              label={t("maintenance.action.reload-policies")}
             />
             <MaintenanceActionButton
               action="refresh-deployment-info"

@@ -425,6 +425,67 @@ La página es un escenario con cuatro estados de iluminación: **Opening** (carg
 
 ---
 
+### 4.8 La pestaña Credenciales del Gateway — una decisión de navegación PROVISIONAL
+
+**Estado: provisional. A revisar durante CP3 (la reestructuración del sidebar). No darla por resuelta.**
+
+Medida contra el piso de 1366×768 con el método corregido (alto de contenido leído
+de `panel.firstElementChild.offsetHeight`, presupuesto derivado como `728 −
+(innerHeight − panel.clientHeight)`), la pantalla Gateway "En vivo" tenía **595px
+de contenido en un presupuesto de 375px — 220px de ellos bajo la línea de
+plegado**, y por tanto invisibles para la sala. Era la pantalla más afectada de la
+consola, y a diferencia de las demás no se podía llevar a cumplimiento por
+reflujo: después de todos los cambios que movían o compactaban sin eliminar un
+argumento, seguía desbordando 79px.
+
+Gateway cargaba tres argumentos donde cada otra pantalla carga uno: *la
+dirección* (la URL enrutada), *el recorrido* (el diagrama de flujo y sus tiempos
+medidos) y *los términos* (qué credenciales acepta la puerta de enlace). Dos
+cambios lo resolvieron:
+
+- **La dirección y el recorrido se fusionaron bajo un solo título.** No es
+  provisional. Siempre fueron un mismo argumento enunciado dos veces — la URL
+  dice que el nombre del agente es un segmento de la ruta, el diagrama muestra la
+  solicitud recorriendo esa ruta — y dos títulos pedían a la sala mantener
+  separadas las dos mitades de un solo punto.
+- **Los términos pasaron a pestaña propia** (`gatewayCredentials`, entre En vivo
+  y Referencia). Esta sí es provisional.
+
+**Lo que cuesta la separación, dicho sin rodeos.** Hasta ahora el rechazo 401
+estaba en pantalla sin que el presentador navegara a ningún sitio. Eso importa
+más que un genérico "un clic más": el 401 es el beat más importante de toda la
+historia del gateway, y es el único verde de la consola entera — `affirm` está
+reservado para él y para nada más (§4.4, §4.5). Un presentador que olvide que la
+pestaña existe terminará la sección de gateway sin haberlo mostrado nunca. Es una
+regresión real de la demo, aceptada por una razón real.
+
+**Por qué aun así se aceptó.** La alternativa eran 79px de contenido
+permanentemente oculto en la pantalla más argumentada de la consola, que es un
+fallo peor: una barra de desplazamiento a 1366 incumple §4.7 de plano, y el
+contenido bajo el pliegue es contenido que la sala no ve nunca. Entre "a un clic"
+e "invisible", gana un clic. También es cierto que el test de credenciales ya es
+un beat separado en el guion del presentador, así que la pestaña no corta la
+narrativa como sí lo habría hecho separar la dirección del recorrido.
+
+**Qué revisar en CP3, en concreto.** La reestructuración del sidebar cambia cuánto
+presupuesto vertical tiene una pantalla. Cuando llegue:
+
+1. Volver a medir la pantalla Gateway "En vivo" bajo el nuevo cromo, con el mismo
+   método.
+2. Si el presupuesto ya admite el test de credenciales de vuelta en la pantalla en
+   vivo *con margen real* — no el mínimo exacto; Plataforma y Agentes mostraron
+   ambas por qué un margen de 0px no es una solución — entonces reintegrarlo y
+   eliminar esta pestaña.
+3. Si no lo admite, preguntarse en cambio si la vecina adecuada es la pestaña de
+   *referencia* o la de *en vivo*, y si la guía del presentador debería convertir
+   la pestaña de credenciales en un beat numerado explícito para que no se pueda
+   saltar.
+
+No concluir que la pestaña es correcta solo porque siga ahí. Resolvió un problema
+de espacio el 2026-09-02; nunca se argumentó por sus propios méritos.
+
+---
+
 ## 5. Coreografía de la demo, riesgos y preparación
 
 El guion recomendado ocupa 12 a 15 minutos: abrir con un intercambio de pregunta/respuesta (~90 s, "eso es un agente gobernado en tu nube"), seguir con las tres pruebas de Access Control y la revelación de la política en vivo (~3:30, el momento pivote), continuar con Agent Governance — dos frameworks, un modelo de gobernanza, cadena de procedencia, RBAC en vivo (~3 min), animar los seis pasos de la Request Journey (~3 min), y cerrar con Platform Control — registro de auditoría real, catálogo de controles, encuadre honesto de costos (~3 min), dejando el catálogo de controles como el artefacto natural de la siguiente conversación.

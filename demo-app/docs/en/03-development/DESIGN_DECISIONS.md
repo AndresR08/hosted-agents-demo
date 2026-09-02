@@ -425,6 +425,62 @@ The page is a stage with four lighting states: **Opening** (load or reset — he
 
 ---
 
+### 4.8 The Gateway Credentials tab — a PROVISIONAL navigation decision
+
+**Status: provisional. To be re-examined during CP3 (the sidebar restructure). Do not treat as settled.**
+
+Measured against the 1366×768 floor with the corrected probe (content height read
+from `panel.firstElementChild.offsetHeight`, budget derived as `728 − (innerHeight
+− panel.clientHeight)`), the live Gateway screen held **595px of content in a 375px
+budget — 220px of it below the fold**, and therefore invisible to the room. It was
+the worst-affected screen in the console, and unlike the others it could not be
+reflowed into compliance: after every change that moved or tightened without
+removing an argument, it still overflowed by 79px.
+
+Gateway carried three arguments where every other screen carries one: *the
+address* (the routed URL), *the path* (the flow diagram and its measured
+timings), and *the terms* (which credentials the gateway accepts). Two changes
+resolved it:
+
+- **The address and the path merged under one heading.** Not provisional. They
+  were always one argument stated twice — the URL says the agent name is a path
+  segment, the diagram shows the request travelling that path — and two headings
+  asked the room to hold apart two halves of a single point.
+- **The terms became their own tab** (`gatewayCredentials`, between Live and
+  Reference). This one *is* provisional.
+
+**What the split costs, stated plainly.** Until now the 401 rejection was on
+screen without the presenter navigating anywhere. That matters more than a
+generic "one extra click": the 401 is the single most important beat in the
+gateway story, and it is the only green in the entire console — `affirm` is
+reserved for it and nothing else (§4.4, §4.5). A presenter who forgets the tab
+exists will finish the gateway section without ever showing it. That is a real
+regression in the demo, accepted for a real reason.
+
+**Why it was accepted anyway.** The alternative was 79px of permanently hidden
+content on the console's most argued-over screen, which is a worse failure: a
+scrollbar at 1366 breaks §4.7 outright, and content below the fold is content the
+room never sees at all. Between "one click away" and "invisible", one click wins.
+It is also true that the credential test is already a separate beat in the
+presenter script, so the tab does not cut across the narrative the way splitting
+the address from the path would have.
+
+**What to re-examine at CP3, specifically.** The sidebar restructure changes how
+much vertical budget a screen has. When it lands:
+
+1. Re-measure the live Gateway screen under the new chrome, with the same probe.
+2. If the budget now accommodates the credential test back on the live screen
+   *with real margin* — not the exact minimum; Platform and Agents both showed
+   why a 0px margin is not a solution — then fold it back and delete this tab.
+3. If it does not, ask instead whether the *reference* tab or the *live* tab is
+   the better neighbour, and whether the presenter guide should make the
+   credentials tab an explicit numbered beat so it cannot be skipped.
+
+Do not conclude that the tab is correct merely because it is still there. It
+solved a space problem on 2026-09-02; it was never argued for on its merits.
+
+---
+
 ## 5. Demo choreography, risks, and prep
 
 The recommended script runs 12 to 15 minutes: open with a question/answer exchange (~90 s, "that's a governed agent in your cloud"), move into the three Access Control tests and the live policy reveal (~3:30, the pivot moment), continue with Agent Governance — two frameworks, one governance model, provenance chain, live RBAC (~3 min), animate the six steps of the Request Journey (~3 min), and close with Platform Control — real audit record, controls catalog, honest cost framing (~3 min), leaving the controls catalog as the natural artifact for the next conversation.

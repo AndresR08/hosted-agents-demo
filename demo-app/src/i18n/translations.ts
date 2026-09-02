@@ -13,6 +13,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "gatewayNav.label": "Gateway screens",
     "gatewayNav.live": "Live",
+    "gatewayNav.credentials": "Credentials",
     "gatewayNav.reference": "Reference",
 
     "apim.title": "Reference",
@@ -401,6 +402,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "gw.route.segmentLabel": "agent name",
     "gw.path.title": "What the request crosses",
     "gw.boundary.title": "Which credentials are accepted",
+    "gwCred.heading": "Gateway",
+    "gwCred.question": "Which credentials are accepted?",
+    "gwCred.caption":
+      "Three genuine HTTPS requests through the broker. The gateway decides each one; nothing here is staged.",
 
     // ── ⑤ Operations ───────────────────────────────────────────────────
     "ops.caption":
@@ -419,6 +424,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "gatewayNav.label": "Pantallas del gateway",
     "gatewayNav.live": "En vivo",
+    "gatewayNav.credentials": "Credenciales",
     "gatewayNav.reference": "Referencia",
 
     "apim.title": "Referencia",
@@ -794,6 +800,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "gw.route.segmentLabel": "nombre del agente",
     "gw.path.title": "Qué atraviesa la solicitud",
     "gw.boundary.title": "Qué credenciales se aceptan",
+    "gwCred.heading": "Gateway",
+    "gwCred.question": "¿Qué credenciales se aceptan?",
+    "gwCred.caption":
+      "Tres solicitudes HTTPS reales a través del broker. La puerta de enlace decide cada una; aquí no hay nada escenificado.",
 
     // ── ⑤ Operación ────────────────────────────────────────────────────
     "ops.caption":

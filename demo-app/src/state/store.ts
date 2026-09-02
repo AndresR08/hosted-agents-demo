@@ -186,10 +186,18 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
 
   // The outcomes render on the Gateway stop, so running the test from a
   // keyboard shortcut has to bring that stop on stage with it.
+  /*
+   * The `S` shortcut runs the three attempts from anywhere, so it also has to
+   * put the presenter where the outcomes render. That target moved: the
+   * credential test used to be the third section of the live Gateway screen
+   * and is now its own stop (DESIGN_DECISIONS.md 4.8). Left pointing at
+   * "gateway" it did the exact opposite of its purpose - pressing S on the
+   * Credentials tab navigated away from the results it had just triggered.
+   */
   runAccessControlTest: () =>
     set((state) => ({
       accessControlRunToken: state.accessControlRunToken + 1,
-      stop: "gateway",
+      stop: "gatewayCredentials",
     })),
 
   setHasActiveConversation: (hasActiveConversation) => set({ hasActiveConversation }),

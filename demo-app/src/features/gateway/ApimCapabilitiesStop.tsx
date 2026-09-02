@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BookInformationRegular, BrainCircuitRegular, ArrowRoutingRegular } from "@fluentui/react-icons";
 import { StopFrame } from "@/layout/StopFrame";
+import { GatewaySubNav } from "./GatewaySubNav";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -83,6 +84,7 @@ export function ApimCapabilitiesStop() {
     <StopFrame
       title={t("apim.title")}
       question={t("apim.question")}
+      action={<GatewaySubNav />}
       tone="reference"
       footer={t("apim.footer")}
     >

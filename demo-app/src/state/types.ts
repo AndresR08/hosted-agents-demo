@@ -33,6 +33,14 @@ export type StopId =
    * screen with the live gateway journey; see ApimCapabilitiesStop.
    */
   | "apimCapabilities"
+  /**
+   * The three-credential test, split off the live Gateway screen.
+   *
+   * PROVISIONAL - see DESIGN_DECISIONS.md 4.8. It earns its own stop for a
+   * space reason, not an argument reason, and that is exactly the kind of
+   * decision that should be revisited rather than inherited.
+   */
+  | "gatewayCredentials"
   | "observability"
   | "operations";
 
@@ -41,6 +49,7 @@ export const STOP_ORDER: StopId[] = [
   "frameworks",
   "hostedAgents",
   "gateway",
+  "gatewayCredentials",
   "apimCapabilities",
   "observability",
   "operations",
@@ -66,7 +75,7 @@ export const SECTION_ORDER: SectionId[] = ["agents", "gateway", "observability",
  */
 export const SECTION_STOPS: Record<SectionId, StopId[]> = {
   agents: ["frameworks", "hostedAgents"],
-  gateway: ["gateway", "apimCapabilities"],
+  gateway: ["gateway", "gatewayCredentials", "apimCapabilities"],
   observability: ["observability"],
   platform: ["operations"],
 };

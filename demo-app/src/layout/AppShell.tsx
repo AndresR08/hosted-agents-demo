@@ -6,8 +6,8 @@ import { Header } from "./Header";
 import { SectionNav } from "./SectionNav";
 import { CopilotPanel } from "@/features/copilot/CopilotPanel";
 import { AgentsView } from "@/features/agents/AgentsView";
+import { CredentialTestStop } from "@/features/gateway/CredentialTestStop";
 import { GatewayStop } from "@/features/gateway/GatewayStop";
-import { GatewaySubNav } from "@/features/gateway/GatewaySubNav";
 import { ApimCapabilitiesStop } from "@/features/gateway/ApimCapabilitiesStop";
 import { ObservabilityStop } from "@/features/observability/ObservabilityStop";
 import { OperationsStop } from "@/features/operations/OperationsStop";
@@ -63,13 +63,14 @@ export function AppShell() {
         <div key={stop} className="flex min-w-0 flex-1 flex-col">
           {section === "agents" && <AgentsView />}
           {/*
-            Outside the keyed stage would be tidier, but the stage is what the
-            `key` remounts on stop change - and the sub-nav must not remount,
-            or switching tabs would replay its own entry animation. It is
-            rendered per stop instead, which keeps it visually fixed.
+            The Gateway sub-nav is no longer a row here: each Gateway screen
+            passes it to its own StopFrame `action` slot. That reclaimed the
+            36px these three screens were paying and no other section paid.
+            It still does not remount on tab change, because StopFrame's header
+            is outside the animated body.
           */}
-          {section === "gateway" && <GatewaySubNav />}
           {stop === "gateway" && <GatewayStop />}
+          {stop === "gatewayCredentials" && <CredentialTestStop />}
           {stop === "apimCapabilities" && <ApimCapabilitiesStop />}
           {stop === "observability" && <ObservabilityStop />}
           {stop === "operations" && <OperationsStop />}
