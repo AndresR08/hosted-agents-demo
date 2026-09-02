@@ -4,23 +4,15 @@ import {
   CheckmarkCircleFilled,
   CircleRegular,
   DismissCircleRegular,
-  DocumentBulletListRegular,
-  FlashRegular,
-  FolderRegular,
-  GlobeRegular,
-  LayerRegular,
-  PulseRegular,
 } from "@fluentui/react-icons";
 import { StopFrame } from "@/layout/StopFrame";
 import { ProvenanceBadge } from "@/components/ProvenanceBadge";
 import { Skeleton } from "@/components/Skeleton";
-import { MaintenanceActionButton } from "@/components/MaintenanceActionButton";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useDemoStore } from "@/state/store";
 import { useDemoDataService } from "@/services/provider";
 import type {
   ControlsCatalogue,
-  EnvironmentContext,
   GovernanceControl,
   RequestObservability,
 } from "@/services/contracts";
@@ -87,26 +79,6 @@ export function OperationsStop() {
 
   const [obs, setObs] = useState<RequestObservability | null>(null);
   const [catalogue, setCatalogue] = useState<ControlsCatalogue | null>(null);
-  const [environment, setEnvironment] = useState<EnvironmentContext | null>(null);
-
-  // The environment — deployment configuration, read once per mode. Same
-  // call the header strip already makes; nothing here is a second source.
-  useEffect(() => {
-    if (mode !== "live") {
-      setEnvironment(null);
-      return;
-    }
-    let cancelled = false;
-    service
-      .getEnvironmentContext()
-      .then((ctx) => {
-        if (!cancelled) setEnvironment(ctx);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [mode, service]);
 
   // The catalogue — deployment configuration, read once per mode.
   useEffect(() => {
@@ -180,8 +152,7 @@ export function OperationsStop() {
         />
       }
     >
-      <div className="flex flex-col gap-5">
-        <EnvironmentSection environment={environment} mode={mode} />
+      <div className="flex flex-col gap-3">
 
         <section>
           <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
@@ -197,7 +168,7 @@ export function OperationsStop() {
               ))}
             </ul>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {!obs && (
                 <p className="text-caption leading-relaxed text-ink-muted">{t("obs.gov.catalogueNote")}</p>
               )}
@@ -229,94 +200,8 @@ export function OperationsStop() {
           )}
         </section>
 
-        <section className="border-t border-border pt-4">
-          <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
-            {t("agents.overview.actionsTitle")}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <MaintenanceActionButton action="ping" icon={<PulseRegular />} label={t("maintenance.action.ping")} />
-            <MaintenanceActionButton
-              action="refresh-azure-status"
-              icon={<GlobeRegular />}
-              label={t("maintenance.action.refresh-azure-status")}
-            />
-            <MaintenanceActionButton
-              action="reload-audit-logs"
-              icon={<DocumentBulletListRegular />}
-              label={t("maintenance.action.reload-audit-logs")}
-            />
-            <MaintenanceActionButton
-              action="refresh-deployment-info"
-              icon={<FlashRegular />}
-              label={t("maintenance.action.refresh-deployment-info")}
-            />
-          </div>
-        </section>
       </div>
     </StopFrame>
-  );
-}
-
-/** Region, resource group and live ARM resource count — the same read the header strip uses. */
-function EnvironmentSection({
-  environment,
-  mode,
-}: {
-  environment: EnvironmentContext | null;
-  mode: string;
-}) {
-  const t = useTranslation();
-
-  return (
-    <section>
-      <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
-        {t("platform.environment.title")}
-      </p>
-      {mode !== "live" ? (
-        <p className="text-caption italic text-ink-muted">{t("platform.environment.unavailable")}</p>
-      ) : !environment ? (
-        <div className="flex gap-4">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-40" />
-          <Skeleton className="h-4 w-16" />
-        </div>
-      ) : (
-        <dl className="flex flex-wrap gap-x-6 gap-y-1">
-          <EnvironmentFact icon={GlobeRegular} label={t("obs.field.region")} value={environment.region} />
-          <EnvironmentFact
-            icon={FolderRegular}
-            label={t("platform.environment.resourceGroup")}
-            value={environment.resourceGroupName}
-            mono
-          />
-          <EnvironmentFact
-            icon={LayerRegular}
-            label={t("platform.environment.resourceCount")}
-            value={String(environment.resourceCount)}
-          />
-        </dl>
-      )}
-    </section>
-  );
-}
-
-function EnvironmentFact({
-  icon: Icon,
-  label,
-  value,
-  mono,
-}: {
-  icon: ComponentType<{ fontSize?: number; className?: string }>;
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Icon fontSize={14} className="shrink-0 text-ink-muted" />
-      <dt className="text-caption text-ink-muted">{label}:</dt>
-      <dd className={cn("text-caption font-medium text-ink", mono && "font-mono")}>{value}</dd>
-    </div>
   );
 }
 
@@ -359,7 +244,7 @@ function ControlGroup({
     <section className={cn("rounded-lg border", tone === "active" ? "border-accent/40" : "border-border")}>
       <header
         className={cn(
-          "flex items-baseline justify-between gap-2 rounded-t-lg border-b px-3 py-2",
+          "flex items-baseline justify-between gap-2 rounded-t-lg border-b px-3 py-1.5",
           tone === "active"
             ? "border-accent/30 bg-accent/[0.06]"
             : "border-border bg-illustrative-bg/50",
@@ -386,7 +271,7 @@ function ControlGroup({
       */}
       <ul className="grid grid-cols-2 [&>li]:border-t [&>li]:border-border/60 [&>li:nth-child(-n+2)]:border-t-0">
         {controls.map((c) => (
-          <li key={c.id} className="flex items-start gap-2 px-3 py-2">
+          <li key={c.id} className="flex items-start gap-2 px-3 py-1.5">
             <Icon
               fontSize={15}
               className={cn(

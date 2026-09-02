@@ -151,8 +151,16 @@ export function Header({ className }: { className?: string }) {
             {mode === "live" ? t("header.statusLive") : t("header.statusSimulation")}
           </span>
           <span aria-hidden="true">&middot;</span>
+          {/*
+            The resource group joined this line when Platform's Environment row
+            was removed as a duplicate: region and resource count were already
+            here, and the group name was the one fact only that row carried.
+            Removing the row without moving this would have lost it.
+          */}
           <span className="truncate">
-            {liveEnv?.region ?? env.region} &middot; {liveEnv?.resourceCount ?? 21} resources
+            {liveEnv?.region ?? env.region} &middot;{" "}
+            <span className="font-mono">{liveEnv?.resourceGroupName ?? env.resourceGroupName}</span>{" "}
+            &middot; {liveEnv?.resourceCount ?? 21} resources
           </span>
         </p>
 

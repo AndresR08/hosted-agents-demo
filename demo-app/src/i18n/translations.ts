@@ -81,6 +81,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.resetNote": "Clears the last request, the copilot conversation flag and the selected agent. Language, theme and Azure Live / Simulation are left alone.",
     "settings.resetDone": "Session cleared",
 
+    "settings.maintenance": "Maintenance",
+
     "header.productName": "Foundry Hosted Agents",
     "header.tagline": "Custom frameworks, governed by API Management",
     "header.statusLive": "Azure Live",
@@ -484,6 +486,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.resetAction": "Limpiar esta sesión",
     "settings.resetNote": "Limpia la última petición, la marca de conversación del copiloto y el agente seleccionado. El idioma, el tema y Azure en vivo / Simulación no se tocan.",
     "settings.resetDone": "Sesión limpiada",
+
+    "settings.maintenance": "Mantenimiento",
 
     "header.productName": "Foundry Hosted Agents",
     "header.tagline": "Frameworks personalizados, gobernados por API Management",

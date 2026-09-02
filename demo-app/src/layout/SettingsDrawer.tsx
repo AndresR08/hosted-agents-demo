@@ -19,7 +19,12 @@ import {
   KeyboardRegular,
   ArrowResetRegular,
   CheckmarkRegular,
+  DocumentBulletListRegular,
+  FlashRegular,
+  GlobeRegular,
+  WrenchRegular,
 } from "@fluentui/react-icons";
+import { MaintenanceActionButton } from "@/components/MaintenanceActionButton";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { DemoMode } from "@/config/env";
@@ -73,6 +78,43 @@ export function SettingsDrawer() {
       </DrawerHeader>
 
       <DrawerBody className="flex flex-col gap-5">
+        {/*
+          The four maintenance actions, moved off the Platform screen.
+
+          4.4 puts presenter instruments in the presenter menu, "nearly
+          invisible" — these were on the stage, which contradicted that, and
+          they were also the 69px that kept Platform's controls catalogue from
+          fitting. Both reasons point the same way.
+
+          First section in the drawer, above language and theme. It landed
+          fifth on the first attempt, which contradicted this very comment -
+          a presenter reaching for "check the broker" mid-session should meet
+          it on opening, while language, theme and motion are set once and
+          then never touched again.
+        */}
+        <SettingSection icon={WrenchRegular} label={t("settings.maintenance")}>
+          <div className="flex flex-wrap gap-2">
+            <MaintenanceActionButton action="ping" icon={<PulseRegular />} label={t("maintenance.action.ping")} />
+            <MaintenanceActionButton
+              action="refresh-azure-status"
+              icon={<GlobeRegular />}
+              label={t("maintenance.action.refresh-azure-status")}
+            />
+            <MaintenanceActionButton
+              action="reload-audit-logs"
+              icon={<DocumentBulletListRegular />}
+              label={t("maintenance.action.reload-audit-logs")}
+            />
+            <MaintenanceActionButton
+              action="refresh-deployment-info"
+              icon={<FlashRegular />}
+              label={t("maintenance.action.refresh-deployment-info")}
+            />
+          </div>
+        </SettingSection>
+
+        <Divider />
+
         <SettingSection icon={TranslateRegular} label={t("settings.language")}>
           <RadioGroup
             value={language}
