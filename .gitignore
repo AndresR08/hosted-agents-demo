@@ -34,3 +34,9 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+
+# Reference material dropped into the tree for a visual audit. Never sources,
+# and foundry-iq-dashboard.zip in particular carries a .env with live
+# credentials for an unrelated system - it must never reach a commit.
+foundry-iq-dashboard.zip
+*.zip

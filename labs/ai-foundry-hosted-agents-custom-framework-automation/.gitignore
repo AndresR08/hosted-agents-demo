@@ -1,2 +1,8 @@
 out/
 *.log
+
+# App Service log bundles pulled during deployment debugging (az webapp log
+# download / Kudu). Untracked artefacts of one investigation, not sources -
+# and one Kudu trace filename is long enough that `git add` fails outright on
+# Windows, so this also keeps a stray `git add -A` from breaking.
+logs_extraidos/
