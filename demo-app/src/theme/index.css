@@ -51,15 +51,30 @@
   --radius-lg: 14px;
   --radius-md: 10px;
 
-  --text-display: 32px;
-  --text-body-lg: 24px;
+  /*
+   * F7, the projector floor. 4.5: "The 16 px base body size is the 'projector
+   * floor': never smaller." Nothing below is under it any more.
+   *
+   * caption reached 16 by going 13 -> 14 (UX_AUDIT F1) -> 16 here, and it
+   * carries 133 of the app's 165 type usages: the per-hop latencies, the APIM
+   * policy captions, the capability bodies. That is the content the room is
+   * meant to read from the back, and it was the smallest thing on screen.
+   *
+   * body stays at 16 and therefore MERGES with caption. That was not the first
+   * choice - 20px was, so a size step survived the floor - but measuring it
+   * showed the cost: at 20px the Platform screen hid 322px of 734, roughly
+   * half its controls catalogue, and three of the four screens already
+   * overflowed before any of this. Weight and colour carry the distinction
+   * instead, which most components were already doing.
+   *
+   * Two effective sizes below the headings, not four. That is a real loss
+   * against 4.5's "four sizes"; the floor is the constraint that outranks it,
+   * because a size step nobody can read from the back of a room is not a step.
+   */
+  --text-display: 34px;
+  --text-body-lg: 26px;
   --text-body: 16px;
-  /* 14px, not 13. DESIGN_DECISIONS.md 4.5 sets 16px as the "projector
-     floor"; this token carries 135 of the app's 166 type usages, including
-     the per-hop latencies and the APIM policy captions - the content the room
-     is meant to read. 14px is a floor-raising step that keeps the hierarchy
-     against the 16px body. See UX_AUDIT.md F1/F7. */
-  --text-caption: 14px;
+  --text-caption: 16px;
 
   --spacing-grid-gutter: 24px;
   --spacing-grid-margin: 48px;

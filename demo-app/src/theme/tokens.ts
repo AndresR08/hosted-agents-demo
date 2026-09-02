@@ -39,13 +39,20 @@ export const color = {
   },
 } as const;
 
-/** DESIGN_DECISIONS.md — four sizes only, no weight below 400. */
+/**
+ * DESIGN_DECISIONS.md — four sizes only, no weight below 400, and none below
+ * the 16px projector floor (§4.5). caption was 13px when the UX audit measured
+ * it carrying 83% of the app's type; it is now the floor itself.
+ *
+ * Kept in sync with index.css by hand, as this file's header says.
+ */
 export const typography = {
   fontFamily: '"Segoe UI Variable", "Segoe UI", system-ui, sans-serif',
-  display: { size: "32px", weight: 600 },
-  bodyLarge: { size: "24px", weight: 400 },
+  fontFamilyMono: 'ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace',
+  display: { size: "34px", weight: 600 },
+  bodyLarge: { size: "26px", weight: 400 },
   body: { size: "16px", weight: 400 },
-  caption: { size: "13px", weight: 500, tracking: "0.02em" },
+  caption: { size: "16px", weight: 500, tracking: "0.02em" },
 } as const;
 
 /** DESIGN_DECISIONS.md */
