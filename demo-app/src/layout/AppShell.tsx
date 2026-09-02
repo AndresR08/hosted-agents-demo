@@ -2,8 +2,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useDemoStore } from "@/state/store";
 import { STOP_TO_SECTION } from "@/state/types";
 import { cn } from "@/lib/cn";
-import { Header } from "./Header";
-import { SectionNav } from "./SectionNav";
+import { Sidebar } from "./Sidebar";
 import { CopilotPanel } from "@/features/copilot/CopilotPanel";
 import { AgentsView } from "@/features/agents/AgentsView";
 import { CredentialTestStop } from "@/features/gateway/CredentialTestStop";
@@ -29,6 +28,18 @@ import { OperationsStop } from "@/features/operations/OperationsStop";
  * `FrameworksStop`, `HostedAgentsStop` and `AgentsSubNav` are not deleted —
  * they are simply no longer mounted here, superseded by `AgentsView`.
  *
+ * CP3 replaced the two horizontal chrome bands with `Sidebar`. The 72px
+ * environment header and the 48px section row were a permanent 120px tax on
+ * every screen's vertical budget at 1366×768 — measured, the budget goes from
+ * 411px to 531px — which is why the rail is a layout decision rather than a
+ * restyle. `Header` and `SectionNav` are no longer mounted; nothing either of
+ * them displayed was dropped, it all lives in the rail now. Neither file is
+ * deleted, the same way `FrameworksStop` was not.
+ *
+ * The rail sits OUTSIDE the max-w-[1600px] cap and the page padding, so it
+ * meets the viewport edge the way chrome should, while the stage keeps the
+ * measure that makes it read as a product rather than a web page.
+ *
  * Unchanged: no page-level scrolling. The outer container is fixed to the
  * viewport and `overflow-hidden`; each stop's PanelBody and the copilot's
  * history scroll internally (DESIGN_DECISIONS.md).
@@ -42,19 +53,15 @@ export function AppShell() {
   const section = STOP_TO_SECTION[stop];
 
   return (
-    <div
-      className={cn(
-        // Capped and centred rather than edge-to-edge. At 1920 an application
-        // that fills every pixel reads as a web page; a composition with canvas
-        // around it reads as a product. At 1366 the cap never engages.
-        "mx-auto flex h-screen w-full max-w-[1600px] flex-col overflow-hidden px-grid-margin",
-        transitioning && "animate-fade-out",
-      )}
-    >
-      <Header className="animate-fade-in-up" />
-      <SectionNav className="animate-fade-in-up" />
+    <div className={cn("flex h-screen w-full overflow-hidden", transitioning && "animate-fade-out")}>
+      <Sidebar className="animate-fade-in-up" />
 
-      <main className="flex min-h-0 flex-1 gap-grid-gutter overflow-hidden pb-grid-gutter">
+      {/*
+        Capped and centred rather than edge-to-edge. At 1920 an application
+        that fills every pixel reads as a web page; a composition with canvas
+        around it reads as a product. At 1366 the cap never engages.
+      */}
+      <main className="mx-auto flex min-h-0 min-w-0 max-w-[1600px] flex-1 gap-grid-gutter overflow-hidden px-grid-margin py-grid-gutter">
         {/*
           `key` on the stage is deliberate: moving between stops remounts, so
           each stop plays its entry animation and none of them inherit scroll

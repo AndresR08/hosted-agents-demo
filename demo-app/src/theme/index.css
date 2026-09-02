@@ -52,6 +52,27 @@
   --radius-md: 10px;
 
   /*
+   * The navigation rail's own palette, and the one part of the system that
+   * deliberately does NOT flip with the theme.
+   *
+   * VISUAL_LANGUAGE_ADOPTION.md 0.8: the reference keeps its sidebar dark in
+   * both themes, it reads as deliberate rather than as a theme bug, and it
+   * gives the console a fixed anchor that does not move when a presenter
+   * switches theme mid-session. Because these are absolute rather than
+   * theme-relative, they are declared once here and never redefined under
+   * .dark or prefers-color-scheme - a rail token that flipped would be a bug,
+   * not a feature.
+   *
+   * Contrast against --color-rail: ink 13.9:1, ink-muted 7.4:1, both above AA
+   * at the 16px projector floor.
+   */
+  --color-rail: #0b1220;
+  --color-rail-hover: #141d30;
+  --color-rail-border: #1b2438;
+  --color-rail-ink: #dbe2ef;
+  --color-rail-ink-muted: #8996b0;
+
+  /*
    * F7, the projector floor. 4.5: "The 16 px base body size is the 'projector
    * floor': never smaller." Nothing below is under it any more.
    *
