@@ -654,92 +654,141 @@ function Publish-DemoAppService {
         [Parameter(Mandatory)][string]$SiteName,
         [Parameter(Mandatory)][string]$StagingPath,
         [string]$Url = '',
-        [string]$AssetPath = ''
+        [string]$AssetPath = '',
+        # How many times to send the same package before giving up. See the
+        # retry block below for why one failure shape is worth repeating and
+        # the others are not.
+        [int]$MaxAttempts = 2
     )
 
     Write-Step "Deploying the package to '$SiteName'"
     Write-Info 'App Service installs dependencies and compiles the broker on the way in; expect roughly 2-4 minutes.'
+    Write-Info 'A build-stage rejection is retried once: it leaves the site unbootable, and a completed rebuild is the repair.'
 
-    # Baseline of App Service's own deployment records. After a CLI failure the
-    # decisive question is whether a NEW record appeared and succeeded - which is
-    # true even when the console bundle is byte-identical to the deployed one and
-    # its Vite fingerprint therefore cannot tell the two apart.
-    $deploymentsBefore = Get-SiteDeployments -ResourceGroupName $ResourceGroupName -SiteName $SiteName
-    $idsBefore = @($deploymentsBefore | ForEach-Object { [string]$_.id })
-
+    # The package is built once and re-sent unchanged on a retry: the bytes were
+    # never in question, only whether App Service finished building them.
     $zipPath = Join-Path ([System.IO.Path]::GetTempPath()) ("hosted-agents-demo-{0}.zip" -f ([guid]::NewGuid().ToString('N')))
     try {
         New-ZipFromDirectory -SourceDirectory $StagingPath -DestinationPath $zipPath
 
-        $result = Invoke-Az -Arguments @(
-            'webapp', 'deploy',
-            '-g', $ResourceGroupName, '-n', $SiteName,
-            '--src-path', $zipPath, '--type', 'zip', '--async', 'false', '-o', 'json'
-        ) -AllowFailure
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+
+            # Baseline of App Service's own deployment records. After a CLI failure the
+            # decisive question is whether a NEW record appeared and succeeded - which is
+            # true even when the console bundle is byte-identical to the deployed one and
+            # its Vite fingerprint therefore cannot tell the two apart. Re-read on every
+            # attempt, so a retry is judged against what the attempt before it left.
+            $deploymentsBefore = Get-SiteDeployments -ResourceGroupName $ResourceGroupName -SiteName $SiteName
+            $idsBefore = @($deploymentsBefore | ForEach-Object { [string]$_.id })
+
+            $result = Invoke-Az -Arguments @(
+                'webapp', 'deploy',
+                '-g', $ResourceGroupName, '-n', $SiteName,
+                '--src-path', $zipPath, '--type', 'zip', '--async', 'false', '-o', 'json'
+            ) -AllowFailure
+
+            if ($result.Success) {
+                Write-Ok 'Package deployed'
+                return
+            }
+
+            $azureError = ''
+            if ($result.Error) { $azureError = $result.Error.Trim() }
+
+            Write-Warn 'az webapp deploy reported a failure. Establishing what actually reached the site.'
+
+            # Primary evidence: App Service's own deployment record. A new id that
+            # completed with Kudu status 4 means the package arrived and was accepted,
+            # whatever the CLI said. This is what makes the check hermetic on a re-run
+            # where the console is unchanged and its Vite fingerprint is identical.
+            $deploymentsAfter = Get-SiteDeployments -ResourceGroupName $ResourceGroupName -SiteName $SiteName
+            $newDeployments = @($deploymentsAfter | Where-Object { $idsBefore -notcontains [string]$_.id })
+            $succeededDeployments = @($newDeployments | Where-Object {
+                $_.complete -eq $true -and (Test-HasProperty -Object $_ -Name 'status') -and ([int]$_.status -eq 4)
+            })
+
+            # Secondary, corroborating signals, used to word the diagnosis.
+            $newAssetServed = $false
+            $siteAnswersHealth = $false
+
+            if ($Url -and $AssetPath) {
+                try {
+                    $assetProbe = Invoke-WebRequest -Uri "$Url$AssetPath" -UseBasicParsing -TimeoutSec 30
+                    if ($assetProbe.StatusCode -eq 200) { $newAssetServed = $true }
+                }
+                catch {
+                    $newAssetServed = $false
+                }
+            }
+
+            if ($Url) {
+                try {
+                    $healthProbe = Invoke-WebRequest -Uri "$Url/api/health" -UseBasicParsing -TimeoutSec 30
+                    if ($healthProbe.StatusCode -eq 200) { $siteAnswersHealth = $true }
+                }
+                catch {
+                    $siteAnswersHealth = $false
+                }
+            }
+
+            if ($succeededDeployments.Count -gt 0) {
+                $landed = $succeededDeployments[0]
+                Write-Warn 'App Service DID accept this deployment, despite the CLI reporting a failure.'
+                Write-Warn "  Proof: a new deployment record completed successfully - id $($landed.id)."
+                Write-Warn '  The package landed; the CLI most likely timed out waiting for the start probe.'
+                if ($AssetPath -and $newAssetServed) { Write-Warn "  The site is also serving $AssetPath." }
+                Write-Warn '  The health check that follows remains the authority on whether the demo works.'
+                return
+            }
+
+            # The one failure shape worth repeating automatically, and the reason
+            # this loop exists: the package ARRIVED and App Service rejected it
+            # while building. Observed 2026-09-03 - Oryx hung extracting the Node
+            # SDK, the step that takes ~15 s when it works, and never reached
+            # `npm install`. Nothing about the package caused it; the identical
+            # package succeeded on the next run.
+            #
+            # It matters because that failure is DESTRUCTIVE, not inert. The build
+            # runs in place against the live /home/site/wwwroot, so a half-finished
+            # one leaves the site with no oryx-manifest.toml - and the startup
+            # script reads that file to learn node_modules is a tar.gz it has to
+            # extract. Without it the site boots against an empty node_modules,
+            # cannot resolve 'express', and restart-loops into a 503. The previous
+            # version is NOT still serving: a partial build takes production down.
+            #
+            # Re-sending the same package is the repair, because a build that runs
+            # to completion rewrites the manifest and the tarball. That is exactly
+            # how the site was recovered by hand that day. Doing it here is the
+            # difference between a transient Azure-side hang costing one retry and
+            # costing an outage that waits for a human.
+            #
+            # Deliberately NOT retried: a run that produced no new deployment
+            # record at all. That is a transfer or authentication failure, the
+            # package never reached the site, nothing was disturbed, and repeating
+            # it just fails the same way more slowly.
+            if ($newDeployments.Count -gt 0 -and $attempt -lt $MaxAttempts) {
+                Write-Warn "The package arrived but App Service rejected it while building (attempt $attempt of $MaxAttempts)."
+                Write-Warn '  That leaves the site unbootable rather than on its previous version, so this'
+                Write-Warn '  is repaired now rather than left for a human: the same package is being sent'
+                Write-Warn '  again, and a build that completes rewrites the manifest the startup needs.'
+                Start-Sleep -Seconds 30
+                continue
+            }
+
+            break
+        }
     }
     finally {
         Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-    }
-
-    if ($result.Success) {
-        Write-Ok 'Package deployed'
-        return
-    }
-
-    $azureError = ''
-    if ($result.Error) { $azureError = $result.Error.Trim() }
-
-    Write-Warn 'az webapp deploy reported a failure. Establishing what actually reached the site.'
-
-    # Primary evidence: App Service's own deployment record. A new id that
-    # completed with Kudu status 4 means the package arrived and was accepted,
-    # whatever the CLI said. This is what makes the check hermetic on a re-run
-    # where the console is unchanged and its Vite fingerprint is identical.
-    $deploymentsAfter = Get-SiteDeployments -ResourceGroupName $ResourceGroupName -SiteName $SiteName
-    $newDeployments = @($deploymentsAfter | Where-Object { $idsBefore -notcontains [string]$_.id })
-    $succeededDeployments = @($newDeployments | Where-Object {
-        $_.complete -eq $true -and (Test-HasProperty -Object $_ -Name 'status') -and ([int]$_.status -eq 4)
-    })
-
-    # Secondary, corroborating signals, used to word the diagnosis.
-    $newAssetServed = $false
-    $siteAnswersHealth = $false
-
-    if ($Url -and $AssetPath) {
-        try {
-            $assetProbe = Invoke-WebRequest -Uri "$Url$AssetPath" -UseBasicParsing -TimeoutSec 30
-            if ($assetProbe.StatusCode -eq 200) { $newAssetServed = $true }
-        }
-        catch {
-            $newAssetServed = $false
-        }
-    }
-
-    if ($Url) {
-        try {
-            $healthProbe = Invoke-WebRequest -Uri "$Url/api/health" -UseBasicParsing -TimeoutSec 30
-            if ($healthProbe.StatusCode -eq 200) { $siteAnswersHealth = $true }
-        }
-        catch {
-            $siteAnswersHealth = $false
-        }
-    }
-
-    if ($succeededDeployments.Count -gt 0) {
-        $landed = $succeededDeployments[0]
-        Write-Warn 'App Service DID accept this deployment, despite the CLI reporting a failure.'
-        Write-Warn "  Proof: a new deployment record completed successfully - id $($landed.id)."
-        Write-Warn '  The package landed; the CLI most likely timed out waiting for the start probe.'
-        if ($AssetPath -and $newAssetServed) { Write-Warn "  The site is also serving $AssetPath." }
-        Write-Warn '  The health check that follows remains the authority on whether the demo works.'
-        return
     }
 
     # Everything below is a genuine failure. The shapes are distinguished because
     # they send the operator to completely different places.
     $lines = @(
         "Step failed: $(Get-CurrentStep)",
-        "  Resource: deployment to $SiteName in $ResourceGroupName"
+        "  Resource: deployment to $SiteName in $ResourceGroupName",
+        "  Attempts: $MaxAttempts (a build-stage rejection is retried once automatically;"
+        '            a package that never arrived is not, because nothing was disturbed).'
     )
 
     if ($newDeployments.Count -gt 0) {
