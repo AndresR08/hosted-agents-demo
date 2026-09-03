@@ -37,6 +37,12 @@ export const journeyRouter = Router();
  * Ingestion lag is 1–3 minutes, so a request that just completed legitimately
  * has no hop timing yet. That returns `null` with a `live-delayed` band — never
  * an estimate.
+ *
+ * The same band now also covers a second case that used to slip through as a
+ * confident number: during that window the nearest-in-time row can belong to a
+ * *previous* invocation, because the ask's own row has not landed yet. A hop
+ * that claims more gateway time than the whole request took is not ours, and is
+ * rejected rather than displayed — see the containment invariant below.
  */
 
 interface GatewayRow {
@@ -49,9 +55,19 @@ interface GatewayRow {
   Url: string;
 }
 
+/**
+ * Slack allowed on the containment invariant below. The gateway span is
+ * *inside* the span the broker timed, so honest rows come in under the ask's
+ * own total; this only absorbs clock skew and rounding between APIM's
+ * `TotalTime` and the broker's stopwatch. Kept small on purpose — the failure
+ * it guards against was 4.5 seconds wide, so a quarter second cannot hide it.
+ */
+const CONTAINMENT_TOLERANCE_MS = 250;
+
 async function fetchHopTimings(
   agentName: string,
   timestamp: number,
+  totalLatencyMs: number,
 ): Promise<{ hop1?: GatewayRow; hop2?: GatewayRow }> {
   const token = await getAccessToken(SCOPES.logAnalytics);
   const from = new Date(timestamp - 120_000).toISOString();
@@ -94,6 +110,36 @@ async function fetchHopTimings(
 
   if (!hop1) return {};
 
+  /*
+   * Containment invariant — the difference between "no number yet" and "the
+   * wrong number, presented as this ask's".
+   *
+   * Nearest-in-time is a guess, and during the ingestion window it is a guess
+   * made from an incomplete table. Observed 2026-09-03: an Agents → Run
+   * invocation at 14:01:18 (TotalTime 17909) and a copilot ask at 14:02:40
+   * (TotalTime 13384) both sat inside the ±120s window. The ask's own row had
+   * not been ingested yet, so the only candidate was the *earlier, unrelated*
+   * invocation — and it was returned as this ask's timing with
+   * `available: true`. The console then showed 7 ms / 8.5 s / 14 ms / 9.4 s
+   * for a request whose real figures were 1 ms / 6.0 s / 5 ms / 7.4 s.
+   *
+   * The tell was already in the payload: hop1 claimed 17.9s of gateway time
+   * inside a request the broker had timed end to end at 13.5s. A gateway span
+   * is contained by the client span that wraps it, so that is not a slow hop,
+   * it is a different request. Checking it costs nothing and is the only
+   * signal available before the correct row lands.
+   *
+   * Rejecting rather than searching on is deliberate. A violating row proves
+   * this candidate is not ours; it says nothing about whether a better one
+   * exists yet, and picking the next-nearest would just be a second guess
+   * wearing the same false confidence. Returning empty puts the response on
+   * the `live-delayed` band it already uses for "not ingested yet", which is
+   * exactly what the situation is. §4.5: never an estimate, never a stand-in.
+   */
+  if (totalLatencyMs > 0 && hop1.TotalTime > totalLatencyMs + CONTAINMENT_TOLERANCE_MS) {
+    return {};
+  }
+
   const start = new Date(hop1.TimeGenerated).getTime();
   const end = start + hop1.TotalTime;
   const hop2 = rows
@@ -122,7 +168,11 @@ journeyRouter.get("/journey/:askId", asyncHandler(async (req, res) => {
   let hop2: GatewayRow | undefined;
   if (record?.agentName) {
     try {
-      ({ hop1, hop2 } = await fetchHopTimings(record.agentName, record.timestamp));
+      ({ hop1, hop2 } = await fetchHopTimings(
+        record.agentName,
+        record.timestamp,
+        record.totalLatencyMs,
+      ));
     } catch {
       // Timing is an enhancement — the flow structure stands on its own.
     }
