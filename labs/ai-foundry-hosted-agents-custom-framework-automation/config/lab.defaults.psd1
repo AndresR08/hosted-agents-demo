@@ -8,7 +8,14 @@
 @{
     # Resource group / deployment naming. The notebook derives these from its own
     # folder name; here they are explicit and overridable on the command line.
-    ResourceGroupName = 'lab-ai-foundry-hosted-agents-custom-framework'
+    #
+    # ResourceGroupName is the one value that deliberately does NOT mirror the
+    # notebook: this repository's deployment lives in 'lab-hosted-agents-demo',
+    # so the folder-derived name pointed at a group that does not exist and every
+    # run had to pass -ResourceGroupName to get past "Reading deployment outputs".
+    # DeploymentName still mirrors the notebook, because the ARM deployment inside
+    # that group really is called 'ai-foundry-hosted-agents-custom-framework'.
+    ResourceGroupName = 'lab-hosted-agents-demo'
     DeploymentName    = 'ai-foundry-hosted-agents-custom-framework'
     Location          = 'swedencentral'
 
