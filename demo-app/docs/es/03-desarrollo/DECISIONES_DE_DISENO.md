@@ -673,6 +673,68 @@ vez. Los campos pendientes ahora dicen que esperan la ingesta, que es lo que
 
 ---
 
+### 4.11 Los +28px de margen de Plataforma son prestados de una laguna de i18n, y traducir los nombres de control los devuelve
+
+**Estado: hallazgo abierto, deliberadamente no corregido aquí. Esta sección
+existe para que quien traduzca los nombres de control se encuentre con esto
+antes de que se lo encuentre el layout.**
+
+Medido el 2026-09-03 contra el bundle de producción, en el piso de 1366×768, con
+la misma sonda usada en 4.8 y 4.9:
+
+| Pantalla Plataforma | contenido | presupuesto | oculto | margen |
+|---|---|---|---|---|
+| Azure en vivo | 457px | 485px | 0px | **+28px** |
+| Simulación | 536px | 485px | **51px** | −51px |
+
+El número de Live es el que quedó registrado en CP2 ("28px de margen real en
+lugar de exactamente cero"). El de Simulación es nuevo, y el primer instinto —
+que Simulación desborda porque sus datos de marcador de posición son más
+grandes — es falso. Live muestra *más* controles que Simulación (8 activos + 6
+disponibles + 3 no presentes, contra 7 + 6). Son las etiquetas, no la cantidad.
+
+**Los dos modos leen sus nombres de control de sitios distintos.** La ruta en
+vivo los toma del broker, donde son cadenas en inglés escritas a mano
+(`broker/src/routes/observability.ts`, `broker/src/routes/controls.ts`) que
+viajan por el cable y se renderizan tal cual — nunca pasan por i18n. La ruta de
+replay los toma de `demo-app/src/i18n/translations.ts`, donde sí están
+traducidos. Así que en una sesión en español la pantalla Live muestra
+"Subscription-key authentication" y la de Simulación muestra "Autenticación por
+clave de suscripción, revocación por consumidor".
+
+Medido: 31 caracteres de media en Live, 54 en Simulación. En el piso tipográfico
+de 16px eso es la diferencia entre filas de control de una línea y filas de dos,
+y a lo largo del catálogo son 79px de contenido — exactamente la distancia entre
+457 y 536.
+
+**Qué implica para quien lo cambie.** La ruta que está mal es la de Live: una UI
+en español mostrando nombres de control en inglés es una inconsistencia con
+todas las demás superficies de la consola. Pero el arreglo no es local.
+Traducir esos nombres es un cambio de una línea por control que moverá el
+contenido en vivo de Plataforma de 457px a unos 536px en un presupuesto de
+485px, y §4.7 se romperá en la pantalla con menos espacio que ceder. Los dos
+cambios son un solo cambio:
+
+1. Traducir los nombres de control (las cadenas del broker a través de i18n, o
+   mover el catálogo al frontend, donde las traducciones ya existen).
+2. Volver a medir Plataforma a 1366×768 en **ambos** idiomas con la sonda de
+   4.8, y reflujarla — CP2 ya gastó el espacio fácil de esta pantalla para
+   llevarla de 612px a 411px, así que lo que queda es una decisión de
+   composición, no un apriete.
+
+No trate los +28px como holgura mientras tanto. No es margen que el diseño se
+haya ganado; es margen que el diseño conserva sólo porque una superficie está
+sin traducir, y está denominado en un idioma que la sala quizá no esté leyendo.
+
+**Relacionado, misma pantalla, no el mismo defecto:** al cambiar Live →
+Simulación queda el total en vivo anterior ("Total: 13.5 s") renderizado sobre
+el diagrama de Gateway mientras el resto del panel ya cambió a texto ilustrativo.
+Anotado aquí y no en §6 porque es la misma forma de "un cambio de modo no
+reinicia del todo el estado derivado", y quien tome lo anterior estará en los
+archivos correctos para verlo.
+
+---
+
 ## 5. Coreografía de la demo, riesgos y preparación
 
 El guion recomendado ocupa 12 a 15 minutos: abrir con un intercambio de pregunta/respuesta (~90 s, "eso es un agente gobernado en tu nube"), seguir con las tres pruebas de Access Control y la revelación de la política en vivo (~3:30, el momento pivote), continuar con Agent Governance — dos frameworks, un modelo de gobernanza, cadena de procedencia, RBAC en vivo (~3 min), animar los seis pasos de la Request Journey (~3 min), y cerrar con Platform Control — registro de auditoría real, catálogo de controles, encuadre honesto de costos (~3 min), dejando el catálogo de controles como el artefacto natural de la siguiente conversación.

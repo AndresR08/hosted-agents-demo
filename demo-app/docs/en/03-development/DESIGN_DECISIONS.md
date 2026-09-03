@@ -661,6 +661,65 @@ been saying correctly all along.
 
 ---
 
+### 4.11 Platform's +28px of margin is borrowed from an i18n gap, and translating the control names will take it back
+
+**Status: an open finding, deliberately not fixed here. This section exists so
+that whoever translates the control names finds this before the layout does.**
+
+Measured 2026-09-03 against the production bundle, at the 1366×768 floor, with
+the same probe used in 4.8 and 4.9:
+
+| Platform screen | content | budget | hidden | margin |
+|---|---|---|---|---|
+| Azure Live | 457px | 485px | 0px | **+28px** |
+| Simulation | 536px | 485px | **51px** | −51px |
+
+The Live number is the one recorded at CP2 ("28px of real margin instead of
+exactly zero"). The Simulation number is new, and the first instinct — that
+Simulation overflows because its placeholder data is bigger — is wrong. Live
+shows *more* controls than Simulation (8 active + 6 available + 3 not-present,
+against 7 + 6). It is the labels, not the count.
+
+**The two modes read their control names from different places.** The live path
+takes them from the broker, where they are hard-coded English strings
+(`broker/src/routes/observability.ts`, `broker/src/routes/controls.ts`) that are
+sent over the wire and rendered verbatim — they never pass through i18n. The
+replay path takes them from `demo-app/src/i18n/translations.ts`, where they are
+properly translated. So in a Spanish session the Live screen shows
+"Subscription-key authentication" and the Simulation screen shows
+"Autenticación por clave de suscripción, revocación por consumidor".
+
+Measured: 31 characters average in Live, 54 in Simulation. At the 16px projector
+floor that is the difference between control rows that fit on one line and
+control rows that wrap to two, and across the catalogue it is 79px of content —
+exactly the gap between 457 and 536.
+
+**What this means for anyone changing it.** The Live path is the one that is
+wrong: a Spanish UI showing English control names is an inconsistency with every
+other surface in the console. But the fix is not local. Translating those names
+is a one-line-per-control change that will move Platform's live content from
+457px to roughly 536px in a 485px budget, and §4.7 will break on the screen that
+has the least room to give. The two changes are one change:
+
+1. Translate the control names (broker-side strings through i18n, or move the
+   catalogue to the frontend where the translations already exist).
+2. Re-measure Platform at 1366×768 in **both** languages with the 4.8 probe, and
+   reflow it — CP2 already spent this screen's easy space getting it from 612px
+   to 411px, so what is left is a composition decision, not tightening.
+
+Do not treat the +28px as headroom in the meantime. It is not margin the design
+earned; it is margin the design is holding only because one surface is
+untranslated, and it is denominated in a language the room may not be reading.
+
+**Related, same screen, not the same defect:** switching Live → Simulation
+leaves the previous live total ("Total: 13.5 s") rendered on the Gateway
+diagram while the rest of the panel has already swapped to placeholder copy.
+Logged here rather than in §6 because it is the same "a mode switch does not
+fully reset derived state" shape, and whoever picks up the above will be in the
+right files for it.
+
+---
+
 ## 5. Demo choreography, risks, and prep
 
 The recommended script runs 12 to 15 minutes: open with a question/answer exchange (~90 s, "that's a governed agent in your cloud"), move into the three Access Control tests and the live policy reveal (~3:30, the pivot moment), continue with Agent Governance — two frameworks, one governance model, provenance chain, live RBAC (~3 min), animate the six steps of the Request Journey (~3 min), and close with Platform Control — real audit record, controls catalog, honest cost framing (~3 min), leaving the controls catalog as the natural artifact for the next conversation.
