@@ -113,7 +113,7 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
   lastAskId: null,
 
   language: "es",
-  themePreference: "dark",
+  themePreference: "light",
   reducedMotion: true,
   settingsOpen: false,
 

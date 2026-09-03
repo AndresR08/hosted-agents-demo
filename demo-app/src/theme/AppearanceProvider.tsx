@@ -11,7 +11,7 @@ import { useDemoStore } from "@/state/store";
  * override in theme/index.css both work), and the Fluent `FluentProvider`
  * theme.
  *
- * Theme is `dark` by default (state/store.ts) and only follows the OS
+ * Theme is `light` by default (state/store.ts) and only follows the OS
  * preference when the presenter explicitly picks "System".
  * Neither setting is exposed on the dashboard — only inside the Settings
  * drawer (layout/SettingsDrawer.tsx); this component just reacts to the

@@ -116,7 +116,7 @@ export type Locale = "en" | "es";
 
 /**
  * Settings → Theme. "system" follows the OS's `prefers-color-scheme`;
- * "light" and "dark" are explicit overrides. Dark is the default for a new
+ * "light" and "dark" are explicit overrides. Light is the default for a new
  * session — see the store's initial state in state/store.ts.
  */
 export type ThemePreference = "light" | "dark" | "system";
