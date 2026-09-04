@@ -54,6 +54,19 @@
 .PARAMETER AppServiceSku
   App Service plan SKU. Defaults to the value in config/lab.defaults.psd1 (B1).
 
+.PARAMETER SharedApimName
+  The shared API Management instance this lab registers on. Defaults to
+  SharedApimName in config/lab.defaults.psd1. Pass it to point a run at a
+  different shared gateway - after a migration to a new instance, for example -
+  without editing committed configuration.
+
+.PARAMETER SharedApimResourceGroupName
+  Resource group of the shared API Management instance. Defaults to
+  SharedApimResourceGroupName in config/lab.defaults.psd1. Use it together with
+  -SharedApimName; teardown.ps1 accepts the same pair, and MUST be given the
+  same values, or it will look for this lab's resources on the wrong gateway and
+  leave them behind on the right one.
+
 .PARAMETER SkipDemoApp
   Skips building and deploying the companion demo application. The lab
   infrastructure and the hosted agent are still deployed.
@@ -109,6 +122,8 @@ param(
     [int]$AgentTimeoutMinutes = 15,
     [string]$AppServiceName,
     [string]$AppServiceSku,
+    [string]$SharedApimName,
+    [string]$SharedApimResourceGroupName,
     [switch]$SkipDemoApp,
     [switch]$ValidateOnly,
     [switch]$SkipInfrastructure,
@@ -157,6 +172,15 @@ try {
     if ($ResourceGroupName) { $config.ResourceGroupName = $ResourceGroupName }
     if ($Location)          { $config.Location          = $Location }
     if ($DeploymentName)    { $config.DeploymentName    = $DeploymentName }
+
+    # The shared gateway is the one piece of this deployment that belongs to
+    # nobody in particular, so it is the piece most likely to be renamed or
+    # replaced without this repository hearing about it - a move to a V3
+    # instance, say. Overridable on the command line so that day costs a flag
+    # rather than an edit to committed configuration; unset, it behaves exactly
+    # as before.
+    if ($SharedApimName)              { $config.SharedApimName              = $SharedApimName }
+    if ($SharedApimResourceGroupName) { $config.SharedApimResourceGroupName = $SharedApimResourceGroupName }
 
     # The lab normally comes from this repository's own vendored copy, which is
     # why a fresh clone deploys without anything else being present. The two

@@ -858,6 +858,10 @@ Se comprobó antes en vez de darlo por inactivo. Doce horas de `ApiManagementGat
 
 **Aviso para quien piense en usar `teardown.ps1` aquí.** Borra el resource group entero. Cuando se quitó este APIM, el grupo contenía además las dos cuentas Foundry, el container registry, el workspace de Log Analytics que consulta la pantalla de Observabilidad, y el App Service con su plan — nueve recursos que debían sobrevivir. Quitar un recurso de un grupo vivo es un `az apim delete` dirigido seguido de `az apim deletedservice purge`; `teardown.ps1` es para desechar el laboratorio completo.
 
+**Qué gateway se usa es sobreescribible por corrida.** `deploy.ps1` y `teardown.ps1` aceptan ambos `-SharedApimName` y `-SharedApimResourceGroupName`, con los valores de `config/lab.defaults.psd1` como defecto. La instancia compartida es la única parte de este despliegue que no pertenece a nadie en particular, así que es la que con más probabilidad se renombra o se reemplaza —un salto a una V3, por ejemplo— sin que este repositorio se entere primero. Un flag hace que ese día cueste un argumento de línea de comandos en vez de una edición a configuración commiteada, y sin pasarlo, nada de una corrida normal cambia.
+
+Los dos scripts aceptan el mismo par a propósito, y hay que darles los mismos valores: un teardown que lea el defecto del config después de un despliegue apuntado a otro sitio buscaría los recursos de este lab en la instancia equivocada, no encontraría ninguno, reportaría éxito, y dejaría los reales en un gateway que nunca miró.
+
 ### 8.1 Seis fallos que encontró esta migración, y qué era cada uno realmente
 
 Ninguno se ve en el bicep, y **los seis fallan en silencio** — sin excepción, sin texto en rojo: un despliegue que reporta éxito y una consola sutilmente equivocada. Se registran con su síntoma exacto porque el síntoma es lo único que tendrá la próxima persona.

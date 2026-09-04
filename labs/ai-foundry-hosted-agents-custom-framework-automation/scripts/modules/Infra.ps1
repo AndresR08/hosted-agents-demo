@@ -151,7 +151,10 @@ function Invoke-LabDeployment {
     if ($ValidateOnly) { $verb = 'validate' }
 
     Write-Step "Running Bicep deployment '$DeploymentName' ($verb)"
-    Write-Info 'APIM Basicv2 provisioning dominates this step; expect roughly 3-6 minutes.'
+    # APIM used to dominate this step and no longer does - the lab registers on a
+    # shared gateway instead of creating one. Foundry and the model deployment
+    # now set the pace.
+    Write-Info 'Foundry and the model deployment dominate this step; expect roughly 3-6 minutes.'
 
     $azArgs = @(
         'deployment', 'group', $verb,

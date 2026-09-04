@@ -28,6 +28,17 @@
   Leaves the soft-deleted APIM and Foundry accounts in place. Use it only when
   you intend to restore them; otherwise they block the names and the quota.
 
+.PARAMETER SharedApimName
+  The shared API Management instance to remove this lab's resources from.
+  Defaults to SharedApimName in config/lab.defaults.psd1. If the deployment was
+  pointed at a different gateway with deploy.ps1's flag of the same name, pass
+  the same value here - otherwise this teardown cleans the wrong instance and
+  silently leaves the real resources behind.
+
+.PARAMETER SharedApimResourceGroupName
+  Resource group of that instance. Defaults to SharedApimResourceGroupName in
+  config/lab.defaults.psd1.
+
 .PARAMETER SkipSharedApimCleanup
   Leaves this lab's API, backend, product, subscriptions and diagnostic setting
   registered on the SHARED gateway. Almost never what you want: those resources
@@ -55,7 +66,9 @@ param(
     [switch]$NoWait,
     [switch]$Force,
     [switch]$SkipPurge,
-    [switch]$SkipSharedApimCleanup
+    [switch]$SkipSharedApimCleanup,
+    [string]$SharedApimName,
+    [string]$SharedApimResourceGroupName
 )
 
 Set-StrictMode -Version Latest
@@ -79,6 +92,14 @@ $config = Import-PowerShellDataFile -Path (Join-Path $rootDir 'config\lab.defaul
 if (-not $ResourceGroupName) {
     $ResourceGroupName = $config.ResourceGroupName
 }
+
+# Mirrors deploy.ps1's overrides, and has to: if a deployment was pointed at a
+# different shared gateway on the command line, a teardown reading the config
+# default would hunt for this lab's resources on the wrong instance, find
+# nothing, report success, and leave the real ones behind on someone else's
+# gateway. Same flags, same values.
+if ($SharedApimName)              { $config.SharedApimName              = $SharedApimName }
+if ($SharedApimResourceGroupName) { $config.SharedApimResourceGroupName = $SharedApimResourceGroupName }
 
 # out/ is git-ignored, and already where this automation keeps run artefacts.
 # Named after the resource group so two environments cannot overwrite each

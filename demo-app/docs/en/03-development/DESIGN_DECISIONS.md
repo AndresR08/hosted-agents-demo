@@ -843,6 +843,10 @@ It was checked first rather than assumed idle. Twelve hours of `ApiManagementGat
 
 **Note for anyone tempted to reach for `teardown.ps1` here.** It deletes the whole resource group. At the time this APIM was removed the group also held both Foundry accounts, the container registry, the Log Analytics workspace the Observability screen queries, the App Service and its plan — nine resources that had to survive. Removing one resource from a live group is a targeted `az apim delete` followed by `az apim deletedservice purge`; `teardown.ps1` is for disposing of the entire lab.
 
+**Which gateway is used is overridable per run.** `deploy.ps1` and `teardown.ps1` both accept `-SharedApimName` and `-SharedApimResourceGroupName`, defaulting to `config/lab.defaults.psd1`. The shared instance is the one part of this deployment that belongs to nobody in particular, so it is the part most likely to be renamed or replaced — a move to a V3, say — without this repository hearing about it first. A flag makes that day cost a command-line argument rather than an edit to committed configuration, and unset, nothing about a normal run changes.
+
+The two scripts take the same pair on purpose, and they must be given the same values: a teardown reading the config default after a deployment that was pointed elsewhere would look for this lab's resources on the wrong instance, find none, report success, and leave the real ones behind on a gateway it never examined.
+
 ### 8.1 Six failures this migration hit, and what each actually was
 
 None of these are visible in the bicep, and **all six fail silently** — no exception, no red text, just a deployment that reports success and a console that is subtly wrong. They are recorded with their exact symptom because the symptom is the only thing the next person will have.
