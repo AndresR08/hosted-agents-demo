@@ -843,6 +843,58 @@ It was checked first rather than assumed idle. Twelve hours of `ApiManagementGat
 
 **Note for anyone tempted to reach for `teardown.ps1` here.** It deletes the whole resource group. At the time this APIM was removed the group also held both Foundry accounts, the container registry, the Log Analytics workspace the Observability screen queries, the App Service and its plan — nine resources that had to survive. Removing one resource from a live group is a targeted `az apim delete` followed by `az apim deletedservice purge`; `teardown.ps1` is for disposing of the entire lab.
 
+### 8.1 Six failures this migration hit, and what each actually was
+
+None of these are visible in the bicep, and **all six fail silently** — no exception, no red text, just a deployment that reports success and a console that is subtly wrong. They are recorded with their exact symptom because the symptom is the only thing the next person will have.
+
+**1 — A deployment to the shared gateway died half-way through**
+
+*Symptom:* `az deployment group create` returned `LinkedInvalidPropertyId`: *"Property id `C:/Program Files/Git/subscriptions/…` at path `properties.workspaceId` is invalid."* Five of six resources were created; the sixth was rejected, leaving another team's gateway partially deployed for about two minutes.
+
+*Root cause:* MSYS (Git Bash) rewrites any argument that looks like a Unix path before a native `.exe` sees it. The Log Analytics workspace id begins with `/subscriptions/`.
+
+*Fix:* re-run from PowerShell, which does not rewrite its own arguments. Permanently, `Assert-ResourceIdShape` (`modules/SharedApim.ps1`) validates every resource id immediately before a foreign-scope deployment and names path mangling as the likely cause. `Assert-NotRunningUnderMsys` only *warns*: `$env:MSYSTEM` is inherited by any process a Git Bash shell starts, including a perfectly safe PowerShell one, so blocking on it stops legitimate runs — which is exactly what the first version did.
+
+**2 — `RoleAssignmentUpdateNotPermitted` on a lab that had deployed fine for weeks**
+
+*Symptom:* `infra.bicep` failed inside `foundryModule`; two `Microsoft.Authorization/roleAssignments` returned `BadRequest` — *"Tenant ID, application ID, principal ID, and scope are not allowed to be updated."*
+
+*Root cause:* upstream's `foundry.bicep` names the assignment `guid(subscription().id, resourceGroup().id, config.name, cognitiveServicesUserRoleDefinitionID)` — **the principal id is not part of the name**. Handing the module the shared gateway's identity therefore asks ARM to change the principal of an existing assignment, which it forbids.
+
+*Fix:* delete the two assignments belonging to the old gateway's identity (`fd73dffa-…`) and redeploy — `8765f675-4a1b-552d-97cc-65f18e0e8bdd` on the models account, `ca75316c-d47a-504b-b1be-ac97f64360e8` on the agents account. **This only bites when migrating an existing lab in place**; a deployment into a fresh resource group never sees it.
+
+**3 — The success path was the one that crashed**
+
+*Symptom:* both bicep deployments succeeded, the before/after comparison printed `+0` on every category, and then the run died: *"No se encuentra la propiedad 'Count' en este objeto."*
+
+*Root cause:* `Compare-SharedApimInventory` returns `@()` when nothing was lost. PowerShell unrolls an empty array returned from a function into `$null`, and under `Set-StrictMode -Version Latest` reading `$null.Count` throws. A *real* loss would have returned a non-empty array and worked fine.
+
+*Fix:* `$lost = @(Compare-SharedApimInventory …)` — the `@()` at the call site is load-bearing, not decoration.
+
+**4 — 404 through the gateway while a manual call to the same URL returned 200**
+
+*Symptom:* `Test-AgentThroughApim` reported 404 for both agents; the direct Foundry call succeeded, and a hand-made `POST` to `/hosted-agents-responses/agents/pydantic-agent/…` returned `200`.
+
+*Root cause:* two sources of truth for one path. The API is registered as `hosted-agents-responses`, but the verification step still read the legacy `$config.HostedAgentResponsesApiPath`, whose value was `hosted-agent-responses`.
+
+*Fix:* the consumers read `$config.SharedApimResources.ResponsesApiPath`, which is what the deployment actually used. The legacy keys were set to the same values and commented as a mirror belonging to the vendored template, so the two cannot hold different truths.
+
+**5 — Observability waited forever for telemetry that was already arriving**
+
+*Symptom:* `/api/journey/:askId` never left `available: false`. The workspace *was* receiving gateway logs — 54 rows — but `ApiManagementGatewayLogs` stayed empty. No error anywhere; the screen simply looked like ingestion was slow.
+
+*Root cause:* the diagnostic setting defaulted to `logAnalyticsDestinationType: 'AzureDiagnostics'`, which files rows in the generic `AzureDiagnostics` table. `ApiManagementGatewayLogs` is a *resource-specific* table and needs `'Dedicated'`. Found by diffing against upstream's own `apim.bicep`, which sets it.
+
+*Fix:* add `logAnalyticsDestinationType: 'Dedicated'`. Expect a delay before it takes effect — measured at about 16 minutes here, and Microsoft allows up to 90.
+
+**6 — The API names were literals in nine places in application code**
+
+*Symptom:* after a fully green deployment, production `/api/ask` answered **404**. Fixing that alone would not have been enough: `/api/journey` and `/api/observability` would still never have matched a hop, silently.
+
+*Root cause:* renaming the APIs for the shared gateway changed values that were hard-coded across the app, not only in bicep — `broker/src/config.ts` (the path), the `ApiId` filters in `journey.ts` (×2) and `observability.ts` (×2), four spots in `maintenance.ts`, the map in `policy.ts`, and three strings the console shows **to the audience**. `ApiManagementGatewayLogs.ApiId` carries the API name, so a stale literal there produces no error — just a hop that never matches.
+
+*Fix:* single-sourced. `HOSTED_AGENT_API_PATH`, `HOSTED_AGENT_API_NAME` and `INFERENCE_API_NAME` come from `config/lab.defaults.psd1` and are set by `deploy.ps1` as app settings. `policy.ts` keeps **stable keys** facing the console and maps them to deployed names server-side, so the frontend's types never depend on what the gateway happens to call things.
+
 ## See also
 
 - [`../01-general/ARCHITECTURE.md`](../01-general/ARCHITECTURE.md) — the Azure architecture these decisions visualize.

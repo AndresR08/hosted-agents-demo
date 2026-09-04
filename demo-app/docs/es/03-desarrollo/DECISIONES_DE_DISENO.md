@@ -858,6 +858,58 @@ Se comprobó antes en vez de darlo por inactivo. Doce horas de `ApiManagementGat
 
 **Aviso para quien piense en usar `teardown.ps1` aquí.** Borra el resource group entero. Cuando se quitó este APIM, el grupo contenía además las dos cuentas Foundry, el container registry, el workspace de Log Analytics que consulta la pantalla de Observabilidad, y el App Service con su plan — nueve recursos que debían sobrevivir. Quitar un recurso de un grupo vivo es un `az apim delete` dirigido seguido de `az apim deletedservice purge`; `teardown.ps1` es para desechar el laboratorio completo.
 
+### 8.1 Seis fallos que encontró esta migración, y qué era cada uno realmente
+
+Ninguno se ve en el bicep, y **los seis fallan en silencio** — sin excepción, sin texto en rojo: un despliegue que reporta éxito y una consola sutilmente equivocada. Se registran con su síntoma exacto porque el síntoma es lo único que tendrá la próxima persona.
+
+**1 — Un despliegue al gateway compartido murió a medias**
+
+*Síntoma:* `az deployment group create` devolvió `LinkedInvalidPropertyId`: *"Property id `C:/Program Files/Git/subscriptions/…` at path `properties.workspaceId` is invalid."* Se crearon cinco de seis recursos; el sexto fue rechazado, dejando el gateway de otros equipos parcialmente desplegado unos dos minutos.
+
+*Causa raíz:* MSYS (Git Bash) reescribe cualquier argumento que parezca una ruta Unix antes de que lo vea un `.exe` nativo. El id del workspace de Log Analytics empieza por `/subscriptions/`.
+
+*Solución:* re-ejecutar desde PowerShell, que no reescribe sus propios argumentos. De forma permanente, `Assert-ResourceIdShape` (`modules/SharedApim.ps1`) valida cada resource id justo antes de un despliegue de scope foráneo y nombra el mangling como causa probable. `Assert-NotRunningUnderMsys` sólo *advierte*: `$env:MSYSTEM` lo hereda cualquier proceso que arranque una shell de Git Bash, incluida una de PowerShell perfectamente segura, así que bloquear por él detiene ejecuciones legítimas — que es exactamente lo que hizo la primera versión.
+
+**2 — `RoleAssignmentUpdateNotPermitted` en un lab que llevaba semanas desplegando bien**
+
+*Síntoma:* `infra.bicep` falló dentro de `foundryModule`; dos `Microsoft.Authorization/roleAssignments` devolvieron `BadRequest` — *"Tenant ID, application ID, principal ID, and scope are not allowed to be updated."*
+
+*Causa raíz:* el `foundry.bicep` de upstream nombra la asignación como `guid(subscription().id, resourceGroup().id, config.name, cognitiveServicesUserRoleDefinitionID)` — **el principal id no forma parte del nombre**. Pasarle al módulo la identidad del gateway compartido pide entonces a ARM cambiar el principal de una asignación existente, cosa que prohíbe.
+
+*Solución:* borrar las dos asignaciones de la identidad del gateway viejo (`fd73dffa-…`) y redesplegar — `8765f675-4a1b-552d-97cc-65f18e0e8bdd` en la cuenta de modelos y `ca75316c-d47a-504b-b1be-ac97f64360e8` en la de agentes. **Sólo muerde al migrar un lab existente en sitio**; un despliegue en un resource group nuevo nunca lo ve.
+
+**3 — La ruta de éxito era la que reventaba**
+
+*Síntoma:* ambos despliegues bicep tuvieron éxito, la comparación antes/después imprimió `+0` en todas las categorías, y entonces la corrida murió: *"No se encuentra la propiedad 'Count' en este objeto."*
+
+*Causa raíz:* `Compare-SharedApimInventory` devuelve `@()` cuando no se perdió nada. PowerShell colapsa a `$null` un array vacío devuelto por una función, y bajo `Set-StrictMode -Version Latest` leer `$null.Count` lanza excepción. Una pérdida *real* habría devuelto un array no vacío y habría funcionado.
+
+*Solución:* `$lost = @(Compare-SharedApimInventory …)` — el `@()` en el sitio de llamada es funcional, no decorativo.
+
+**4 — 404 por el gateway mientras una llamada manual a la misma URL devolvía 200**
+
+*Síntoma:* `Test-AgentThroughApim` reportó 404 para ambos agentes; la llamada directa a Foundry funcionaba, y un `POST` a mano a `/hosted-agents-responses/agents/pydantic-agent/…` devolvía `200`.
+
+*Causa raíz:* dos fuentes de verdad para un mismo path. La API está registrada como `hosted-agents-responses`, pero el paso de verificación seguía leyendo el heredado `$config.HostedAgentResponsesApiPath`, cuyo valor era `hosted-agent-responses`.
+
+*Solución:* los consumidores leen `$config.SharedApimResources.ResponsesApiPath`, que es lo que el despliegue usó de verdad. Las claves heredadas se pusieron a los mismos valores y se comentaron como espejo de la plantilla vendorizada, para que no puedan sostener dos verdades distintas.
+
+**5 — Observabilidad esperaba para siempre una telemetría que ya estaba llegando**
+
+*Síntoma:* `/api/journey/:askId` nunca salía de `available: false`. El workspace *sí* recibía logs del gateway — 54 filas — pero `ApiManagementGatewayLogs` seguía vacía. Ningún error; la pantalla simplemente parecía tener ingesta lenta.
+
+*Causa raíz:* el diagnosticSetting quedó por defecto en `logAnalyticsDestinationType: 'AzureDiagnostics'`, que archiva las filas en la tabla genérica `AzureDiagnostics`. `ApiManagementGatewayLogs` es una tabla *resource-specific* y exige `'Dedicated'`. Se encontró comparando con el propio `apim.bicep` de upstream, que sí lo pone.
+
+*Solución:* añadir `logAnalyticsDestinationType: 'Dedicated'`. Cuenta con un retardo hasta que surte efecto — aquí se midieron unos 16 minutos, y Microsoft admite hasta 90.
+
+**6 — Los nombres de las APIs eran literales en nueve sitios del código de aplicación**
+
+*Síntoma:* tras un despliegue completamente en verde, `/api/ask` en producción respondía **404**. Arreglar sólo eso no habría bastado: `/api/journey` y `/api/observability` nunca habrían encontrado un salto, en silencio.
+
+*Causa raíz:* renombrar las APIs para el gateway compartido cambió valores hardcodeados por toda la aplicación, no sólo en bicep — `broker/src/config.ts` (el path), los filtros por `ApiId` en `journey.ts` (×2) y `observability.ts` (×2), cuatro puntos de `maintenance.ts`, el mapa de `policy.ts`, y tres cadenas que la consola muestra **a la audiencia**. `ApiManagementGatewayLogs.ApiId` lleva el nombre de la API, así que un literal obsoleto ahí no produce error — sólo un salto que nunca casa.
+
+*Solución:* fuente única. `HOSTED_AGENT_API_PATH`, `HOSTED_AGENT_API_NAME` e `INFERENCE_API_NAME` salen de `config/lab.defaults.psd1` y los fija `deploy.ps1` como app settings. `policy.ts` mantiene **claves estables** de cara a la consola y las mapea a los nombres desplegados del lado del servidor, así los tipos del frontend nunca dependen de cómo se llamen las cosas en el gateway.
+
 ## Ver también
 
 - [`../01-general/ARQUITECTURA_DEMO.md`](../01-general/ARQUITECTURA_DEMO.md) — la arquitectura de Azure que estas decisiones visualizan.
