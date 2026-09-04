@@ -26,8 +26,10 @@ interface LlmLogRow {
  * directly (DESIGN_DECISIONS.md) — the same table and the same
  * known caveat: 1–3 minutes of ingestion lag, so a question asked seconds
  * ago will not appear yet. `subscriptionName` is filled from this
- * deployment's one real APIM subscription (`subscription1` — see
- * main.bicep `apimSubscriptionsConfig`) since the table itself doesn't
+ * deployment's one real APIM subscription (`hosted-agents-subscription` —
+ * see config/lab.defaults.psd1 `ApimSubscriptionsConfig`, which is the
+ * authority; this literal is kept in step with it by hand) since the table
+ * itself doesn't
  * carry it; `modelName` falls back to the known deployment name only when
  * the column comes back empty, which it does for hosted-agent traffic.
  * Neither is invented — both are real, static facts about this deployment.
@@ -144,7 +146,7 @@ auditRecordRouter.get("/audit-record", asyncHandler(async (req, res) => {
 
   res.json({
     timestamp: raw.TimeGenerated,
-    subscriptionName: "subscription1",
+    subscriptionName: "hosted-agents-subscription",
     agentName: ask?.agentName,
     agentVersion: ask?.agentVersion,
     /** True when this row could not be tied to a known ask — the UI must not imply attribution. */

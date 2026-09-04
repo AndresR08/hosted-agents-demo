@@ -61,7 +61,7 @@ export interface SequenceStep {
 
 export const LANES: { title: Localised; subtitle: Localised }[] = [
   { title: { en: "Client", es: "Cliente" }, subtitle: { en: "console", es: "consola" } },
-  { title: { en: "API Management", es: "API Management" }, subtitle: { en: "hosted-agent-responses", es: "hosted-agent-responses" } },
+  { title: { en: "API Management", es: "API Management" }, subtitle: { en: "hosted-agents-responses", es: "hosted-agents-responses" } },
   { title: { en: "Entra ID", es: "Entra ID" }, subtitle: { en: "tokens", es: "tokens" } },
   { title: { en: "Hosted Agent", es: "Hosted Agent" }, subtitle: { en: "your container", es: "tu contenedor" } },
   { title: { en: "API Management", es: "API Management" }, subtitle: { en: "inference", es: "inference" } },
@@ -76,7 +76,7 @@ export const STEPS: SequenceStep[] = [
       en: "A subscription key, not a token of the client's own. The agent name is a segment of the URL, which is how one API serves any number of agents.",
       es: "Una clave de suscripción, no un token propio del cliente. El nombre del agente es un segmento de la URL, y así una sola API sirve a cualquier número de agentes.",
     },
-    code: 'POST /hosted-agent-responses/agents/{agent}/endpoint/protocols/openai/responses\napi-key: <clave de suscripción de APIM>',
+    code: 'POST /hosted-agents-responses/agents/{agent}/endpoint/protocols/openai/responses\napi-key: <clave de suscripción de APIM>',
   },
   {
     from: 1, to: 1, kind: "self", inLab: true,

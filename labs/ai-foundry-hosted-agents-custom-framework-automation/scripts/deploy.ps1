@@ -131,6 +131,18 @@ $rootDir    = Split-Path -Parent $scriptRoot
 . (Join-Path $scriptRoot 'modules\FoundryAgent.ps1')
 . (Join-Path $scriptRoot 'modules\Validate.ps1')
 . (Join-Path $scriptRoot 'modules\AppService.ps1')
+. (Join-Path $scriptRoot 'modules\SharedApim.ps1')
+
+<#
+  This deployment writes to an API Management gateway that other teams' labs
+  share, and it passes ARM resource ids on the command line. Under Git Bash /
+  MSYS those arguments are rewritten before az sees them: on 2026-09-03 a
+  workspace id became 'C:/Program Files/Git/subscriptions/...' and the shared
+  gateway was left half-deployed. PowerShell does not rewrite arguments, so
+  refusing to start under MSYS removes the failure mode rather than documenting
+  it. Assert-ResourceIdShape below is the belt to this braces.
+#>
+Assert-NotRunningUnderMsys
 
 $started = Get-Date
 
@@ -270,16 +282,35 @@ try {
     $foundryUserObjectIds = @()
     if ($ctx.PrincipalObjectId) { $foundryUserObjectIds = @($ctx.PrincipalObjectId) }
 
-    # --------------------------------------------------------- INFRASTRUCTURE
-    $templateFile = Join-Path $LabPath 'main.bicep'
-    $paramsFile   = Join-Path $outDir 'params.generated.json'
-    New-BicepParametersFile -Config $config -FoundryUserObjectIds $foundryUserObjectIds -OutFile $paramsFile | Out-Null
+    <#
+      --------------------------------------------------------- INFRASTRUCTURE
+
+      Two deployments now, not one, and they target different resource groups.
+
+      The vendored main.bicep is no longer used: it creates an API Management
+      instance unconditionally, and an APIM per lab is the most expensive thing
+      any of these deployments makes. bicep/infra.bicep builds everything else -
+      reusing upstream's own modules, unmodified - and bicep/
+      shared-apim-registration.bicep registers this lab on the gateway several
+      teams already share. See DESIGN_DECISIONS.md for why the split lives here
+      instead of as a patch on vendor/.
+    #>
+    $infraTemplate = Join-Path $rootDir 'bicep\infra.bicep'
+    $infraParams   = Join-Path $outDir 'params.infra.generated.json'
+    New-ParametersFile -OutFile $infraParams -Parameters ([ordered]@{
+        aiServicesConfig           = $config.AiServicesConfig
+        modelsConfig               = $config.ModelsConfig
+        foundryProjectName         = $config.FoundryProjectName
+        foundryAgentAiServiceIndex = $config.FoundryAgentAiServiceIndex
+        foundryUserObjectIds       = @($foundryUserObjectIds)
+        sharedApimPrincipalId      = $config.SharedApimPrincipalId
+    }) | Out-Null
 
     if ($ValidateOnly) {
         Initialize-ResourceGroup -Name $config.ResourceGroupName -Location $config.Location | Out-Null
         Invoke-LabDeployment -DeploymentName $config.DeploymentName `
             -ResourceGroupName $config.ResourceGroupName `
-            -TemplateFile $templateFile -ParametersFile $paramsFile -ValidateOnly
+            -TemplateFile $infraTemplate -ParametersFile $infraParams -ValidateOnly
         Write-Host ''
         Write-Ok 'Validation-only run finished. No lab resources were deployed.'
         return
@@ -292,12 +323,77 @@ try {
         Initialize-ResourceGroup -Name $config.ResourceGroupName -Location $config.Location | Out-Null
         Invoke-LabDeployment -DeploymentName $config.DeploymentName `
             -ResourceGroupName $config.ResourceGroupName `
-            -TemplateFile $templateFile -ParametersFile $paramsFile
+            -TemplateFile $infraTemplate -ParametersFile $infraParams
+
+        # ------------------------------------------- SHARED GATEWAY REGISTRATION
+        $infraOut = (Invoke-Az -Arguments @(
+            'deployment', 'group', 'show', '--name', $config.DeploymentName,
+            '-g', $config.ResourceGroupName, '-o', 'json'
+        ) -AsJson).properties.outputs
+
+        $lawResourceId = $infraOut.logAnalyticsWorkspaceResourceId.value
+        $appInsightsId = $infraOut.appInsightsId.value
+
+        # The two values that MSYS mangled once. Checked immediately before they
+        # are written into a parameters file for a foreign-scope deployment,
+        # because a malformed id here fails half-way through someone else's
+        # gateway rather than at the door.
+        Assert-ResourceIdShape -Value $lawResourceId -Name 'logAnalyticsWorkspaceResourceId'
+        Assert-ResourceIdShape -Value $appInsightsId -Name 'appInsightsId'
+
+        $sharedBefore = Get-SharedApimInventory -SubscriptionId $ctx.SubscriptionId `
+            -ResourceGroupName $config.SharedApimResourceGroupName -ApimName $config.SharedApimName
+
+        $res = $config.SharedApimResources
+        $sharedTemplate = Join-Path $rootDir 'bicep\shared-apim-registration.bicep'
+        $sharedParams   = Join-Path $outDir 'params.shared-apim.generated.json'
+        New-ParametersFile -OutFile $sharedParams -Parameters ([ordered]@{
+            sharedApimName                  = $config.SharedApimName
+            inferenceApiName                = $res.InferenceApiName
+            inferenceApiPath                = $res.InferenceApiPath
+            inferenceApiType                = $config.InferenceApiType
+            inferenceBackendName            = $res.BackendName
+            modelFoundryEndpoint            = $infraOut.foundryAiServicesEndpoint.value
+            responsesApiName                = $res.ResponsesApiName
+            responsesApiPath                = $res.ResponsesApiPath
+            agentFoundryProjectEndpoint     = $infraOut.foundryAgentProjectEndpoint.value
+            productName                     = $res.ProductName
+            subscriptionName                = $config.ApimSubscriptionsConfig[0].name
+            subscriptionDisplayName         = $config.ApimSubscriptionsConfig[0].displayName
+            logAnalyticsWorkspaceResourceId = $lawResourceId
+            appInsightsId                   = $appInsightsId
+            appInsightsInstrumentationKey   = $infraOut.appInsightsInstrumentationKey.value
+            diagnosticSettingName           = $res.DiagnosticSettingName
+        }) | Out-Null
+
+        Invoke-LabDeployment -DeploymentName 'hosted-agents-shared-apim-registration' `
+            -ResourceGroupName $config.SharedApimResourceGroupName `
+            -TemplateFile $sharedTemplate -ParametersFile $sharedParams
+
+        # Proof, not assurance. On shared infrastructure the question worth
+        # answering is not "did our resources appear" but "did anything else
+        # move" - so the two inventories are compared and a disappearance is
+        # fatal, because it is someone else's outage.
+        Write-Step 'Verifying nothing else on the shared gateway changed'
+        $sharedAfter = Get-SharedApimInventory -SubscriptionId $ctx.SubscriptionId `
+            -ResourceGroupName $config.SharedApimResourceGroupName -ApimName $config.SharedApimName
+        # @() around the call is load-bearing: PowerShell unrolls a returned empty
+        # array to $null, and under Set-StrictMode reading .Count on $null throws -
+        # so the success path was the one that crashed.
+        $lost = @(Compare-SharedApimInventory -Before $sharedBefore -After $sharedAfter)
+        if ($lost.Count -gt 0) {
+            throw @(
+                'Resources that existed on the shared gateway before this deployment are gone.'
+                "  Missing : $($lost -join ', ')"
+                '  This affects other teams. Investigate before re-running.'
+            ) -join "`n"
+        }
+        Write-Ok 'No pre-existing resource on the shared gateway was changed or removed'
     }
 
     # ---------------------------------------------------------------- OUTPUTS
-    $outputs = Get-LabDeploymentOutputs -DeploymentName $config.DeploymentName `
-        -ResourceGroupName $config.ResourceGroupName -Config $config
+    $outputs = Get-MigratedLabOutputs -InfraDeploymentName $config.DeploymentName `
+        -ResourceGroupName $config.ResourceGroupName -SubscriptionId $ctx.SubscriptionId -Config $config
 
     # ------------------------------------------------------------- CONTAINER
     # Every framework shares the image TAG - each has its own repository, so
@@ -367,8 +463,12 @@ try {
             if (-not $SkipValidation) {
                 $target.DirectOk = Test-AgentDirect -ProjectEndpoint $outputs.FoundryAgentProjectEndpoint `
                     -AgentName $target.AgentName
+                # SharedApimResources is the authority for what was actually
+                # registered on the gateway. The legacy HostedAgentResponsesApiPath
+                # belongs to the vendored template this lab no longer deploys, and
+                # reading it here is what produced a 404 on the first migrated run.
                 $target.ApimOk = Test-AgentThroughApim -GatewayUrl $outputs.ApimGatewayUrl `
-                    -ApiPath $config.HostedAgentResponsesApiPath -AgentName $target.AgentName `
+                    -ApiPath $config.SharedApimResources.ResponsesApiPath -AgentName $target.AgentName `
                     -ApiKey $outputs.ApimSubscriptionKey
             }
         }
@@ -434,6 +534,15 @@ try {
             AZURE_RESOURCE_GROUP            = $config.ResourceGroupName
             AZURE_REGION                    = $config.Location
             APIM_GATEWAY_URL                = $outputs.ApimGatewayUrl
+            # The broker builds the hosted-agent URL from this. It used to hold
+            # its own copy of the path, which is how a console that deployed
+            # perfectly still answered 404 after the move to the shared gateway.
+            HOSTED_AGENT_API_PATH           = $config.SharedApimResources.ResponsesApiPath
+            # The API *names*, used to select hops out of ApiManagementGatewayLogs
+            # by ApiId. A stale value here does not error - it leaves the
+            # Observability screen waiting for telemetry filed under another name.
+            HOSTED_AGENT_API_NAME           = $config.SharedApimResources.ResponsesApiName
+            INFERENCE_API_NAME              = $config.SharedApimResources.InferenceApiName
             APIM_SERVICE_NAME               = $outputs.ApimServiceName
             APIM_SUBSCRIPTION_KEY           = $outputs.ApimSubscriptionKey
             FOUNDRY_AGENTS_PROJECT_ENDPOINT = $outputs.FoundryAgentProjectEndpoint
@@ -464,7 +573,7 @@ try {
     # per-agent URL is derived per target from the same template.
     foreach ($target in $targets) {
         $target | Add-Member -NotePropertyName ApimAgentUrl -NotePropertyValue (
-            "$($outputs.ApimGatewayUrl)/$($config.HostedAgentResponsesApiPath)/agents/$($target.AgentName)/endpoint/protocols/openai/responses?api-version=v1"
+            "$($outputs.ApimGatewayUrl)/$($config.SharedApimResources.ResponsesApiPath)/agents/$($target.AgentName)/endpoint/protocols/openai/responses?api-version=v1"
         ) -Force
     }
     $anyDirectFailed = @($targets | Where-Object { $_.DirectOk -eq $false }).Count -gt 0

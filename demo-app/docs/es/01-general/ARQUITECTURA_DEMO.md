@@ -206,7 +206,7 @@ Grupo de recursos: `lab-ai-foundry-hosted-agents-custom-framework`, ubicación `
 | 3 | `Microsoft.ApiManagement/service` | `apim-{suffix}` | **Basicv2**, capacidad 1, **identidad administrada asignada por el sistema**, releaseChannel `Default` |
 | 4 | `Microsoft.ApiManagement/service/loggers` | `azuremonitor` | Logger de Azure Monitor, sin buffer |
 | 5 | `Microsoft.ApiManagement/service/loggers` | `appinsights-logger` | Logger de App Insights, sin buffer |
-| 6 | `Microsoft.ApiManagement/service/subscriptions` | `subscription1` | alcance `/apis`, activa, tracing permitido |
+| 6 | `Microsoft.ApiManagement/service/subscriptions` | `hosted-agents-subscription` | alcance `/apis`, activa, tracing permitido |
 | 7 | `Microsoft.ApiManagement/service/apis` | `inference-api` | ruta `inference/models`, OpenAPI `AIFoundryAzureAI.json` |
 | 8 | `Microsoft.ApiManagement/service/backends` | `foundry-models` | url `{endpoint}/models`, credencial **managedIdentity** |
 | 9 | `Microsoft.ApiManagement/service/apis` | `hosted-agent-responses-api` | ruta `hosted-agent-responses`, serviceUrl = endpoint del proyecto de agentes |
@@ -628,7 +628,7 @@ Nótese que `params.json` se **regenera en la celda 6 del notebook en cada ejecu
 | `aiServicesConfig` | array | `[]` | `[{foundry-models, swedencentral}, {foundry-agents, swedencentral}]` |
 | `modelsConfig` | array | `[]` | `[{gpt-5-mini, OpenAI, 2025-08-07, GlobalStandard, 10, foundry-models}]` |
 | `apimSku` | string | `Basicv2` | `Basicv2` |
-| `apimSubscriptionsConfig` | array | `[]` | `[{subscription1, Subscription 1}]` |
+| `apimSubscriptionsConfig` | array | `[]` | `[{hosted-agents-subscription, Hosted Agents Subscription}]` |
 | `inferenceAPIPath` | string | `inference` | `inference` |
 | `inferenceAPIType` | string | `AzureAI` | `AzureAI` |
 | `foundryProjectName` | string | `default` | `default` |

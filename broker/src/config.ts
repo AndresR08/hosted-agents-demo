@@ -50,11 +50,42 @@ export const config = {
 };
 
 /**
- * The APIM path the hosted-agent Responses API is published under —
- * `hostedAgentResponsesApiPath` in main.bicep, whose default the lab notebook
- * uses unchanged.
+ * The APIM path the hosted-agent Responses API is published under.
+ *
+ * Configurable rather than constant, and the reason is a scar. The lab moved
+ * from its own API Management instance to a gateway shared with other teams,
+ * where every name has to be prefixed per lab, so this path changed from
+ * `hosted-agent-responses` to `hosted-agents-responses`. Three separate places
+ * held their own copy of it: the deployment config, the deploy script's
+ * verification step, and this file. The first two were found by a 404 during
+ * deployment; this one survived to produce a 404 in production, from a console
+ * that had otherwise deployed perfectly.
+ *
+ * deploy.ps1 now sets HOSTED_AGENT_API_PATH from config/lab.defaults.psd1, so
+ * there is one source of truth and the fallback below only applies to a local
+ * `npm run dev` against a gateway that still uses the old path.
  */
-export const HOSTED_AGENT_API_PATH = "hosted-agent-responses";
+export const HOSTED_AGENT_API_PATH =
+  process.env.HOSTED_AGENT_API_PATH ?? "hosted-agents-responses";
+
+/**
+ * The API Management API *names* (ApiId in the gateway logs), as opposed to the
+ * path above.
+ *
+ * These are not cosmetic. `ApiManagementGatewayLogs.ApiId` carries the API name,
+ * and both /api/journey and /api/observability select their hops by comparing
+ * against it — so a stale name here does not produce an error, it produces a
+ * screen that waits forever for telemetry that is arriving under a different
+ * label. Renaming the APIs for the shared gateway silently broke exactly that,
+ * after the deployment itself had gone green.
+ *
+ * Set by deploy.ps1 from config/lab.defaults.psd1.
+ */
+export const HOSTED_AGENT_API_NAME =
+  process.env.HOSTED_AGENT_API_NAME ?? "hosted-agents-responses-api";
+
+export const INFERENCE_API_NAME =
+  process.env.INFERENCE_API_NAME ?? "hosted-agents-inference-api";
 
 /**
  * The one place that knows how a hosted agent is addressed.

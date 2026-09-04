@@ -28,6 +28,13 @@
   Leaves the soft-deleted APIM and Foundry accounts in place. Use it only when
   you intend to restore them; otherwise they block the names and the quota.
 
+.PARAMETER SkipSharedApimCleanup
+  Leaves this lab's API, backend, product, subscriptions and diagnostic setting
+  registered on the SHARED gateway. Almost never what you want: those resources
+  outlive this resource group, they sit in infrastructure other teams use, and
+  the diagnostic setting will be left pointing at a Log Analytics workspace that
+  this teardown is about to delete.
+
 .PARAMETER NoWait
   Returns as soon as Azure accepts the deletion. Purging is then impossible -
   a resource is only listed as soft-deleted once the group is actually gone -
@@ -47,7 +54,8 @@ param(
     [string]$ResourceGroupName,
     [switch]$NoWait,
     [switch]$Force,
-    [switch]$SkipPurge
+    [switch]$SkipPurge,
+    [switch]$SkipSharedApimCleanup
 )
 
 Set-StrictMode -Version Latest
@@ -56,9 +64,19 @@ $ErrorActionPreference = 'Stop'
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $rootDir    = Split-Path -Parent $scriptRoot
 . (Join-Path $scriptRoot 'modules\Common.ps1')
+. (Join-Path $scriptRoot 'modules\SharedApim.ps1')
+
+# Before anything reads a resource id: this teardown deletes from a gateway
+# other teams share, and MSYS argument rewriting has already broken one
+# deployment against it. See Assert-NotRunningUnderMsys.
+Assert-NotRunningUnderMsys
+
+# The config is needed even when -ResourceGroupName is supplied: the shared
+# gateway's name and this lab's resource names on it live there, and they are
+# the same values deploy.ps1 created from. Two lists would drift.
+$config = Import-PowerShellDataFile -Path (Join-Path $rootDir 'config\lab.defaults.psd1')
 
 if (-not $ResourceGroupName) {
-    $config = Import-PowerShellDataFile -Path (Join-Path $rootDir 'config\lab.defaults.psd1')
     $ResourceGroupName = $config.ResourceGroupName
 }
 
@@ -66,6 +84,12 @@ if (-not $ResourceGroupName) {
 # Named after the resource group so two environments cannot overwrite each
 # other's outstanding work.
 $journalPath = Join-Path $rootDir (Join-Path 'out' "pending-purge.$ResourceGroupName.txt")
+
+# Separate journal for the shared gateway. Kept apart from the purge journal
+# because the debts are different in kind: an unpurged soft-delete blocks OUR
+# next deployment, while a leftover on the shared gateway is litter in someone
+# else's resource - and only one of the two is anyone else's problem.
+$sharedJournalPath = Join-Path $rootDir (Join-Path 'out' "pending-shared-apim-cleanup.$ResourceGroupName.txt")
 
 <#
 .SYNOPSIS
@@ -281,6 +305,17 @@ try {
         Write-Host ''
     }
 
+    # The same idea for the shared gateway, and louder: this debt is owed to
+    # other teams' infrastructure, not to our own next deployment.
+    if (Test-Path $sharedJournalPath) {
+        Write-Warn "A previous teardown left resources on the SHARED gateway '$($config.SharedApimName)':"
+        foreach ($line in (Get-Content $sharedJournalPath | Where-Object { $_ -and -not $_.StartsWith('#') })) {
+            Write-Warn "    $line"
+        }
+        Write-Warn "  Source: $sharedJournalPath"
+        Write-Host ''
+    }
+
     Write-Step "Checking resource group '$ResourceGroupName'"
     $existing = Invoke-Az -Arguments @('group', 'show', '--name', $ResourceGroupName, '-o', 'json') -AllowFailure
     if (-not $existing.Success) {
@@ -316,6 +351,45 @@ try {
     $softDeleting = @()
     if ($proceed -and -not $SkipPurge) {
         $softDeleting = @(Get-SoftDeletingResources -ResourceGroupName $ResourceGroupName)
+    }
+
+    <#
+      The shared gateway is cleaned BEFORE the resource group is deleted, and
+      that order is the whole point rather than a preference.
+
+      Our diagnostic setting on that gateway points at a Log Analytics workspace
+      inside this resource group. Delete the group first and the setting is
+      orphaned - still attached to infrastructure other teams use, pointing at a
+      destination that no longer exists. Our APIs and backend likewise reference
+      Foundry endpoints that are about to stop resolving, and would sit in their
+      portal indefinitely. With -NoWait the group deletion is asynchronous, so
+      "afterwards" would not even be a well-defined moment.
+
+      Remove-SharedApimRegistration throws if the diagnostic setting cannot be
+      removed, which stops this script before the group is touched. That is
+      deliberate: leaving our own group intact is recoverable, leaving litter in
+      someone else's gateway is not ours to undo.
+    #>
+    if ($proceed -and $SkipSharedApimCleanup) {
+        Write-Warn 'Shared-gateway resources were left in place (-SkipSharedApimCleanup).'
+        Write-Warn "  This lab's API, backend, product and subscriptions stay registered on"
+        Write-Warn "  '$($config.SharedApimName)', and its diagnostic setting will be left"
+        Write-Warn '  pointing at a Log Analytics workspace this run is about to delete.'
+    }
+    elseif ($proceed) {
+        $ctxSubscriptionId = $SubscriptionId
+        if (-not $ctxSubscriptionId) {
+            $account = Invoke-Az -Arguments @('account', 'show', '-o', 'json') -AsJson
+            $ctxSubscriptionId = $account.id
+        }
+
+        Remove-SharedApimRegistration `
+            -SubscriptionId $ctxSubscriptionId `
+            -ResourceGroupName $config.SharedApimResourceGroupName `
+            -ApimName $config.SharedApimName `
+            -Resources $config.SharedApimResources `
+            -OwnedSubscriptions $config.SharedApimOwnedSubscriptions `
+            -JournalPath $sharedJournalPath | Out-Null
     }
 
     if ($proceed) {

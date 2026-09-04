@@ -219,6 +219,27 @@ adentro y no hermana directa de `broker/`) se mantiene y se da por buena.
 
 ## 7b. Cerrado
 
+- **Migración al APIM compartido (2026-09-04).** El lab dejó de desplegar su
+  propia instancia de API Management y ahora se registra en
+  `apim-shared-pdcibwky2f5ms` (`rg-shared-apim-gateway-V2`, tier Developer),
+  compartida con otros equipos. Dos despliegues nuevos, `bicep/infra.bicep`
+  (nuestro RG, sin APIM) y `bicep/shared-apim-registration.bicep` (scope al RG
+  compartido), reutilizando los módulos de upstream **sin modificarlos** y sin
+  añadir ningún parche a `vendor/`. Verificado en producción: ambos agentes
+  responden directo y vía el gateway compartido, y el conteo antes/después del
+  gateway da delta 0 en todo lo preexistente. El razonamiento completo, los
+  recursos excluidos a propósito y los riesgos aceptados están en
+  `DECISIONES_DE_DISENO.md` §8 — **léelo antes de tocar nada de esto**, en
+  particular la regla de que todo nombre lleva prefijo `hosted-agents-`.
+  Motivo: en ARM crear un hijo que ya existe es una actualización en sitio, y
+  el nombre por defecto del notebook (`subscription1`) ya pertenece al lab de
+  FinOps con una cuota de auto-suspensión de 0,05 USD.
+  El APIM propio del lab, `apim-7atp6hx2a4e7u` (BasicV2, ~197 USD/mes), se
+  **borró y purgó el 2026-09-04** después de verificar la ruta compartida —
+  ese ahorro era el motivo de la migración y ya está materializado. El grupo
+  conserva sus otros nueve recursos.
+  **No uses `teardown.ps1` para quitar un solo recurso del grupo: borra el
+  resource group entero.** Para eso es `az apim delete` + `deletedservice purge`.
 - **Invocación de los agentes: confirmada manualmente por el mantenedor**
   (2026-08-26). Responden correctamente.
 - **Lab oficial limpio.** Se eliminaron las copias obsoletas del 31-jul de

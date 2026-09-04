@@ -770,6 +770,79 @@ This document consolidates six sources that don't all share the same date or the
 
 Whoever continues the project can treat section 4.3 as the historical record of an intermediate decision, not as the current description of the layout — the current source of truth is the code in `demo-app/src/layout/` and `demo-app/src/features/`.
 
+---
+
+## 8. The lab stopped deploying its own API Management and joined a shared gateway
+
+**Status: done and verified in production on 2026-09-04. The parts deliberately NOT done are listed at the end and are the half of this section most worth reading.**
+
+### Why
+
+An API Management instance is the most expensive thing this lab creates, and it created a fresh one on every deployment. Several teams already share `apim-shared-pdcibwky2f5ms` (Developer tier, `rg-shared-apim-gateway-V2`) for exactly this reason. This lab now registers on it instead.
+
+The cost is a real constraint on how often this lab can be redeployed; the risk is that a shared gateway makes every mistake somebody else's problem too. Everything below is shaped by the second point.
+
+### The rule that made the difference: every name is lab-prefixed
+
+ARM creating a child resource that already exists is an **update in place**, not an error. So an unprefixed name silently takes over another team's resource.
+
+This was not hypothetical. This lab shipped with the notebook's default subscription name, `subscription1`. On the shared gateway `subscription1` already exists, owned by the FinOps lab, scoped to its `finops-framework-platinum` product, and carrying a **$0.05 cost quota wired to a Logic App that suspends the key automatically**. Deploying as-is would have hijacked their subscription *and* put this demo's traffic under a quota it does not control. The reconnaissance that found this is the reason the migration started with a rename rather than with bicep.
+
+Everything is therefore `hosted-agents-*`: the two APIs and their paths, the backend, the product, the subscription, the diagnostic setting.
+
+### Why the split lives here and not in `vendor/`
+
+`vendor/` stays byte-identical to upstream, with patches kept minimal and documented. Teaching the vendored `main.bicep` to use an existing gateway is not a patch of that size, for two independent reasons:
+
+1. **The shared gateway is in another resource group.** A resource-group-scoped deployment cannot create children of a service elsewhere; that needs a module with an explicit foreign `scope`. `main.bicep` has no such concept — it reaches for APIM with `existing` *by name in the current group*.
+2. **Upstream has no toggle.** `modules/apim/v3/apim.bicep` creates the service unconditionally. There are conditions for the logger and the diagnostic setting, none for the service.
+
+A patch covering both would be roughly 150 lines through the middle of the file and would conflict on every `sync-vendor.ps1` run. The existing Consumption patch is ten lines at the edge. So the orchestration moved to `labs/…-automation/bicep/`, and **no new patch was added to `vendor/`**.
+
+Two upstream modules turned out to be reusable unmodified, which is why this cost less than feared:
+
+- `foundry.bicep` already grants `Cognitive Services User` to whatever `apimPrincipalId` it is handed. Handing it the shared gateway's principal grants exactly the access needed — written on **our** Foundry accounts, never on the shared gateway.
+- `inference-api.bicep` is fully parameterised and **creates no logger**; it references `appinsights-logger` by `resourceId` in its own deployment scope, which under a foreign scope resolves to the shared gateway's existing one.
+
+Only the responses API had to be duplicated, because upstream keeps it inline in `main.bicep` rather than in a module.
+
+### What is deliberately NOT created on the shared gateway
+
+`apim.bicep` creates three service-level resources that **already exist** there: the `appinsights-logger`, the `azuremonitor` diagnostic, and `apimDiagnosticSettings`. That module is not used at all in the migrated path. Recreating `appinsights-logger` would have repointed **every other lab's telemetry** at this lab's Application Insights.
+
+### Telemetry, and what it costs everyone
+
+`/api/journey/:askId` reads `ApiManagementGatewayLogs`, which reaches a workspace only through a **resource-level** diagnostic setting. Azure allows five per resource; three existed, so this lab added a fourth (`hosted-agents-demo-to-loganalytics`), leaving one spare.
+
+Two consequences worth stating plainly:
+
+- It must carry `logAnalyticsDestinationType: 'Dedicated'`. Without it the rows land in the generic `AzureDiagnostics` table and the Observability screen waits forever for data that is arriving under another name. The first version of this file omitted it, and the failure is completely silent — no error anywhere.
+- Gateway logs **cannot be filtered per API**. This lab's workspace therefore ingests every connected lab's gateway traffic, and theirs already ingests this one's. That is a property of a shared gateway, not something this repository can fix.
+
+### Teardown is part of this decision, not an afterthought
+
+The resources this lab creates on the shared gateway outlive its resource group. `teardown.ps1` removes them **before** deleting the group, in an order that never leaves a dangling reference, and the diagnostic setting goes first because it is the only one that would be left pointing at a destination that no longer exists — which Microsoft warns can be re-applied to a resource later recreated with the same name.
+
+Removing it is **fatal if it fails**: the teardown stops before touching the resource group. Leaving our own group intact is recoverable; leaving litter in someone else's gateway is not ours to undo.
+
+Two locks guard the deletion, because an allow-list alone is not enough — a wrong config edit would simply be obeyed. A name must carry the lab prefix; the one legitimate exception is the GUID-named subscription API Management generates for a published product, and that one must additionally be confirmed **by Azure** as bound to this lab's product. An early version allowed any listed name and would have deleted `subscription1` if config had said so.
+
+### Accepted residual risks
+
+**The FinOps auto-suspend is one table row away, and it is not ours.** A Logic App in `lab-finops-framework-V24` issues `PATCH` against `.../apim-shared-pdcibwky2f5ms/subscriptions/{name}` where the name comes from an alert payload — not from a fixed list. What keeps this lab out today is an inner join against a custom table, `SUBSCRIPTION_QUOTA_CL`, which currently contains only that lab's four subscriptions. **If anyone adds a row naming `hosted-agents-subscription`, this demo's key is suspended automatically, with no notice to us**, and neither the Logic App nor the table is under this repository's control. Accepted, not mitigated — recorded here so that a demo failing mid-session has a first place to look.
+
+**Migrating an existing lab in place is not the same as deploying a fresh one.** Upstream names its role assignments with `guid(subscription, resourceGroup, config.name, roleDefinitionId)` — no principal id. Pointing the same assignment at a different identity is therefore an update ARM refuses (`RoleAssignmentUpdateNotPermitted`). The old gateway's two assignments had to be deleted first. A deployment into a new resource group never sees this.
+
+**Deployments touching the shared gateway must not be launched from Git Bash.** MSYS rewrites arguments that look like Unix paths, and an ARM resource id starting with `/subscriptions/` became a Windows path before `az` saw it — leaving the shared gateway half-deployed. The environment variable alone is a bad detector (it is inherited by PowerShell too, where nothing is rewritten), so it warns; what actually blocks is a shape check on every resource id immediately before a foreign-scope deployment.
+
+### The saving, realised
+
+`apim-7atp6hx2a4e7u` (BasicV2, ~$197/month) was deleted and purged on 2026-09-04, once the shared path had been verified end to end. Incremental ARM does not delete what a template stops declaring, so this had to be a deliberate act — and it deliberately came *after* verification, not before: an unverified migration plus a deleted fallback is a demo with no way back.
+
+It was checked first rather than assumed idle. Twelve hours of `ApiManagementGatewayLogs` showed exactly three requests to it, all `404` against the root URL `/` with an empty `ApiId` — probes matching no API, not usage. The two things that could still have depended on it were confirmed elsewhere: the App Service's `APIM_GATEWAY_URL` pointed at the shared gateway, and the hosted agents were proven to reach the model through it by a hop-2 row filed under `hosted-agents-inference-api`.
+
+**Note for anyone tempted to reach for `teardown.ps1` here.** It deletes the whole resource group. At the time this APIM was removed the group also held both Foundry accounts, the container registry, the Log Analytics workspace the Observability screen queries, the App Service and its plan — nine resources that had to survive. Removing one resource from a live group is a targeted `az apim delete` followed by `az apim deletedservice purge`; `teardown.ps1` is for disposing of the entire lab.
+
 ## See also
 
 - [`../01-general/ARCHITECTURE.md`](../01-general/ARCHITECTURE.md) — the Azure architecture these decisions visualize.

@@ -19,7 +19,7 @@ import { cn } from "@/lib/cn";
  * different policies, which is the strongest thing this screen has to say.
  * Read out of the deployed configuration, not assumed:
  *
- *   hosted-agent-responses  hosted-agent-policy.xml, managed identity for
+ *   hosted-agents-responses hosted-agent-policy.xml, managed identity for
  *                           https://ai.azure.com — the console's call
  *                           reaching the agent.
  *   inference               policy.xml, managed identity for

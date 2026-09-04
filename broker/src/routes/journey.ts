@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { config } from "../config.js";
+import { config, HOSTED_AGENT_API_NAME, INFERENCE_API_NAME } from "../config.js";
 import { getAccessToken, SCOPES } from "../azureAuth.js";
 import { getAsk } from "../askStore.js";
 import { liveNow } from "../provenance.js";
@@ -22,8 +22,11 @@ export const journeyRouter = Router();
  * `ApiManagementGatewayLogs` records `TotalTime` and `BackendTime` for every
  * gateway call, and both hops of one interaction appear as separate rows:
  *
- *   ApiId = hosted-agent-responses-api   hop 1, client → agent
- *   ApiId = inference-api                hop 2, agent → model
+ *   ApiId = HOSTED_AGENT_API_NAME   hop 1, client → agent
+ *   ApiId = INFERENCE_API_NAME      hop 2, agent → model
+ *
+ * Both are configurable because the move to the shared gateway renamed them;
+ * a literal here would silently stop matching.
  *
  * They carry *different* CorrelationIds, so they are associated by timestamp
  * containment — hop 2 starts after hop 1 starts and ends before hop 1 ends.
@@ -101,7 +104,7 @@ async function fetchHopTimings(
   // Match hop 1 on the agent name in the URL, so a concurrent call to the
   // other agent in the same window can't be picked up by mistake.
   const hop1 = rows
-    .filter((r) => r.ApiId === "hosted-agent-responses-api" && r.Url?.includes(`/agents/${agentName}/`))
+    .filter((r) => r.ApiId === HOSTED_AGENT_API_NAME && r.Url?.includes(`/agents/${agentName}/`))
     .sort(
       (a, b) =>
         Math.abs(new Date(a.TimeGenerated).getTime() - timestamp) -
@@ -143,7 +146,7 @@ async function fetchHopTimings(
   const start = new Date(hop1.TimeGenerated).getTime();
   const end = start + hop1.TotalTime;
   const hop2 = rows
-    .filter((r) => r.ApiId === "inference-api")
+    .filter((r) => r.ApiId === INFERENCE_API_NAME)
     .find((r) => {
       const s = new Date(r.TimeGenerated).getTime();
       return s >= start && s + r.TotalTime <= end + 1000;

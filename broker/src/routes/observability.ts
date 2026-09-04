@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { config } from "../config.js";
+import { config, HOSTED_AGENT_API_NAME, INFERENCE_API_NAME } from "../config.js";
 import { getAccessToken, SCOPES } from "../azureAuth.js";
 import { asyncHandler } from "../asyncHandler.js";
 import { getAsk } from "../askStore.js";
@@ -205,7 +205,7 @@ observabilityRouter.get("/observability/:askId", asyncHandler(async (req, res) =
   // the agent name embedded in the URL, so a concurrent call to the *other*
   // agent in the same window can't be mistaken for this one.
   const hop1Candidates = gatewayRows
-    .filter((r) => r.ApiId === "hosted-agent-responses-api" && r.Url?.includes(`/agents/${agentName}/`))
+    .filter((r) => r.ApiId === HOSTED_AGENT_API_NAME && r.Url?.includes(`/agents/${agentName}/`))
     .sort(
       (a, b) =>
         Math.abs(new Date(a.TimeGenerated).getTime() - ask.timestamp) -
@@ -220,7 +220,7 @@ observabilityRouter.get("/observability/:askId", asyncHandler(async (req, res) =
     const h1Start = new Date(hop1.TimeGenerated).getTime();
     const h1End = h1Start + hop1.TotalTime;
     hop2 = gatewayRows
-      .filter((r) => r.ApiId === "inference-api")
+      .filter((r) => r.ApiId === INFERENCE_API_NAME)
       .find((r) => {
         const start = new Date(r.TimeGenerated).getTime();
         return start >= h1Start && start + r.TotalTime <= h1End + 1000;

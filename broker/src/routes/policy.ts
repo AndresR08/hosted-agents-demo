@@ -3,13 +3,20 @@ import { config } from "../config.js";
 import { getAccessToken, SCOPES } from "../azureAuth.js";
 import { liveNow } from "../provenance.js";
 import { asyncHandler } from "../asyncHandler.js";
+import { HOSTED_AGENT_API_NAME, INFERENCE_API_NAME } from "../config.js";
 
 export const policyRouter = Router();
 
-const API_IDS = {
-  "hosted-agent-responses-api": "hosted-agent-responses-api",
-  "inference-api": "inference-api",
-} as const;
+/*
+ * The console asks for a policy by a STABLE key; the value is the API's real
+ * name on the gateway, which changed when this lab moved to the shared one
+ * (names have to be lab-prefixed there). Keeping the key stable means the
+ * frontend never has to know the deployed name.
+ */
+const API_IDS: Record<string, string> = {
+  "hosted-agent-responses-api": HOSTED_AGENT_API_NAME,
+  "inference-api": INFERENCE_API_NAME,
+};
 
 /**
  * Priority 4 — real APIM policy. Pulled from ARM at request time, not from

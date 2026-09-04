@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { config } from "../config.js";
+import { config, hostedAgentUrl, HOSTED_AGENT_API_NAME, INFERENCE_API_NAME } from "../config.js";
 import { getAccessToken, SCOPES } from "../azureAuth.js";
 import { asyncHandler } from "../asyncHandler.js";
 import { clearManifestCache } from "./agents.js";
@@ -55,7 +55,7 @@ maintenanceRouter.post("/maintenance/warm-agent", asyncHandler(async (req, res) 
   const agentName = typeof req.body?.agentName === "string" ? req.body.agentName : "pydantic-agent";
   res.json(
     await timed(async () => {
-      const url = `${config.apimGatewayUrl}/hosted-agent-responses/agents/${encodeURIComponent(agentName)}/endpoint/protocols/openai/responses?api-version=v1`;
+      const url = hostedAgentUrl(agentName);
       const started = Date.now();
       const response = await fetch(url, {
         method: "POST",
@@ -75,7 +75,7 @@ maintenanceRouter.post("/maintenance/test-hosted-agent", asyncHandler(async (req
   const agentName = typeof req.body?.agentName === "string" ? req.body.agentName : "pydantic-agent";
   res.json(
     await timed(async () => {
-      const url = `${config.apimGatewayUrl}/hosted-agent-responses/agents/${encodeURIComponent(agentName)}/endpoint/protocols/openai/responses?api-version=v1`;
+      const url = hostedAgentUrl(agentName);
       const response = await fetch(url, {
         method: "POST",
         headers: { "api-key": config.apimSubscriptionKey, "Content-Type": "application/json" },
@@ -99,7 +99,7 @@ maintenanceRouter.post("/maintenance/test-hosted-agent", asyncHandler(async (req
 maintenanceRouter.post("/maintenance/test-apim", asyncHandler(async (_req, res) => {
   res.json(
     await timed(async () => {
-      const url = `${config.apimGatewayUrl}/hosted-agent-responses/agents/pydantic-agent/endpoint/protocols/openai/responses?api-version=v1`;
+      const url = hostedAgentUrl("pydantic-agent");
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -157,7 +157,7 @@ maintenanceRouter.post("/maintenance/reload-policies", asyncHandler(async (_req,
   res.json(
     await timed(async () => {
       const token = await getAccessToken(SCOPES.arm);
-      const apis = ["hosted-agent-responses-api", "inference-api"];
+      const apis = [HOSTED_AGENT_API_NAME, INFERENCE_API_NAME];
       const sizes: string[] = [];
       for (const api of apis) {
         const response = await fetch(
