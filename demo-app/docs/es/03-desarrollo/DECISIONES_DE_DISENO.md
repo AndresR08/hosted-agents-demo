@@ -910,6 +910,33 @@ Ninguno se ve en el bicep, y **los seis fallan en silencio** — sin excepción,
 
 *Solución:* fuente única. `HOSTED_AGENT_API_PATH`, `HOSTED_AGENT_API_NAME` e `INFERENCE_API_NAME` salen de `config/lab.defaults.psd1` y los fija `deploy.ps1` como app settings. `policy.ts` mantiene **claves estables** de cara a la consola y las mapea a los nombres desplegados del lado del servidor, así los tipos del frontend nunca dependen de cómo se llamen las cosas en el gateway.
 
+### 8.2 Se diseñó y presupuestó un modo APIM propio, y deliberadamente no se construyó
+
+**Estado: evaluado y pospuesto, no olvidado. El diseño y el plan de verificación de abajo están terminados; lo que falta es una razón para ejecutarlos.**
+
+`deploy.ps1` se conecta siempre al gateway compartido. No hay flag para desplegar una instancia de API Management propia del lab —el comportamiento que tenía antes de esta migración— y eso es una decisión, no un olvido.
+
+**La objeción evidente, primero.** Un modo standalone es un fallback: si el gateway compartido se borra, otro equipo lo desconfigura, o simplemente deja de estar disponible, este lab no puede desplegarse en absoluto. Es una dependencia real y conviene nombrarla.
+
+**Por qué aun así se pospuso.** Un modo que nadie ejecuta se pudre sin que nadie lo note, y esta sección se escribe justo debajo de la prueba. El README de la automatización llevaba una sección titulada *"APIM tier — `Basicv2` by default, `Consumption` for scratch environments"* explicando cómo elegir tier — una elección que el script ya había perdido cuando dejó de desplegar APIM. Documentaba un comportamiento que ya no existía, y nada lo detectó, porque la documentación no tiene tests. Un switch `-StandaloneApim` sería lo mismo en forma ejecutable: un segundo camino que nadie recorre, desincronizándose del que se ejercita a diario, y que se descubre roto exactamente cuando hace falta — es decir, cuando el gateway compartido ya está caído.
+
+Un fallback sin probar no es un fallback. Es un segundo fallo esperando a coincidir con el primero.
+
+**Qué cambiaría la respuesta.** Una necesidad concreta, no hipotética:
+
+- que el gateway compartido deje de estar disponible, o que termine el acuerdo con los otros equipos;
+- que alguien necesite un entorno realmente aislado — una revisión de seguridad, un despliegue específico para un cliente, una prueba que no debe aparecer en el workspace de Log Analytics de otro equipo;
+- que la mezcla de telemetría entre labs descrita arriba pase a ser un problema por sí misma.
+
+**El plan, para que la próxima persona no lo vuelva a derivar.** Unas 60-80 líneas en cuatro archivos — `deploy.ps1` (un switch más una bifurcación de cuatro puntos: qué plantilla, si registrar en el compartido, qué compositor de outputs, y de dónde salen los tres app settings con los nombres de API), `config/lab.defaults.psd1` (`ApimSku`), y `modules/Infra.ps1` (revivir `New-BicepParametersFile`, hoy código muerto). `teardown.ps1` probablemente no necesita nada: su limpieza del gateway compartido ya trata un 404 como éxito, así que en modo standalone reporta "no estaba" nueve veces y sigue.
+
+Dos restricciones no negociables si se construye:
+
+1. **Los nombres siguen siendo `hosted-agents-*` en ambos modos.** Una instancia propia no tiene riesgo de colisión, así que nombres distintos estarían *permitidos* — y reintroducirían de inmediato el fallo #6 de arriba, donde el mismo valor vivía en dos sitios y uno se quedó obsoleto. Un solo juego de nombres significa que los tres app settings son idénticos en ambos modos.
+2. **`Developer`, nunca `Consumption`.** Developer es capacidad dedicada y siempre encendida, así que no tiene cold start, y cuesta aproximadamente una cuarta parte que `Basicv2`. Consumption es serverless y se midió en **54 segundos** en la primera petición tras 35 minutos inactivo. Las contrapartidas de Developer —sin SLA, una sola unidad, sin escalado— son la forma correcta para un lab de demo, y son ya lo que es el gateway compartido.
+
+**Y debe verificarse en un resource group de usar y tirar, no en el vivo.** Desplegar una instancia propia dentro de `lab-hosted-agents-demo` crearía un APIM ahí, repuntaría el App Service hacia él, y desharía esta migración. Presupuesta ~1,5-2 horas, casi todas esperando el aprovisionamiento del APIM y después su borrado y purga.
+
 ## Ver también
 
 - [`../01-general/ARQUITECTURA_DEMO.md`](../01-general/ARQUITECTURA_DEMO.md) — la arquitectura de Azure que estas decisiones visualizan.

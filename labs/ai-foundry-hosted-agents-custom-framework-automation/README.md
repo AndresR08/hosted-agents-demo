@@ -84,50 +84,69 @@ the notebook hardcodes as lab configuration lives in
 | `-ValidateOnly` | off | Validate without deploying lab resources. |
 | `-SkipInfrastructure` / `-SkipImageBuild` / `-SkipAgent` / `-SkipValidation` | off | Re-run individual stages. |
 
-## APIM tier — `Basicv2` by default, `Consumption` for scratch environments
+## API Management — this lab deploys none of its own
 
-`ApimSku` in [`config/lab.defaults.psd1`](config/lab.defaults.psd1) is
-`Basicv2`. `Consumption` is a **supported alternative**, deployed and validated
-end to end, and it is dramatically cheaper: APIM is ~92% of this lab's fixed
-cost on `Basicv2` (~$197/month, billed while the resource group exists), and
-essentially $0 idle on `Consumption`. A full deployment also takes ~14 minutes
-instead of ~25-35.
+**Since 2026-09-04 there is no APIM tier to choose, because the lab no longer
+creates an API Management instance.** It registers on the shared gateway
+`apim-shared-pdcibwky2f5ms` (Developer tier, resource group
+`rg-shared-apim-gateway-V2`), which several teams' labs use. `deploy.ps1` always
+does this; **there is no flag to deploy a standalone instance instead**, and the
+`-Skip*` switches do not change it.
 
-**Use `Consumption` for:**
+The reason is cost: an APIM was ~92% of this lab's fixed spend. The instance it
+used to create, `apim-7atp6hx2a4e7u` (`Basicv2`, ~$197/month billed while the
+resource group existed), was deleted and purged once the shared path had been
+verified end to end.
 
-- Disposable test environments — created and deleted the same day, like the
-  scratch resource groups used to verify a change.
-- Validating an infrastructure change without paying for `Basicv2` to prove it.
+What this means in practice:
 
-**Do not use `Consumption` for any session with a live audience.** Measured on a
-real deployment: after 35 minutes idle, the **first request took 54 seconds**.
-That figure is the gateway alone — the request was an unauthenticated call that
-returns `401` without ever reaching the backend, so it generated no tokens. The
-next call, immediately after, took 0.36 s.
+- Every resource the lab creates on that gateway is prefixed `hosted-agents-`.
+  This is not style. In ARM, creating a child resource that already exists is an
+  **update in place**, so an unprefixed name silently takes over another team's
+  resource. See `DESIGN_DECISIONS.md` §8.
+- `teardown.ps1` removes those resources from the shared gateway **before**
+  deleting the resource group, and refuses to continue if it cannot remove the
+  diagnostic setting.
+- **`teardown.ps1` is not the tool for removing one resource from a live group** —
+  it deletes the entire group. Use a targeted `az` command instead.
+- Before changing anything about this integration, read `DESIGN_DECISIONS.md`
+  §8.1: six failures it cost, all of which fail *silently*.
 
-A warm-up call before presenting is therefore mandatory, not a nicety — and it
-is not sufficient on its own: any long pause *during* the session (coffee,
-questions, a demo segment that does not touch the gateway) can put the instance
-back to sleep and cost 54 seconds in front of the client. `Basicv2` has no such
-state.
+`ApimSku` still exists in [`config/lab.defaults.psd1`](config/lab.defaults.psd1)
+but **nothing in the deployed path reads it**. It applies only to the vendored
+`main.bicep`, which this automation no longer deploys.
 
-A shorter idle period is misleading. At 12 minutes idle the instance was still
-warm and the first call cost only ~1.4 s more than a warm one, which reads like
-an acceptable penalty and is not one.
+### Why there is no `-StandaloneApim` mode
 
-Switching tiers needs no code change:
+It was designed and costed, then deliberately deferred — see `DESIGN_DECISIONS.md`
+§8.2 for the reasoning. The short version: an alternate mode nobody runs rots
+silently, which is exactly what happened to the section of this README that used
+to sit here. It described a tier choice the script had already lost.
 
-```powershell
-# in config/lab.defaults.psd1
-ApimSku = 'Consumption'
-```
+### If a standalone instance ever comes back: use `Developer`, not `Consumption`
 
-The vendored `apim.bicep` hardcodes `sku.capacity: 1`, which the Consumption
-tier rejects. That is handled by a patch applied automatically on every
-`sync-vendor.ps1` run — see
+Kept because it was measured rather than assumed, and it decides the tier.
+
+`Consumption` is dramatically cheaper and deploys in ~14 minutes instead of
+~25-35, but **it must never serve a session with a live audience**. Measured on a
+real deployment: after 35 minutes idle, the **first request took 54 seconds** —
+the gateway alone, on an unauthenticated call returning `401` without reaching a
+backend, so no tokens were involved. The next call took 0.36 s. A warm-up before
+presenting is therefore mandatory *and* insufficient: any long pause during the
+session can put the instance back to sleep. A shorter idle test is misleading —
+at 12 minutes idle the penalty was only ~1.4 s, which reads acceptable and is
+not.
+
+`Developer` avoids this entirely: it is dedicated, always-on capacity, so it has
+no cold start, and it is roughly a quarter the price of `Basicv2`. Its trade-offs
+are no SLA and no scaling beyond a single unit — the right shape for a demo lab,
+and already what the shared gateway is.
+
+The vendored `apim.bicep` hardcodes `sku.capacity: 1`, which `Consumption`
+rejects; a patch applied on every `sync-vendor.ps1` run handles it — see
 [`docs/06-apim-consumption.md`](docs/06-apim-consumption.md) and
-[`patches/`](patches/). Note that `az deployment group validate` passes with the
-unpatched template; only a real deployment surfaces the error.
+[`patches/`](patches/). That patch is still applied, and still only matters to
+the vendored template.
 
 ## Re-deploying
 
@@ -135,15 +154,18 @@ The resource group is **reused by default**. The lab derives most resource names
 from `uniqueString(resourceGroup().id)`, so keeping the name keeps the names —
 and with them the public URL, the ACR layer cache, the Hosted Agent version
 history, and one resource group for `teardown.ps1` to remove. A new resource
-group per run would avoid every collision but would also provision another APIM
-Basicv2 each time, change the demo URL, and destroy convergence. Use
-`-ResourceGroupName` when you deliberately want a separate environment.
+group per run would avoid every collision but would change the demo URL and
+destroy convergence. Use `-ResourceGroupName` when you deliberately want a
+separate environment. (It no longer provisions a second APIM: since the shared
+gateway migration the lab creates none, so a new group is much cheaper than it
+used to be - though it does register a second set of `hosted-agents-*` resources
+on the shared gateway under the same names, which will collide with the first.)
 
 | Scenario | Behaviour |
 | --- | --- |
-| **New resource group** | Full install, ~25-35 min (APIM dominates). |
+| **New resource group** | Full install. Faster than it used to be: no APIM is provisioned, which used to dominate the ~25-35 min. Foundry and the model deployment now set the pace. |
 | **Existing, healthy resource group** | Idempotent. Infrastructure and role assignments are reused; the demo is rebuilt and redeployed; the site restarts briefly. |
-| **Teardown, then immediate re-deploy with the same name** | May conflict. Deleted APIM and Foundry resources stay recoverable ~48 h, Log Analytics up to 14 days, with their names reserved. Preflight warns; wait for the retention window, purge explicitly, or pass a different `-ResourceGroupName`. |
+| **Teardown, then immediate re-deploy with the same name** | May conflict. Deleted Foundry resources stay recoverable ~48 h, Log Analytics up to 14 days, with their names reserved. Preflight warns; wait for the retention window, purge explicitly, or pass a different `-ResourceGroupName`. (APIM is no longer among them - the lab deploys none.) |
 | **New demo version over existing infrastructure** | Infrastructure reused; a new image tag and a new Hosted Agent version are created; App Service redeployed. |
 
 Transient ARM conflicts (`RequestConflict`, `FailedIdentityOperation`, `pending

@@ -895,6 +895,33 @@ None of these are visible in the bicep, and **all six fail silently** — no exc
 
 *Fix:* single-sourced. `HOSTED_AGENT_API_PATH`, `HOSTED_AGENT_API_NAME` and `INFERENCE_API_NAME` come from `config/lab.defaults.psd1` and are set by `deploy.ps1` as app settings. `policy.ts` keeps **stable keys** facing the console and maps them to deployed names server-side, so the frontend's types never depend on what the gateway happens to call things.
 
+### 8.2 A standalone-APIM mode was designed, costed, and deliberately not built
+
+**Status: evaluated and deferred, not forgotten. The design and the verification plan below are finished; what is missing is a reason to run them.**
+
+`deploy.ps1` always connects to the shared gateway. There is no flag to deploy an API Management instance of the lab's own — the behaviour it had before this migration — and that is a decision rather than an omission.
+
+**The obvious objection first.** A standalone mode is a fallback: if the shared gateway is deleted, misconfigured by another team, or simply unavailable, this lab cannot deploy at all. That is a real dependency and it is worth naming.
+
+**Why it was still deferred.** A mode nobody runs decays without anyone noticing, and this section is being written directly beneath the proof. The automation's README carried a section titled *"APIM tier — `Basicv2` by default, `Consumption` for scratch environments"* describing how to choose a tier — a choice the script had already lost when it stopped deploying an APIM at all. It documented behaviour that no longer existed, and nothing caught it, because documentation has no test. A `-StandaloneApim` switch would be the same thing in executable form: a second code path taken by no one, drifting out of step with the path that is exercised daily, and discovered to be broken at exactly the moment it is needed — which is the moment the shared gateway is already down.
+
+An untested fallback is not a fallback. It is a second failure waiting to coincide with the first.
+
+**What would change the answer.** A concrete need, not a hypothetical one:
+
+- the shared gateway stops being available, or the arrangement with the other teams ends;
+- someone needs a genuinely isolated environment — a security review, a customer-specific deployment, a test that must not appear in another team's Log Analytics workspace;
+- the cross-lab telemetry mixing described above becomes a problem in its own right.
+
+**The plan, so the next person does not re-derive it.** Roughly 60-80 lines across four files — `deploy.ps1` (a switch plus a four-point branch: which template, whether to register on the shared gateway, which output composer, and where the three API-name app settings come from), `config/lab.defaults.psd1` (`ApimSku`), and `modules/Infra.ps1` (revive `New-BicepParametersFile`, currently dead code). `teardown.ps1` most likely needs nothing: its shared-gateway cleanup already treats a 404 as success, so in standalone mode it reports "not present" nine times and moves on.
+
+Two constraints that are not negotiable if it is built:
+
+1. **The names stay `hosted-agents-*` in both modes.** A standalone instance has no collision risk, so different names would be *allowed* — and would immediately reintroduce failure #6 above, where the same value lived in two places and one of them went stale. One set of names means the three app settings are identical in both modes.
+2. **`Developer`, never `Consumption`.** Developer is dedicated, always-on capacity, so it has no cold start, and it is roughly a quarter the price of `Basicv2`. Consumption is serverless and was measured at **54 seconds** on the first request after 35 minutes idle. Developer's trade-offs — no SLA, a single unit, no scaling — are the right shape for a demo lab, and are already what the shared gateway is.
+
+**And it must be verified in a scratch resource group, not the live one.** Deploying a standalone instance into `lab-hosted-agents-demo` would create an APIM there, repoint the App Service at it, and undo this migration. Budget ~1.5-2 hours, almost all of it waiting on APIM provisioning and then on its deletion and purge.
+
 ## See also
 
 - [`../01-general/ARCHITECTURE.md`](../01-general/ARCHITECTURE.md) — the Azure architecture these decisions visualize.
