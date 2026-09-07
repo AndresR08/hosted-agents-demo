@@ -50,10 +50,23 @@
     #>
     SharedApimName              = 'apim-shared-pdcibwky2f5ms'
     SharedApimResourceGroupName = 'rg-shared-apim-gateway-V2'
-    # System-assigned identity of the shared gateway. infra.bicep hands this to
-    # upstream's foundry module, which grants it Cognitive Services User on OUR
-    # Foundry accounts - a write on our own resources, never on the shared one.
-    SharedApimPrincipalId       = '944ee3f2-5dc4-446a-9507-0424cd3020e7'
+    <#
+      There is deliberately no SharedApimPrincipalId here any more.
+
+      The shared gateway's system-assigned identity is what infra.bicep hands to
+      upstream's foundry module, which grants it Cognitive Services User on OUR
+      Foundry accounts. It used to be a GUID in this file, and it was the only
+      one of the three values describing the shared gateway that could not be
+      overridden on the command line - so a run pointed at a different instance
+      with -SharedApimName would have kept granting access to the old gateway's
+      identity, silently.
+
+      deploy.ps1 now reads it from the instance at run time
+      (Get-SharedApimPrincipalId in modules/SharedApim.ps1), which makes it
+      derived from the two parameters that ARE overridable. Nothing to keep in
+      step, so nothing to go stale. Do not reintroduce it here.
+    #>
+
 
     # Every name this lab creates on the shared gateway. All lab-prefixed: ARM
     # creating a child that already exists is an update-in-place, so an

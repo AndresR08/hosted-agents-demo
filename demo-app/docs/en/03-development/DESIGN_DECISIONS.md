@@ -818,6 +818,10 @@ The return direction exists too, and it was not noticed until an audit called th
 
 So the migration's permission story is symmetric and both halves are additive: their identity reads our Foundry, our identity reads their gateway, and neither grant modifies the other side's resources.
 
+**The gateway's principal is resolved, not configured.** Three values describe the shared instance — its name, its resource group, and the identity that receives the grant above. The first two are overridable per run precisely because the shared instance is the part most likely to be replaced. The third was a GUID in `config/lab.defaults.psd1` and was **not** overridable, which made it the one value that could silently survive being pointed at a different gateway: `-SharedApimName apim-shared-v3` would have kept granting Cognitive Services User to the *old* instance's identity. Failing closed rather than open, but wrong either way, and with no error to show for it.
+
+It is now read from the instance at deploy time, which makes it derived from the two parameters that already are overridable. That is better than making it a third parameter: there is nothing left to keep in step. The lookup is fatal if it returns nothing, because a missing principal would produce a deployment that succeeds and grants no access — the silent-success shape §8.1 is a catalogue of.
+
 ### What is deliberately NOT created on the shared gateway
 
 `apim.bicep` creates three service-level resources that **already exist** there: the `appinsights-logger`, the `azuremonitor` diagnostic, and `apimDiagnosticSettings`. That module is not used at all in the migrated path. Recreating `appinsights-logger` would have repointed **every other lab's telemetry** at this lab's Application Insights.

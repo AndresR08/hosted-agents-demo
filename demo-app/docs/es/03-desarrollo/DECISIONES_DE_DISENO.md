@@ -833,6 +833,10 @@ La dirección de vuelta también existe, y no se detectó hasta que una auditor�
 
 Así que la historia de permisos de la migración es simétrica y ambas mitades son aditivas: su identidad lee nuestro Foundry, nuestra identidad lee su gateway, y ninguna concesión modifica los recursos de la otra parte.
 
+**El principal del gateway se resuelve, no se configura.** Tres valores describen la instancia compartida — su nombre, su resource group, y la identidad que recibe la concesión de arriba. Los dos primeros son sobreescribibles por corrida precisamente porque la instancia compartida es la parte con más probabilidad de ser reemplazada. El tercero era un GUID en `config/lab.defaults.psd1` y **no** lo era, lo que lo convertía en el único valor capaz de sobrevivir en silencio a apuntar a otro gateway: `-SharedApimName apim-shared-v3` habría seguido concediendo Cognitive Services User a la identidad de la instancia *vieja*. Falla cerrado y no abierto, pero está mal igual, y sin ningún error que lo delate.
+
+Ahora se lee de la instancia en tiempo de despliegue, lo que lo hace derivado de los dos parámetros que ya son sobreescribibles. Eso es mejor que convertirlo en un tercer parámetro: no queda nada que mantener en sincronía. La consulta es fatal si no devuelve nada, porque un principal ausente produciría un despliegue que tiene éxito y no concede acceso — la forma de éxito silencioso de la que §8.1 es un catálogo.
+
 ### Lo que deliberadamente NO se crea en el gateway compartido
 
 `apim.bicep` crea tres recursos de nivel servicio que **ya existen** ahí: el `appinsights-logger`, el diagnostic `azuremonitor` y `apimDiagnosticSettings`. Ese módulo no se usa en absoluto en la ruta migrada. Recrear `appinsights-logger` habría redirigido **la telemetría de todos los demás labs** al Application Insights de este.

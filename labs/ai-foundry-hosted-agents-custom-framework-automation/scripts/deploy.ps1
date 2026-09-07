@@ -319,6 +319,12 @@ try {
       teams already share. See DESIGN_DECISIONS.md for why the split lives here
       instead of as a patch on vendor/.
     #>
+    # Read from the instance rather than from configuration: it is derived from
+    # -SharedApimName / -SharedApimResourceGroupName, so pointing a run at a
+    # different gateway cannot leave a stale principal behind.
+    $sharedApimPrincipalId = Get-SharedApimPrincipalId `
+        -ApimName $config.SharedApimName -ResourceGroupName $config.SharedApimResourceGroupName
+
     $infraTemplate = Join-Path $rootDir 'bicep\infra.bicep'
     $infraParams   = Join-Path $outDir 'params.infra.generated.json'
     New-ParametersFile -OutFile $infraParams -Parameters ([ordered]@{
@@ -327,7 +333,7 @@ try {
         foundryProjectName         = $config.FoundryProjectName
         foundryAgentAiServiceIndex = $config.FoundryAgentAiServiceIndex
         foundryUserObjectIds       = @($foundryUserObjectIds)
-        sharedApimPrincipalId      = $config.SharedApimPrincipalId
+        sharedApimPrincipalId      = $sharedApimPrincipalId
     }) | Out-Null
 
     if ($ValidateOnly) {

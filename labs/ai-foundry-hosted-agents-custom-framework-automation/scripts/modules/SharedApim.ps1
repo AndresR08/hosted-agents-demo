@@ -146,6 +146,58 @@ function Get-SharedApimSubscriptionKey {
 
 <#
 .SYNOPSIS
+  Reads the shared gateway's system-assigned identity, at run time.
+.DESCRIPTION
+  This used to be a GUID in config/lab.defaults.psd1, and it was the one value
+  of the three describing the shared gateway that could NOT be overridden on the
+  command line. -SharedApimName and -SharedApimResourceGroupName exist so a run
+  can be pointed at a different instance - after a migration to a V3, say - and
+  a hardcoded principal id would have quietly survived that, granting Cognitive
+  Services User on our Foundry accounts to the identity of a gateway no longer
+  in use. Silent, and in the direction that fails closed rather than open, but
+  wrong either way.
+
+  Resolving it from the instance removes the question instead of answering it:
+  there is nothing left to override, because the value is derived from the two
+  parameters that already are.
+
+  Fatal when it cannot be read. infra.bicep requires the principal to write the
+  role assignments, so an empty value would produce a deployment that succeeds
+  and grants nothing - exactly the silent-success shape this project keeps
+  finding (DESIGN_DECISIONS.md §8.1).
+#>
+function Get-SharedApimPrincipalId {
+    param(
+        [Parameter(Mandatory)][string]$ApimName,
+        [Parameter(Mandatory)][string]$ResourceGroupName
+    )
+
+    $result = Invoke-Az -Arguments @(
+        'apim', 'show', '--name', $ApimName, '--resource-group', $ResourceGroupName,
+        '--query', 'identity.principalId', '-o', 'tsv'
+    ) -AllowFailure
+
+    $principalId = ''
+    if ($result.Success -and $result.Text) { $principalId = $result.Text.Trim() }
+
+    if ([string]::IsNullOrWhiteSpace($principalId) -or $principalId -eq 'null') {
+        throw @(
+            "Could not read the system-assigned identity of '$ApimName'."
+            "  Resource group : $ResourceGroupName"
+            '  Why it matters : this principal is what gets Cognitive Services User on THIS'
+            "                   lab's Foundry accounts. Without it the deployment would"
+            '                   grant nothing and still report success.'
+            '  Check          : the instance exists, is readable from this account, and has'
+            '                   a system-assigned identity enabled.'
+        ) -join "`n"
+    }
+
+    Write-Info "shared gateway identity: $principalId"
+    return $principalId
+}
+
+<#
+.SYNOPSIS
   Composes the values the rest of deploy.ps1 consumes, from two deployments.
 .DESCRIPTION
   Get-LabDeploymentOutputs reads all of these from one deployment, because the
