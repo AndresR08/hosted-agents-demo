@@ -20,6 +20,7 @@ import {
   SettingsRegular,
   ShieldKeyholeRegular,
 } from "@fluentui/react-icons";
+import controlesEmpresarialesMark from "@/assets/controles-empresariales-mark.png";
 import { env } from "@/config/env";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -342,6 +343,40 @@ export function Sidebar({ className }: { className?: string }) {
             onClick={openSettings}
           />
         </div>
+
+        {/*
+          Presenter-brand mark, not a demo fact — kept out of the honesty
+          system's vocabulary on purpose. Just the geometric mark, not the
+          full lockup: the source file's wordmark is set in a dark navy that
+          has no contrast against the rail's fixed #0b1220 ground, and this
+          rail never lightens to give it one. The mark's red does, cleanly,
+          in both themes, because the rail itself does not change with them.
+
+          Wrapping, not truncating, for the same reason as the brand lockup
+          above: "Presentado por Controles Empresariales" does not fit one
+          line in a 250px column and this rail has the spare vertical space
+          to let it wrap rather than clip.
+        */}
+        <Tooltip content={t("footer.presentedBy")} relationship="label" positioning="after">
+          <div
+            className={cn(
+              "flex items-start gap-1.5 px-1 pt-1 opacity-70",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            <img
+              src={controlesEmpresarialesMark}
+              alt=""
+              aria-hidden="true"
+              className="mt-0.5 h-3 w-auto shrink-0"
+            />
+            {!collapsed && (
+              <span className="min-w-0 text-caption leading-snug text-rail-ink-muted">
+                {t("footer.presentedBy")}
+              </span>
+            )}
+          </div>
+        </Tooltip>
       </div>
 
       <Dialog open={confirmOpen} onOpenChange={(_, data) => setConfirmOpen(data.open)}>

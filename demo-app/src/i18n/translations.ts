@@ -92,6 +92,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "header.homeLabel": "Return to Start",
     "header.confirmReturnTitle": "Return to the landing page?",
     "header.confirmReturnBody": "The current conversation will be lost.",
+    "footer.presentedBy": "Presented by Controles Empresariales",
 
     "settings.title": "Settings",
     "settings.language": "Language",
@@ -512,6 +513,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "header.homeLabel": "Volver al inicio",
     "header.confirmReturnTitle": "¿Volver a la página de inicio?",
     "header.confirmReturnBody": "Se perderá la conversación actual.",
+    "footer.presentedBy": "Presentado por Controles Empresariales",
 
     "settings.title": "Configuración",
     "settings.language": "Idioma",
