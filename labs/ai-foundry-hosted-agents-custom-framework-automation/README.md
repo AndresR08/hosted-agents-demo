@@ -112,7 +112,7 @@ What this means in practice:
 - **`teardown.ps1` is not the tool for removing one resource from a live group** â€”
   it deletes the entire group. Use a targeted `az` command instead.
 - Before changing anything about this integration, read `DESIGN_DECISIONS.md`
-  Â§8.1: six failures it cost, all of which fail *silently*.
+  Â§8.1: seven failures it cost, all of which fail *silently*.
 
 `ApimSku` still exists in [`config/lab.defaults.psd1`](config/lab.defaults.psd1)
 but **nothing in the deployed path reads it**. It applies only to the vendored
@@ -130,6 +130,12 @@ worth passing when the shared instance itself changes:
 Pass them to **both** or to neither. A teardown reading the config default after
 a deployment that was pointed elsewhere finds nothing, reports success, and
 leaves the real resources on the gateway it never looked at.
+
+`scripts/Find-SharedApim.ps1` lists the API Management instances the current
+account can see â€” name, resource group, tier, region â€” and marks the one this
+lab is configured against, so the two names above can be looked up rather than
+remembered. It is read-only, takes no state and makes no decision; run it, read
+the table, pass the name you want.
 
 ### Why there is no `-StandaloneApim` mode
 
@@ -221,6 +227,7 @@ ai-foundry-hosted-agents-custom-framework-automation/
 â”‚   â”œâ”€â”€ deploy.ps1                  # orchestrator
 â”‚   â”œâ”€â”€ teardown.ps1                # resource group deletion
 â”‚   â”œâ”€â”€ sync-vendor.ps1             # refresh ../../vendor/ai-gateway from upstream
+â”‚   â”œâ”€â”€ Find-SharedApim.ps1         # read-only: which API Management instances exist
 â”‚   â”œâ”€â”€ local/                      # LOCAL ONLY - never deployed, never packaged
 â”‚   â”‚   â””â”€â”€ Manage-LabCost.ps1      # cost status and controls for the presenter
 â”‚   â””â”€â”€ modules/

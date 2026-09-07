@@ -116,6 +116,7 @@ adentro y no hermana directa de `broker/`) se mantiene y se da por buena.
 |---|---|
 | `scripts/deploy.ps1` | Orquestador principal, un solo comando |
 | `scripts/teardown.ps1` | Borra el resource group (equivalente a `clean-up-resources.ipynb`) |
+| `scripts/Find-SharedApim.ps1` | Solo lectura: lista las instancias de API Management visibles y marca la configurada |
 | `scripts/modules/Common.ps1` | Logging, wrapper único de `az`, wrapper REST de Foundry |
 | `scripts/modules/Preflight.ps1` | Valida CLI, auth, suscripción, config, ubicación del lab |
 | `scripts/modules/Infra.ps1` | Resource group, parámetros Bicep, despliegue ARM, lectura de outputs |
