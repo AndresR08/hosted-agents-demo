@@ -44,6 +44,22 @@ function Initialize-ResourceGroup {
     * foundryUserObjectIds is empty when no principal object id was resolved,
       instead of failing, so a service principal run still works.
 #>
+<#
+  DEAD CODE, DELIBERATELY KEPT. Nothing calls this on the current path.
+
+  It builds the parameter set for the VENDORED main.bicep, which this automation
+  stopped deploying on 2026-09-04 when the lab moved to a shared API Management
+  gateway. deploy.ps1 now writes its parameters with New-ParametersFile in
+  modules/SharedApim.ps1, for bicep/infra.bicep and
+  bicep/shared-apim-registration.bicep instead.
+
+  Kept rather than deleted because DESIGN_DECISIONS.md §8.2 records a standalone
+  APIM mode as evaluated and deferred, not abandoned, and this function is one of
+  the two pieces that mode revives verbatim - the other is Get-LabDeploymentOutputs
+  below. Deleting them would make §8.2's implementation plan understate the work.
+
+  If §8.2 is ever resolved as "never", delete both and say so there.
+#>
 function New-BicepParametersFile {
     param(
         [Parameter(Mandatory)][hashtable]$Config,
@@ -239,6 +255,25 @@ function Read-DeploymentOutput {
     return (Get-RequiredProperty -Object $entry -Name 'value' -Context "ARM deployment output '$Name'" -Hint $Hint)
 }
 
+<#
+  DEAD CODE, DELIBERATELY KEPT. Nothing calls this on the current path.
+
+  It reads every value the lab needs from ONE deployment, which worked while the
+  vendored main.bicep created the gateway and the lab together. Since 2026-09-04
+  those values come from two deployments in two resource groups, and
+  Get-MigratedLabOutputs in modules/SharedApim.ps1 assembles them into the same
+  shape this function returned - deliberately the same, so nothing downstream had
+  to learn that the gateway moved.
+
+  Kept for the same reason as New-BicepParametersFile above: DESIGN_DECISIONS.md
+  §8.2 defers a standalone APIM mode rather than ruling it out, and this is the
+  output path that mode needs back. Note it is the larger of the two, and it
+  carries the shape checks (https URL, project-endpoint format, subscription key
+  present) that a revived standalone path would otherwise have to re-derive.
+
+  Read-DeploymentOutput, which it uses, is NOT dead - Get-MigratedLabOutputs
+  calls it too.
+#>
 function Get-LabDeploymentOutputs {
     param(
         [Parameter(Mandatory)][string]$DeploymentName,
