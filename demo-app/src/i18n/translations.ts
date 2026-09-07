@@ -25,7 +25,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "apim.footer": "Reference material about the API Management product. The only value read from this deployment is the tier in use, badged where it appears.",
 
     "apim.tiersTitle": "Choosing a tier has measurable consequences",
-    "apim.tiersSubtitle": "Both tiers below were deployed and measured in this subscription. The cold start is a call the gateway rejects with 401 before reaching any backend — it times the gateway waking up, nothing else.",
+    "apim.tiersSubtitle": "Basicv2 and Consumption were deployed and measured in this subscription — the cold start is a call the gateway rejects with 401 before reaching any backend, timing the gateway waking up and nothing else. Developer is the shared instance this demo runs on today; it is dedicated rather than serverless, so there is no cold start to measure.",
     "apim.tiersLive": "This deployment: {sku}",
     "apim.tiersUnknown": "Tier not reported by the broker",
     "apim.tierCurrent": "in use",
@@ -445,7 +445,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "apim.footer": "Material de referencia sobre el producto API Management. El único valor leído de este despliegue es el tier en uso, señalado donde aparece.",
 
     "apim.tiersTitle": "Elegir un tier tiene consecuencias medibles",
-    "apim.tiersSubtitle": "Ambos tiers se desplegaron y midieron en esta suscripción. El arranque en frío es una llamada que el gateway rechaza con 401 antes de llegar a ningún backend — mide al gateway despertando, nada más.",
+    "apim.tiersSubtitle": "Basicv2 y Consumption se desplegaron y midieron en esta suscripción — el arranque en frío es una llamada que el gateway rechaza con 401 antes de llegar a ningún backend, y mide al gateway despertando, nada más. Developer es la instancia compartida sobre la que corre hoy esta demo; es dedicada y no serverless, así que no hay arranque en frío que medir.",
     "apim.tiersLive": "Este despliegue: {sku}",
     "apim.tiersUnknown": "El broker no reportó el tier",
     "apim.tierCurrent": "en uso",

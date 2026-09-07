@@ -178,25 +178,48 @@ export interface TierRow {
 }
 
 /**
- * The two tiers this project actually deployed and measured, in this
- * subscription, in swedencentral. The cold-start figure is ours: an
- * unauthenticated call that APIM rejects with 401 before reaching any
- * backend, so it measures the gateway waking up and nothing else.
+ * The tiers this project has run on, in this subscription, in swedencentral.
  *
- * Kept here rather than stated as generic guidance because a measured number
- * from the room's own architecture is the part a datasheet cannot give them —
- * and because it is honest to show what a tier choice costs in behaviour, not
- * only in money. Full write-up, including the two ways to measure it wrong:
+ * Basicv2 and Consumption were deployed and measured here: the cold-start
+ * figure is ours, an unauthenticated call APIM rejects with 401 before reaching
+ * any backend, so it times the gateway waking up and nothing else.
+ *
+ * Developer is different in provenance and the table must not blur that. This
+ * lab did not deploy it — since the shared-gateway migration it registers on an
+ * instance another team owns (DESIGN_DECISIONS.md §8), so there is no
+ * deploy-and-measure story behind its cold-start cell. What there is: it is a
+ * dedicated, always-on tier rather than a serverless one, which is why no cold
+ * start exists to measure, and this deployment's own per-hop numbers on it —
+ * 1 ms and 84 ms of gateway time — show none.
+ *
+ * Developer is listed FIRST because it is the row the highlight lands on. A
+ * comparison table projected to a room that does not contain the tier the demo
+ * is actually running on is worse than no table: the "you are here" marker
+ * silently matches nothing and looks identical to the broker failing to report.
+ *
+ * Full write-up, including the two ways to measure the cold start wrong:
  * labs/…-automation/docs/06-apim-consumption.md
  */
 export const TIER_ROWS: TierRow[] = [
+  {
+    sku: "Developer",
+    cost: { en: "~$50 / month, fixed", es: "~$50 / mes, fijo" },
+    coldStart: {
+      en: "None — dedicated capacity",
+      es: "Ninguno — capacidad dedicada",
+    },
+    fit: {
+      en: "Non-production. No SLA, single unit, no scaling",
+      es: "No producción. Sin SLA, una sola unidad, sin escalado",
+    },
+  },
   {
     sku: "Basicv2",
     cost: { en: "~$197 / month, fixed", es: "~$197 / mes, fijo" },
     coldStart: { en: "None — always warm", es: "Ninguno — siempre caliente" },
     fit: {
-      en: "Live sessions, anything with an audience",
-      es: "Sesiones en vivo, cualquier cosa con audiencia",
+      en: "Production with an SLA, ~4× the cost of Developer",
+      es: "Producción con SLA, ~4× el costo de Developer",
     },
   },
   {
@@ -207,8 +230,8 @@ export const TIER_ROWS: TierRow[] = [
       es: "54 s medidos, tras 35 min de reposo",
     },
     fit: {
-      en: "Disposable test environments",
-      es: "Entornos de prueba desechables",
+      en: "Disposable test environments — never a live audience",
+      es: "Entornos de prueba desechables — nunca con audiencia en vivo",
     },
   },
 ];
