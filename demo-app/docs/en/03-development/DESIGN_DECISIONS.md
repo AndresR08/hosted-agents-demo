@@ -806,6 +806,18 @@ Two upstream modules turned out to be reusable unmodified, which is why this cos
 
 Only the responses API had to be duplicated, because upstream keeps it inline in `main.bicep` rather than in a module.
 
+### Permissions cross both ways, and the second direction was missed at first
+
+The grant above runs outward: the shared gateway's identity gets `Cognitive Services User` on **our** Foundry accounts, written on our own resources.
+
+The return direction exists too, and it was not noticed until an audit called the endpoints. The broker reads the gateway from ARM — its tier, its API policies, its diagnostic settings — and the App Service identity had four role assignments, all on this lab's own resource group and none on the gateway. Fixing the resource-group paths in the broker was necessary but would still have returned 403.
+
+**`Reader`, scoped to the API Management resource itself — not to `rg-shared-apim-gateway-V2`.** The narrower scope is deliberate: the shared group also holds another team's workspace and Application Insights, and nothing here needs to read those.
+
+`API Management Service Reader Role` looks like the tighter choice by name and is not. Its actions are `Microsoft.ApiManagement/service/*/read` plus `Microsoft.Insights/alertRules/*` — no `Microsoft.Insights/diagnosticSettings/read`, so the controls catalogue's check would still have failed — and it carries `Microsoft.Support/*`, which permits *creating* support tickets. `Reader` is `*/read` and nothing else. Checked against the role definitions rather than assumed from the names.
+
+So the migration's permission story is symmetric and both halves are additive: their identity reads our Foundry, our identity reads their gateway, and neither grant modifies the other side's resources.
+
 ### What is deliberately NOT created on the shared gateway
 
 `apim.bicep` creates three service-level resources that **already exist** there: the `appinsights-logger`, the `azuremonitor` diagnostic, and `apimDiagnosticSettings`. That module is not used at all in the migrated path. Recreating `appinsights-logger` would have repointed **every other lab's telemetry** at this lab's Application Insights.

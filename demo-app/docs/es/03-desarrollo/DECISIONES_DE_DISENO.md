@@ -821,6 +821,18 @@ Dos módulos de upstream resultaron reutilizables sin modificar, y por eso cost�
 
 Sólo hubo que duplicar la API de responses, porque upstream la mantiene inline en `main.bicep` en vez de en un módulo.
 
+### Los permisos cruzan en ambos sentidos, y el segundo se pasó por alto al principio
+
+La concesión de arriba va hacia afuera: la identidad del gateway compartido obtiene `Cognitive Services User` sobre **nuestras** cuentas Foundry, escrito sobre recursos propios.
+
+La dirección de vuelta también existe, y no se detectó hasta que una auditoría llamó a los endpoints. El broker lee el gateway desde ARM —su tier, las políticas de sus APIs, sus diagnostic settings— y la identidad del App Service tenía cuatro asignaciones, todas sobre el resource group de este lab y ninguna sobre el gateway. Corregir las rutas de resource group en el broker era necesario, pero habría seguido devolviendo 403.
+
+**`Reader`, acotado al recurso API Management, no a `rg-shared-apim-gateway-V2`.** El alcance más estrecho es deliberado: el grupo compartido contiene además el workspace y el Application Insights de otro equipo, y nada de aquí necesita leerlos.
+
+`API Management Service Reader Role` parece la opción más ajustada por su nombre y no lo es. Sus acciones son `Microsoft.ApiManagement/service/*/read` más `Microsoft.Insights/alertRules/*` —sin `Microsoft.Insights/diagnosticSettings/read`, así que la comprobación del catálogo de controles habría seguido fallando— y arrastra `Microsoft.Support/*`, que permite *crear* tickets de soporte. `Reader` es `*/read` y nada más. Comprobado contra las definiciones de rol, no deducido de los nombres.
+
+Así que la historia de permisos de la migración es simétrica y ambas mitades son aditivas: su identidad lee nuestro Foundry, nuestra identidad lee su gateway, y ninguna concesión modifica los recursos de la otra parte.
+
 ### Lo que deliberadamente NO se crea en el gateway compartido
 
 `apim.bicep` crea tres recursos de nivel servicio que **ya existen** ahí: el `appinsights-logger`, el diagnostic `azuremonitor` y `apimDiagnosticSettings`. Ese módulo no se usa en absoluto en la ruta migrada. Recrear `appinsights-logger` habría redirigido **la telemetría de todos los demás labs** al Application Insights de este.
