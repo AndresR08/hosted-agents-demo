@@ -161,7 +161,7 @@ maintenanceRouter.post("/maintenance/reload-policies", asyncHandler(async (_req,
       const sizes: string[] = [];
       for (const api of apis) {
         const response = await fetch(
-          `https://management.azure.com/subscriptions/${config.subscriptionId}/resourceGroups/${config.resourceGroup}` +
+          `https://management.azure.com/subscriptions/${config.subscriptionId}/resourceGroups/${config.apimResourceGroup}` +
             `/providers/Microsoft.ApiManagement/service/${config.apimServiceName}/apis/${api}` +
             `/policies/policy?api-version=2022-08-01&format=xml`,
           { headers: { Authorization: `Bearer ${token}` } },
@@ -205,7 +205,7 @@ maintenanceRouter.post("/maintenance/refresh-deployment-info", asyncHandler(asyn
     await timed(async () => {
       const token = await getAccessToken(SCOPES.arm);
       const response = await fetch(
-        `https://management.azure.com/subscriptions/${config.subscriptionId}/resourceGroups/${config.resourceGroup}` +
+        `https://management.azure.com/subscriptions/${config.subscriptionId}/resourceGroups/${config.apimResourceGroup}` +
           `/providers/Microsoft.ApiManagement/service/${config.apimServiceName}?api-version=2022-08-01`,
         { headers: { Authorization: `Bearer ${token}` } },
       );

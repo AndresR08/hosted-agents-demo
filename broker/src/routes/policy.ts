@@ -33,7 +33,7 @@ policyRouter.get("/policy/:apiName", asyncHandler(async (req, res) => {
   const token = await getAccessToken(SCOPES.arm);
   const url =
     `https://management.azure.com/subscriptions/${config.subscriptionId}` +
-    `/resourceGroups/${config.resourceGroup}/providers/Microsoft.ApiManagement/service/${config.apimServiceName}` +
+    `/resourceGroups/${config.apimResourceGroup}/providers/Microsoft.ApiManagement/service/${config.apimServiceName}` +
     `/apis/${apiId}/policies/policy?api-version=2022-08-01&format=xml`;
 
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });

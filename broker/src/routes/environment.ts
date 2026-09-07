@@ -18,17 +18,36 @@ environmentRouter.get("/environment", asyncHandler(async (_req, res) => {
     : { value: [] };
 
   /**
-   * The APIM tier actually deployed, read from the same ARM listing already
-   * fetched above - no second call. The reference panel ("what else APIM
+   * The APIM tier actually deployed. The reference panel ("what else APIM
    * offers") compares tiers, and the row for the tier in use has to be marked
    * from real state rather than from a constant that would quietly go stale
-   * the day someone deploys Consumption. Left undefined when the listing did
-   * not come back or carries no sku, so the panel can say nothing instead of
-   * guessing.
+   * the day someone changes tier.
+   *
+   * This used to be picked out of the resource listing above at no extra cost,
+   * because the gateway lived in this lab's resource group. It does not any
+   * more, so scanning that listing found nothing and the panel silently lost
+   * its "you are here" marker. It is now a targeted read of the gateway
+   * wherever it actually lives - one extra call, which is the price of the
+   * gateway being shared.
+   *
+   * Left undefined when the read fails, so the panel says nothing rather than
+   * guessing: a wrong "you are here" is worse than none.
    */
-  const apimSku = body.value.find(
-    (r) => r.type?.toLowerCase() === "microsoft.apimanagement/service",
-  )?.sku?.name;
+  let apimSku: string | undefined;
+  try {
+    const apimResponse = await fetch(
+      `https://management.azure.com/subscriptions/${config.subscriptionId}` +
+        `/resourceGroups/${config.apimResourceGroup}` +
+        `/providers/Microsoft.ApiManagement/service/${config.apimServiceName}` +
+        `?api-version=2022-08-01`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (apimResponse.ok) {
+      apimSku = ((await apimResponse.json()) as { sku?: { name?: string } }).sku?.name;
+    }
+  } catch {
+    // Reported as absent below, never as a guess.
+  }
 
   res.json({
     region: config.region,

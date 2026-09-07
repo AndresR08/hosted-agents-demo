@@ -558,6 +558,12 @@ try {
             AZURE_RESOURCE_GROUP            = $config.ResourceGroupName
             AZURE_REGION                    = $config.Location
             APIM_GATEWAY_URL                = $outputs.ApimGatewayUrl
+            # The resource group the gateway lives in, which is NOT this lab's.
+            # Without it the broker built ARM paths into its own group, where no
+            # APIM exists: /api/policy answered 404, the tier row highlighted
+            # nothing, and the controls catalogue could not confirm a diagnostic
+            # setting this lab had created.
+            APIM_RESOURCE_GROUP             = $config.SharedApimResourceGroupName
             # The broker builds the hosted-agent URL from this. It used to hold
             # its own copy of the path, which is how a console that deployed
             # perfectly still answered 404 after the move to the shared gateway.

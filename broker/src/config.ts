@@ -34,6 +34,25 @@ export const config = {
 
   apimGatewayUrl: required("APIM_GATEWAY_URL"),
   apimServiceName: required("APIM_SERVICE_NAME"),
+  /**
+   * The resource group the API Management instance lives in, which since the
+   * shared-gateway migration is NOT this lab's own.
+   *
+   * Five places built ARM paths as
+   * `/resourceGroups/${resourceGroup}/providers/Microsoft.ApiManagement/...`,
+   * which was correct while the lab deployed its own gateway and silently wrong
+   * afterwards. The visible result in production: /api/policy answered 404, so
+   * the policy viewer - a scripted beat in PRESENTATION_GUIDE.md - showed
+   * nothing; the tier row on the APIM reference screen highlighted nothing
+   * because `apimSku` came back undefined; and the controls catalogue reported
+   * "could not confirm diagnostic settings live" for a setting this lab had
+   * created itself.
+   *
+   * Falls back to AZURE_RESOURCE_GROUP so a local `npm run dev` against a
+   * pre-migration deployment, where the gateway did live in the lab's group,
+   * still resolves. deploy.ps1 sets it from SharedApimResourceGroupName.
+   */
+  apimResourceGroup: process.env.APIM_RESOURCE_GROUP ?? required("AZURE_RESOURCE_GROUP"),
   apimSubscriptionKey: required("APIM_SUBSCRIPTION_KEY"),
   foundryAgentsProjectEndpoint: required("FOUNDRY_AGENTS_PROJECT_ENDPOINT"),
   foundryModelsAccountName: required("FOUNDRY_MODELS_ACCOUNT_NAME"),

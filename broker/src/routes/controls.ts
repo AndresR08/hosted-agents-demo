@@ -33,8 +33,12 @@ async function armGet<T>(path: string, apiVersion: string): Promise<T> {
  * re-verified live here.
  */
 controlsRouter.get("/controls", asyncHandler(async (_req, res) => {
+  // apimResourceGroup, not resourceGroup: the gateway is shared and lives
+  // elsewhere. Reading the lab's own group found no APIM, so this check fell
+  // into its catch and reported "could not confirm" for a diagnostic setting
+  // this lab created itself.
   const diagnosticsPath =
-    `/subscriptions/${config.subscriptionId}/resourceGroups/${config.resourceGroup}` +
+    `/subscriptions/${config.subscriptionId}/resourceGroups/${config.apimResourceGroup}` +
     `/providers/Microsoft.ApiManagement/service/${config.apimServiceName}/providers/Microsoft.Insights/diagnosticSettings`;
   const modelsPath =
     `/subscriptions/${config.subscriptionId}/resourceGroups/${config.resourceGroup}` +
