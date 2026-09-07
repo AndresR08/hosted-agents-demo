@@ -22,23 +22,40 @@
   The arithmetic that shapes this tool, measured from the Azure retail price
   list for swedencentral:
 
-    APIM Basicv2       $0.27/hour   ~$197/month   92% of the fixed cost
-    App Service B1     $0.018/hour  ~$13/month     6%
-    ACR Basic          $0.1666/day  ~$5/month      2%
-    Log Analytics      ingestion + retention only, ~$0 idle
+    App Service B1     $0.018/hour  ~$13/month   ~72% of the fixed cost
+    ACR Basic          $0.1666/day  ~$5/month    ~28%
+    Log Analytics      ingestion + retention only - see the note below
+    Foundry accounts   $0 idle; the model is pay-per-token
     gpt-5-mini         GlobalStandard is pay-per-token: $0 when unused
 
-  APIM cannot be paused - `az apim` has no stop or pause verb, and the
-  Basic tier has no stopped state. So there is exactly one action with real
-  financial impact: delete the resource group. Everything else is rounding.
+  THIS CHANGED ON 2026-09-04 AND THE SHAPE OF THE PROBLEM CHANGED WITH IT.
+  Until then this lab deployed its own API Management instance - Basicv2, $0.27
+  an hour, ~$197 a month, 92% of the fixed cost - and APIM cannot be paused, so
+  the honest advice was "there is exactly one action with real financial impact:
+  delete the resource group; everything else is rounding."
 
-  The menu says so plainly rather than offering a row of pause buttons that
-  would give the impression of control over the 6% while the 92% keeps running.
+  That instance is gone. The lab registers on a shared gateway it does not pay
+  for (DESIGN_DECISIONS.md 8), and the fixed cost fell from ~$215 to ~$18 a
+  month. The 6% that used to be rounding is now the largest controllable line
+  on the bill, so the advice inverts: scaling the App Service plan down is worth
+  doing, where before it was theatre.
 
-  Note on "stopping" the App Service: `az webapp stop` halts the site process
-  but bills identically, because the charge is against the plan (the serverfarm)
-  and not the site. The only way down is to scale the plan to F1 (Free), which
-  is what this tool offers.
+  What can actually be controlled today:
+
+    App Service plan   Scale to F1 (Free). This is the one meaningful lever.
+                       `az webapp stop` does NOT help: the charge is against the
+                       plan (the serverfarm), not the site, so a stopped site on
+                       a B1 plan bills exactly like a running one.
+    ACR Basic          No pause exists. Keep it or delete the group.
+    Resource group     Deleting it stops everything, as always.
+
+  Note on Log Analytics, which is no longer reliably ~$0 idle. The shared
+  gateway sends GatewayLogs and GatewayLlmLogs for EVERY lab connected to it
+  into this workspace - not just ours - because a diagnostic setting is
+  resource-level and cannot be filtered per API. Measured 2026-09-04: 83 rows
+  of another team's traffic in 12 hours. Small at this volume, but it is
+  ingestion this lab does not generate and cannot switch off without losing its
+  own Observability screen. See DESIGN_DECISIONS.md 8.
 
 .EXAMPLE
   pwsh ./Manage-LabCost.ps1
@@ -155,10 +172,14 @@ function Show-Status {
     }
     Write-Host ("  Fixed cost     : ~`$$($State.EstimatedMonthly)/month  [Estimate, retail list price]") -ForegroundColor Yellow
 
+    # Kept for a group predating the shared-gateway migration, or one deployed
+    # from an older revision. A current deployment creates no APIM, so this
+    # branch stays silent rather than describing a resource that is not there.
     if ($State.ApimCount -gt 0) {
         $apim = [math]::Round($script:Price.ApimBasicV2PerHour * $script:HoursPerMonth, 2)
         $pct  = if ($State.EstimatedMonthly -gt 0) { [math]::Round(100 * $apim / $State.EstimatedMonthly) } else { 0 }
-        Write-Host "                   of which APIM Basicv2 ~`$$apim ($pct%) - cannot be paused" -ForegroundColor DarkGray
+        Write-Host "                   of which APIM ~`$$apim ($pct%) - cannot be paused" -ForegroundColor DarkGray
+        Write-Host '                   (this group predates the shared-gateway migration)' -ForegroundColor DarkGray
     }
     Write-Rule
 }
@@ -275,10 +296,16 @@ function Set-PlanSku {
 
 function Remove-LabResourceGroup {
     <#
-      The only action that stops the 92%. Two confirmations, because it destroys
-      APIM, both Foundry accounts with their registered agents, the registry and
-      its images, the workspace and its history, and the demo site - and because
-      a resource group name is easy to mistype when several look alike.
+      The only action that stops everything at once. Two confirmations, because
+      it destroys both Foundry accounts with their registered agents, the
+      registry and its images, the workspace and its history, and the demo site -
+      and because a resource group name is easy to mistype when several look
+      alike.
+
+      It no longer destroys an API Management instance: this lab registers on a
+      shared one it does not own. Removing THIS lab's resources from that shared
+      gateway is teardown.ps1's job, not this tool's - see DESIGN_DECISIONS.md 8.
+      Deleting the group here leaves them registered there.
     #>
     param([Parameter(Mandatory)]$State)
 
@@ -296,7 +323,7 @@ function Remove-LabResourceGroup {
     Write-Host '  registry, and all Log Analytics history.' -ForegroundColor Red
     Write-Host ''
     Write-Host '  Re-deploying under the SAME name within the soft-delete window' -ForegroundColor Yellow
-    Write-Host '  (~48h for APIM and Foundry, up to 14 days for Log Analytics) can' -ForegroundColor Yellow
+    Write-Host '  (~48h for Foundry, up to 14 days for Log Analytics) can' -ForegroundColor Yellow
     Write-Host '  fail with a Conflict, or silently restore the old resource with' -ForegroundColor Yellow
     Write-Host '  its previous state. Plan for that before deleting.' -ForegroundColor Yellow
     Write-Host ''
@@ -357,7 +384,8 @@ try {
         }
         Write-Host '   [Q] Quit'
         Write-Host ''
-        Write-Host '  APIM Basicv2 has no pause. While the resource group exists, it bills.' -ForegroundColor DarkGray
+        Write-Host '  Scaling the plan to F1 is the one real lever; ACR has no pause.' -ForegroundColor DarkGray
+        Write-Host '  This lab no longer deploys an APIM - the shared gateway is not billed here.' -ForegroundColor DarkGray
         Write-Host ''
 
         $choice = Read-Host '  Choice'
