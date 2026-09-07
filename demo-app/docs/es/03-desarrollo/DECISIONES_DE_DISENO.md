@@ -874,9 +874,11 @@ Se comprobó antes en vez de darlo por inactivo. Doce horas de `ApiManagementGat
 
 Los dos scripts aceptan el mismo par a propósito, y hay que darles los mismos valores: un teardown que lea el defecto del config después de un despliegue apuntado a otro sitio buscaría los recursos de este lab en la instancia equivocada, no encontraría ninguno, reportaría éxito, y dejaría los reales en un gateway que nunca miró.
 
-### 8.1 Seis fallos que encontró esta migración, y qué era cada uno realmente
+### 8.1 Siete fallos que encontraron esta migración y su posterior operación, y qué era cada uno realmente
 
-Ninguno se ve en el bicep, y **los seis fallan en silencio** — sin excepción, sin texto en rojo: un despliegue que reporta éxito y una consola sutilmente equivocada. Se registran con su síntoma exacto porque el síntoma es lo único que tendrá la próxima persona.
+Ninguno se ve en el bicep, y **los siete fallan en silencio** — sin excepción, sin texto en rojo: un despliegue que reporta éxito y una consola sutilmente equivocada. Se registran con su síntoma exacto porque el síntoma es lo único que tendrá la próxima persona.
+
+Los seis primeros vinieron de la migración misma. El séptimo vino de operar el sistema ya migrado, y se guarda en la misma lista porque tiene exactamente la misma forma.
 
 **1 — Un despliegue al gateway compartido murió a medias**
 
@@ -925,6 +927,18 @@ Ninguno se ve en el bicep, y **los seis fallan en silencio** — sin excepción,
 *Causa raíz:* renombrar las APIs para el gateway compartido cambió valores hardcodeados por toda la aplicación, no sólo en bicep — `broker/src/config.ts` (el path), los filtros por `ApiId` en `journey.ts` (×2) y `observability.ts` (×2), cuatro puntos de `maintenance.ts`, el mapa de `policy.ts`, y tres cadenas que la consola muestra **a la audiencia**. `ApiManagementGatewayLogs.ApiId` lleva el nombre de la API, así que un literal obsoleto ahí no produce error — sólo un salto que nunca casa.
 
 *Solución:* fuente única. `HOSTED_AGENT_API_PATH`, `HOSTED_AGENT_API_NAME` e `INFERENCE_API_NAME` salen de `config/lab.defaults.psd1` y los fija `deploy.ps1` como app settings. `policy.ts` mantiene **claves estables** de cara a la consola y las mapea a los nombres desplegados del lado del servidor, así los tipos del frontend nunca dependen de cómo se llamen las cosas en el gateway.
+
+**7 — Rotar la clave de suscripción de APIM dejó la demo sin responder nada**
+
+*Síntoma:* tras regenerar la clave y actualizar el app setting, `/api/health` devolvía 200, el sitio cargaba, y `POST /api/ask` devolvía **`httpStatus: 200`** — con `answerText` vacío. Ambos agentes, cualquier pregunta.
+
+*Causa raíz:* la clave de suscripción vive en **dos** sitios, no en uno. El broker la lee de un app setting, y **cada hosted agent la lleva en las variables de entorno del contenedor, fijadas en el momento del registro** (`deploy.ps1` pasa `APIM_SUBSCRIPTION_KEY` al crear una versión de agente). Los agentes llaman de vuelta al modelo por el mismo gateway con esa clave. Rotarla actualizó el broker y dejó a ambos agentes con una clave que el gateway ya no acepta.
+
+*Solución:* re-registrar los agentes — `deploy.ps1` sin `-SkipAgent` crea una versión nueva con la clave nueva. Actualizar sólo el App Service no es una rotación, es la mitad de una.
+
+*Por qué pertenece a esta lista.* La llamada a través de API Management devolvía **HTTP 200**; el fallo estaba en el cuerpo — `status: "failed"`, cero items de salida, `error.code: server_error`. Un health check, e incluso el código HTTP de una invocación real, reportaban éxito sobre una demo que no decía nada. Es la misma trampa que `demoHealthCheckPassed` en ESTADO-PROYECTO.md §7: una señal verde que mide que el proceso vive, no lo que a alguien le importa.
+
+*Y el número honesto:* la rotación se estimó en 26 segundos (actualizar un app setting) y luego en 18 minutos (redespliegue completo). **Costó ~14 minutos de caída real**, porque la estimación era de la operación equivocada — hay que re-registrar los agentes y esperar a que vuelvan a estar activos, y eso no lo evita ninguna velocidad del App Service. Presupuesta un re-registro, no un cambio de ajuste.
 
 ### 8.2 Se diseñó y presupuestó un modo APIM propio, y deliberadamente no se construyó
 

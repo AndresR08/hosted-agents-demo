@@ -241,14 +241,17 @@ adentro y no hermana directa de `broker/`) se mantiene y se da por buena.
   **No uses `teardown.ps1` para quitar un solo recurso del grupo: borra el
   resource group entero.** Para eso es `az apim delete` + `deletedservice purge`.
   **Si vas a tocar la integración con el APIM compartido, lee antes
-  `DECISIONES_DE_DISENO.md` §8.1**: los seis fallos que costó esta migración,
-  con síntoma, causa raíz y solución exacta de cada uno. Los seis fallan en
-  silencio — despliegue en verde y consola equivocada — así que el síntoma es
-  lo único que tendrás. Resumen: mangling de rutas de Git Bash;
+  `DECISIONES_DE_DISENO.md` §8.1**: los siete fallos que costó esta migración y
+  su operación posterior, con síntoma, causa raíz y solución exacta de cada uno.
+  Los siete fallan en silencio — despliegue en verde y consola equivocada — así
+  que el síntoma es lo único que tendrás. Resumen: mangling de rutas de Git Bash;
   `RoleAssignmentUpdateNotPermitted` al migrar en sitio; `$null.Count` bajo
   strict mode en la ruta de éxito; 404 por dos fuentes de verdad del path;
   `logAnalyticsDestinationType: 'Dedicated'` ausente (Observabilidad vacía sin
-  ningún error); y los nombres de API hardcodeados en nueve sitios del código.
+  ningún error); los nombres de API hardcodeados en nueve sitios del código; y
+  rotar la clave de suscripción sin re-registrar los agentes, que devuelve
+  HTTP 200 con el cuerpo vacío y cuesta ~14 minutos de caída, no los segundos
+  que sugiere «actualizar un app setting».
 - **Invocación de los agentes: confirmada manualmente por el mantenedor**
   (2026-08-26). Responden correctamente.
 - **Lab oficial limpio.** Se eliminaron las copias obsoletas del 31-jul de

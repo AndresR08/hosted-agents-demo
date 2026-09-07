@@ -859,9 +859,11 @@ It was checked first rather than assumed idle. Twelve hours of `ApiManagementGat
 
 The two scripts take the same pair on purpose, and they must be given the same values: a teardown reading the config default after a deployment that was pointed elsewhere would look for this lab's resources on the wrong instance, find none, report success, and leave the real ones behind on a gateway it never examined.
 
-### 8.1 Six failures this migration hit, and what each actually was
+### 8.1 Seven failures this migration and its aftermath hit, and what each actually was
 
-None of these are visible in the bicep, and **all six fail silently** — no exception, no red text, just a deployment that reports success and a console that is subtly wrong. They are recorded with their exact symptom because the symptom is the only thing the next person will have.
+None of these are visible in the bicep, and **all seven fail silently** — no exception, no red text, just a deployment that reports success and a console that is subtly wrong. They are recorded with their exact symptom because the symptom is the only thing the next person will have.
+
+The first six came from the migration itself. The seventh came from operating the migrated system afterwards, and is kept in the same list because it has exactly the same shape.
 
 **1 — A deployment to the shared gateway died half-way through**
 
@@ -910,6 +912,18 @@ None of these are visible in the bicep, and **all six fail silently** — no exc
 *Root cause:* renaming the APIs for the shared gateway changed values that were hard-coded across the app, not only in bicep — `broker/src/config.ts` (the path), the `ApiId` filters in `journey.ts` (×2) and `observability.ts` (×2), four spots in `maintenance.ts`, the map in `policy.ts`, and three strings the console shows **to the audience**. `ApiManagementGatewayLogs.ApiId` carries the API name, so a stale literal there produces no error — just a hop that never matches.
 
 *Fix:* single-sourced. `HOSTED_AGENT_API_PATH`, `HOSTED_AGENT_API_NAME` and `INFERENCE_API_NAME` come from `config/lab.defaults.psd1` and are set by `deploy.ps1` as app settings. `policy.ts` keeps **stable keys** facing the console and maps them to deployed names server-side, so the frontend's types never depend on what the gateway happens to call things.
+
+**7 — Rotating the APIM subscription key left the demo answering nothing**
+
+*Symptom:* after regenerating the key and updating the App Service setting, `/api/health` returned 200, the site loaded, and `POST /api/ask` returned **`httpStatus: 200`** — with `answerText` empty. Both agents, every prompt.
+
+*Root cause:* the subscription key lives in **two** places, not one. The broker reads it from an app setting, and **each hosted agent carries it in the container environment variables fixed at registration time** (`deploy.ps1` passes `APIM_SUBSCRIPTION_KEY` when creating an agent version). The agents call the model back through the same gateway with that key. Rotating it updated the broker and left both agents holding a key the gateway no longer accepts.
+
+*Fix:* re-register the agents — `deploy.ps1` without `-SkipAgent` creates a new agent version carrying the new key. Updating the App Service alone is not a rotation, it is half of one.
+
+*Why it belongs in this list.* Calling through API Management returned **HTTP 200**; the failure was in the body — `status: "failed"`, zero output items, `error.code: server_error`. A health check, and even the HTTP status of a real invocation, both reported success over a demo that said nothing. This is the same trap as `demoHealthCheckPassed` in ESTADO-PROYECTO.md §7: a green signal measuring liveness rather than the thing anyone cares about.
+
+*And the honest number:* the rotation was estimated at 26 seconds (update one app setting) and then at 18 minutes (full redeploy). **It took ~14 minutes of real outage**, because the estimate was of the wrong operation — the agents have to be re-registered and become active again, which no amount of App Service speed avoids. Budget for a re-registration, not a setting change.
 
 ### 8.2 A standalone-APIM mode was designed, costed, and deliberately not built
 
