@@ -123,6 +123,19 @@ vez de guía de hoja de producto. Ver `labs/…-automation/docs/06-apim-consumpt
 
 Guion para el presentador: [`GUIA_CAPACIDADES_APIM.md`](../02-presentacion/GUIA_CAPACIDADES_APIM.md).
 
+## 4c. Marca de presentador en el riel (2026-09-07)
+
+La marca de "Controles Empresariales" ahora aparece en el pie del riel de
+navegación — solo la marca geométrica, compuesta contra transparencia, no el
+lockup completo con logotipo (sin contraste contra el fondo oscuro fijo del
+riel en ningún tema). Las nueve pantallas de escenario se volvieron a medir a
+1366×768 antes y después: sin cambios al presupuesto de 0px de contenido
+oculto. Desplegado a producción con un redespliegue de solo código
+(infraestructura, imágenes de agentes y registro de agentes, todos omitidos) y
+verificado en vivo. Detalle completo en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.12 y
+[`HISTORIAL.md`](HISTORIAL.md) punto 15.
+
 ## 5. Arquitectura actual
 
 ```

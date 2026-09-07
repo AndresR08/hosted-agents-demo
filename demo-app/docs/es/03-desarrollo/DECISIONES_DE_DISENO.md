@@ -733,6 +733,70 @@ Anotado aquí y no en §6 porque es la misma forma de "un cambio de modo no
 reinicia del todo el estado derivado", y quien tome lo anterior estará en los
 archivos correctos para verlo.
 
+### 4.12 Una marca de presentador en el pie del riel (2026-09-07)
+
+**Estado: entregado y medido. El presupuesto vertical del riel para las nueve
+pantallas de escenario no se ve afectado por esta construcción, y eso se
+verificó en vez de asumirse.**
+
+El presentador pidió el logo de "Controles Empresariales" en algún lugar
+sutil — su propio marco fue "donde se vea bien y quede discreto", dejando la
+ubicación exacta al criterio de diseño, con la restricción explícita de que no
+podía reabrir el presupuesto de 0px de contenido oculto que documentan
+§4.8/§4.9/§4.11 para las nueve pantallas de escenario (`Sidebar.tsx` es chrome
+compartido — cada pantalla paga por lo que viva ahí).
+
+**Lo que se encontró.** El archivo fuente (`demo-app/logotipo.png`) es un PNG
+RGB plano: una marca geométrica roja más el logotipo "Controles Empresariales"
+en azul marino oscuro, sobre fondo blanco sólido — sin canal alfa, sin
+variante para tema oscuro. Un segundo archivo fuente que el presentador
+proporcionó por separado (`demo-app/logo.png`, una variante apilada) sí tiene
+transparencia real, pero el logotipo es del mismo azul marino oscuro en ambos
+casos, así que no habría cambiado la decisión de abajo; se anota aquí porque
+es una mejor fuente para cualquier uso futuro del lockup *completo* — se
+mencionaron un favicon o una pantalla "acerca de" — y ese archivo se mantiene
+deliberadamente fuera de git por ahora, por instrucción del presentador, hasta
+que exista un segundo uso concreto.
+
+**Por qué solo la marca, no el lockup completo.** El riel es
+`--color-rail: #0b1220` en ambos temas, por diseño (§0.8) — nunca se aclara
+para darle contraste al azul marino oscuro del logotipo. La marca roja,
+extraída y compuesta contra transparencia (un alfa por píxel recuperado de su
+suavizado de bordes contra el fondo blanco de origen, no un chroma key
+binario — ver el commit para el método exacto), contrasta con limpieza contra
+`#0b1220` en ambos temas precisamente porque el riel no cambia entre ellos.
+
+**Dónde vive.** El pie del riel, debajo de los íconos de copiloto/inicio/
+configuración — la propia segunda candidata del presentador, ya el lugar de la
+consola para contexto de bajo protagonismo que no es un dato de la demo (el
+chip del agente objetivo, el indicador Live/Simulación). Discreto
+(`opacity-70`), con tooltip, y deliberadamente fuera del vocabulario de bandas
+de honestidad de §1.6: esto es marca de presentador, no una afirmación sobre
+el despliegue.
+
+**Envolviendo, no truncando** — la misma regla que ya sigue el lockup de marca
+en la parte superior del riel, por la misma razón. "Presentado por Controles
+Empresariales" no cabe en una línea en una columna de 250px; el riel tiene
+espacio vertical de sobra entre la lista de navegación y el pie (medido en
+257px expandido, 343px colapsado, a 1366×768) para gastar en dos líneas en vez
+de puntos suspensivos.
+
+**Verificación, no suposición.** El riel y las nueve pantallas de escenario
+medidas son hermanos flex en una fila de altura fija (`AppShell.tsx`:
+`h-screen overflow-hidden`), así que el presupuesto de contenido de una
+pantalla es arquitectónicamente independiente de lo que renderiza el riel —
+pero esto se midió, no se dio por hecho. Las nueve pantallas (Agentes
+resumen/versiones/ejecutar, Gateway en vivo/credenciales, Observabilidad
+registro/mediciones, Plataforma en vivo/simulación) se sondearon antes y
+después, a 1366×768, con la misma sonda de
+`panel.firstElementChild.offsetHeight` / presupuesto usada en todo este
+documento: números idénticos de contenido, presupuesto y px ocultos en cada
+caso determinista (modo Simulación). Los 51px ya ocultos de Plataforma-
+Simulación (§4.11) no cambiaron — es el mismo defecto de i18n ya conocido, no
+uno nuevo. También se confirmó que el `scrollHeight` del propio riel es igual
+a su `clientHeight` — sin recorte silencioso — expandido, colapsado, y con el
+copiloto abierto.
+
 ---
 
 ## 5. Coreografía de la demo, riesgos y preparación

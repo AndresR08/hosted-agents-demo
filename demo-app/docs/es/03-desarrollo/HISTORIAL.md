@@ -67,6 +67,24 @@ La documentación se reestructuró de nuevo para quedar bilingüe: `docs/es/` (e
 
 Última pasada de calidad antes de publicar: se reemplazó el placeholder de copyright en `LICENSE`, se revisaron ambos README (estructura, navegación, tabla de contenidos, badges enlazados, y una sección "Why this project exists" ampliada) verificando que transmitan el mismo mensaje en los dos idiomas sin ser traducciones literales, se verificaron de nuevo todos los enlaces e imágenes, se corrigieron un par de inconsistencias reales encontradas en `docs/` (texto de estado desactualizado que aún decía "en curso" sobre una reorganización ya completada, y una cita mal escrita al repositorio oficial), y se repitió el barrido de datos sensibles sin encontrar nada nuevo.
 
+## 15. Marca de presentador en el pie del riel (2026-09-07)
+
+Se agregó la marca de "Controles Empresariales" al riel de navegación, a
+pedido del presentador, ubicada de forma sutil en vez de reabrir el lockup de
+marca propio de la consola. Se usó solo la marca geométrica — el logotipo en
+azul marino oscuro no tiene contraste contra el fondo oscuro fijo del riel en
+ningún tema — compuesta contra transparencia y colocada en el pie del riel
+debajo de los íconos de copiloto/inicio/configuración, envolviendo en vez de
+truncar. Las nueve pantallas de escenario se volvieron a medir a 1366×768
+antes y después: números idénticos de contenido/presupuesto/oculto en cada
+caso determinista, confirmando que el cambio al chrome compartido no reabrió
+el presupuesto de 0px de contenido oculto que documentan §4.8/§4.9/§4.11.
+Verificado en vivo contra el despliegue de producción (`/api/health` real, la
+huella propia del bundle construido, y capturas de pantalla) tras un
+redespliegue de solo código que no tocó infraestructura, imágenes de agentes,
+ni el registro de agentes. Detalle técnico completo en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.12.
+
 ## Ver también
 
 - [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) — dónde quedó cada cosa, hoy.

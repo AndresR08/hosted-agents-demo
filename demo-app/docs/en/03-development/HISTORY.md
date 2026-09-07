@@ -67,6 +67,23 @@ Documentation was restructured again to become bilingual: `docs/es/` (the previo
 
 A last quality pass before publishing: the copyright placeholder in `LICENSE` was replaced, both README files were reviewed for structure, navigation, a linked table of contents, and an expanded "Why this project exists" section — checked to convey the same message in both languages without being a literal translation of each other — every link and image was re-verified, a couple of real inconsistencies found in `docs/` were fixed (status text that still said a completed reorganization was "in progress," and a mis-cited link label for the official repository), and the sensitive-data sweep was repeated, finding nothing new.
 
+## 15. Presenter-brand mark in the rail footer (2026-09-07)
+
+Added the "Controles Empresariales" mark to the navigation rail, at the
+presenter's request, placed subtly rather than reopening the console's own
+brand lockup. Only the geometric mark was used — the wordmark's dark navy has
+no contrast against the rail's fixed dark ground in either theme — matted
+against transparency and placed in the rail footer below the
+copilot/home/settings icons, wrapping rather than truncating. All nine stage
+screens were re-measured at 1366×768 before and after: identical
+content/budget/hidden numbers in every deterministic case, confirming the
+shared-chrome change did not reopen the 0px-hidden-content budget §4.8/§4.9/
+§4.11 document. Verified live against the production deployment (real
+`/api/health`, the built bundle's own fingerprint, and screenshots) after a
+code-only redeploy that touched neither infrastructure, agent images, nor
+agent registration. Full technical detail in
+[`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.12.
+
 ## See also
 
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — where everything stands, today.

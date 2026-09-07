@@ -123,6 +123,17 @@ guidance. See `labs/…-automation/docs/06-apim-consumption.md`.
 
 Presenter script: [`APIM_CAPABILITIES_GUIDE.md`](../02-presentation/APIM_CAPABILITIES_GUIDE.md).
 
+## 4c. Presenter-brand mark in the rail (2026-09-07)
+
+The "Controles Empresariales" mark now appears in the navigation rail's
+footer — just the geometric mark, matted against transparency, not the full
+wordmark lockup (no contrast against the rail's fixed dark ground in either
+theme). All nine stage screens were re-measured at 1366×768 before and after:
+no change to the 0px-hidden-content budget. Deployed to production with a
+code-only redeploy (infrastructure, agent images, and agent registration all
+skipped) and verified live. Full detail in [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.12
+and [`HISTORY.md`](HISTORY.md) item 15.
+
 ## 5. Current architecture
 
 ```

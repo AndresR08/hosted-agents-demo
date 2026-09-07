@@ -718,6 +718,66 @@ Logged here rather than in §6 because it is the same "a mode switch does not
 fully reset derived state" shape, and whoever picks up the above will be in the
 right files for it.
 
+### 4.12 A presenter-brand mark in the rail footer (2026-09-07)
+
+**Status: shipped and measured. The rail's vertical budget for the nine stage
+screens is unaffected by construction, and this was verified rather than
+assumed.**
+
+The presenter asked for the "Controles Empresariales" logo somewhere subtle —
+their own framing was "where it looks good and stays quiet," leaving exact
+placement to design judgment, with the explicit constraint that it must not
+reopen the 0px-hidden-content budget §4.8/§4.9/§4.11 document for the nine
+stage screens (`Sidebar.tsx` is shared chrome — every screen pays for whatever
+lives there).
+
+**What was found.** The source file (`demo-app/logotipo.png`) is a flat RGB
+PNG: a red geometric mark plus a "Controles Empresariales" wordmark in dark
+navy, on a solid white background — no alpha, no dark-theme variant. A second
+source file the presenter separately supplied (`demo-app/logo.png`, a
+stacked layout) does carry real alpha transparency, but the wordmark is the
+same dark navy either way, so it would not have changed the decision below;
+noted here because it is a better source for anything using the *full*
+lockup in the future — a favicon or an "about" screen were mentioned — and
+that file is deliberately kept out of git for now, at the presenter's
+instruction, until there's a concrete second use for it.
+
+**Why only the mark, not the full lockup.** The rail is `--color-rail: #0b1220`
+in both themes, by design (§0.8) — it never lightens to give the wordmark's
+dark navy any contrast. The red mark, extracted and matted against transparency
+(a per-pixel alpha recovered from its anti-aliasing against the white source,
+not a hard chroma key — see the commit for the exact method), contrasts
+cleanly against `#0b1220` in both themes precisely because the rail does not
+change between them.
+
+**Where it lives.** The rail footer, below the copilot/home/settings icons —
+the presenter's own second candidate, already the console's home for
+low-key, non-demo context (the target-agent chip, the Live/Simulation
+indicator). Muted (`opacity-70`), tooltip-labelled, and deliberately outside
+the honesty-band vocabulary of §1.6: this is presenter attribution, not a
+claim about the deployment.
+
+**Wrapping, not truncating** — the same rule the brand lockup at the top of
+the rail follows, for the same reason. "Presented by Controles Empresariales"
+does not fit one line in a 250px column; the rail has spare vertical space
+between the nav list and the footer (measured at 257px expanded, 343px
+collapsed, at 1366×768) to spend on two lines rather than an ellipsis.
+
+**Verification, not assumption.** The rail and the nine measured stage
+screens are flex siblings in a fixed-height row (`AppShell.tsx`: `h-screen
+overflow-hidden`), so a screen's content budget is architecturally
+independent of what the rail renders — but this was measured, not taken on
+faith. All nine screens (Agents overview/versions/run, Gateway
+live/credentials, Observability record/measurements, Platform
+live/simulation) were probed before and after, at 1366×768, with the same
+`panel.firstElementChild.offsetHeight` / budget probe used throughout this
+document: identical content, budget, and hidden-px numbers in every
+deterministic (Simulation-mode) case. Platform-Simulation's pre-existing
+51px-hidden gap (§4.11) is unchanged — the same known i18n defect, not a new
+one. The rail's own `scrollHeight` was also confirmed equal to its
+`clientHeight` — no silent clipping — expanded, collapsed, and with the
+copilot open.
+
 ---
 
 ## 5. Demo choreography, risks, and prep
