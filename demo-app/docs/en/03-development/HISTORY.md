@@ -96,14 +96,24 @@ block at the top; the attribution line stayed in the footer, because a crimson
 mark alone beside "Microsoft Foundry Hosted Agents" reads as a claim of
 authorship and the words are what prevent it.
 
+The pink lasted one commit. Promoting the mark had put the presenter's crimson
+40px above the nav list, and the two are the same hue — 15.9° apart, ΔE2000
+10.3. The active section moved to the indigo, 77.8° and ΔE2000 38.0 away, and
+the pink tokens were deleted. Worth carrying forward from that: the collision
+was first reported as a 1.17:1 contrast ratio, which is the wrong instrument —
+WCAG contrast measures luminance and is blind to hue, and crimson against
+indigo measures 1.17:1 too. Two colours that are hard to tell apart are not
+the same finding as two colours that are the same colour.
+
 Three things are worth carrying forward. The mockup painted "healthy/live"
 green and that did not come across — `affirm` is still exactly one use, the
 401, confirmed by a before/after census rather than by assertion. One supplied
 value failed its own contrast check (`#4f46e5` at 2.87:1 on the rail ground)
 and is used lifted to `#7b74ec` for the two marks that sit on that ground —
 the second time a mockup palette has needed correcting for a projector. And
-the nine stage screens were re-measured in both rail states and both modes:
-32 measurements, all identical to the baseline. Full technical detail in
+the nine stage screens were re-measured in both rail states and both modes,
+once per cut: 64 measurements across two passes, all identical to the
+baseline and to each other. Full technical detail in
 [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.13.
 
 Found while measuring, unrelated to the change and more consequential than it:

@@ -139,18 +139,28 @@ verificado en vivo. Detalle completo en
 ## 4d. Paleta del riel, y la marca promovida al bloque de marca (2026-09-10)
 
 El riel de navegación tomó una paleta aportada — fondo ciruela `#17132b`,
-rosa `#e2196f` para la sección activa, índigo `#4f46e5` para "en vivo" — y la
-marca del presentador pasó del pie del riel al bloque de marca de arriba,
-quedándose la línea de atribución en el pie. `Sidebar.tsx` y el bloque
-`--color-rail-*` son todo el cambio; ningún otro color de la consola se tocó.
+índigo `#4f46e5` para la sección activa y para "en vivo" — y la marca del
+presentador pasó del pie del riel al bloque de marca de arriba, quedándose la
+línea de atribución en el pie. `Sidebar.tsx` y el bloque `--color-rail-*` son
+todo el cambio; ningún otro color de la consola se tocó.
+
+El rosa `#e2196f` de la paleta fue la sección activa durante un commit y se
+retiró: promover la marca puso el carmesí del presentador 40px por encima, y
+los dos son el mismo tono (15.9° de separación, ΔE2000 10.3). El índigo está a
+78° y ΔE2000 38.0 de la marca. La relación de contraste que reportó la
+colisión al principio era el instrumento equivocado — mide luminancia y es
+ciega al tono.
 
 El verde no se importó del mockup de referencia: `affirm` sigue siendo
 **exactamente un uso** en el código (`StatusPill.tsx`, el 401), verificado por
 censo antes y después. Un valor de la paleta no se adoptó literal — `#4f46e5`
 mide 2.87:1 sobre el fondo del riel y se usa a `#7b74ec` (4.77:1) para las dos
-marcas que se apoyan directamente sobre él. Las nueve pantallas remedidas a
-1366×768, ambos estados del riel y ambos modos: 32 mediciones, todas idénticas
-a la línea base. Detalle completo en
+marcas que se apoyan directamente sobre él. El mismo 2.87:1 aplica al borde
+del relleno del ítem activo, que queda bajo la barra de 3:1 y se compensa con
+la etiqueta pasando a blanco puro, no con el relleno solo — leer §4.13 antes
+de tocarlo. Las nueve pantallas remedidas a 1366×768, ambos estados del riel y
+ambos modos: 32 mediciones, ejecutadas dos veces (corte rosa, luego índigo),
+ambas idénticas a la línea base. Detalle completo en
 [`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.13.
 
 **No desplegado.** Retenido por instrucción del presentador a la espera de la

@@ -816,12 +816,22 @@ The single `text-affirm` is `components/StatusPill.tsx:23`, rendered from
 `features/gateway/CredentialTestStop.tsx` and nowhere else. Green is still one
 use, and it is still the 401.
 
-**Two accents where the rail used to borrow one.** The rail took
+**The rail's own accent, and the pink that lasted one commit.** The rail took
 `--color-accent` for the active section, a pressed control and the Live
-indicator alike — one colour making three claims. The palette separates them
-and the separation is worth keeping: `rail-accent` (pink `#e2196f`) is *where
-you are*, exactly one on screen; `rail-live` (indigo `#4f46e5`) is *what is
-on*. Nothing outside `Sidebar.tsx` uses either.
+indicator alike — one colour making three claims. The supplied palette
+separates them, and the first cut of this work kept the separation:
+`rail-accent` (pink `#e2196f`) for *where you are*, `rail-live` (indigo
+`#4f46e5`) for *what is on*. The pink did not survive review — see "the
+collision" below. Both roles are now `rail-live`, at two lightnesses, and
+nothing outside `Sidebar.tsx` uses it.
+
+That means the active section and a pressed toggle are again one colour
+saying two things, which is exactly what this change set out to fix. It is
+worth being clear that this is a return to the arrangement the rail always
+had — `--color-accent` did the same double duty and was never a reported
+problem — and that the two live in different regions of the rail, the nav
+list and the footer icon row. The semantic split was the nicer idea; it lost
+to a constraint it could not have known about.
 
 **Contrast was measured, not inherited.** The palette arrived from a mockup,
 and the last time that happened two of its values did not clear AA (§0.2:
@@ -833,22 +843,50 @@ value actually sits on:
 | `#f4f2f8` ink on `#17132b` | 16.23:1 | passes |
 | `#a49dc2` muted on `#17132b` | 7.02:1 | passes |
 | `#a49dc2` muted on `#251f42` hover | 6.04:1 | passes |
-| white on `#e2196f` | 4.56:1 | passes |
-| `#f4f2f8` on `#e2196f` | 4.11:1 | **fails — the active item uses pure white, not the rail's ink** |
-| `#e2196f` as a block on the rail | 3.95:1 | above the 3:1 graphical bar |
-| white on `#4f46e5` | 6.29:1 | passes |
-| `#4f46e5` as a mark on the rail | 2.87:1 | **fails even 3:1 — see below** |
+| white on `#4f46e5` (the active item) | 6.29:1 | passes |
+| `#f4f2f8` on `#4f46e5` | 5.66:1 | passes — white is used anyway, being the brighter of two |
+| white on `#4338ca` hover | 7.90:1 | passes |
+| `#f4f2f8` focus ring on `#17132b` | 16.23:1 | passes |
+| `#f4f2f8` focus ring on the `#4f46e5` fill | 5.66:1 | passes |
+| `#4f46e5` as a block on the rail | 2.87:1 | **under the 3:1 bar — see below** |
+| `#7b74ec` as a mark on the rail | 4.77:1 | passes |
 | the crimson mark on `#17132b` | 3.37:1 | above the 3:1 graphical bar |
 
-**One value is not the palette's verbatim, and this is the reason the check
-was run.** `#4f46e5` measures 2.87:1 directly on `#17132b`. As a fill under
-white text that is irrelevant, but the Live indicator is an 8px dot and the
-target-agent glyph is 14px, and both sit *on* the rail ground: at 2.87:1 the
-console's permanent "am I looking at live Azure" signal would be one the back
-of a room cannot resolve. `--color-rail-live-mark` is therefore the same
-indigo lifted 25% toward white — `#7b74ec`, 4.77:1 — used for those two marks
-only. Same hue, same family, not a third colour; the precedent is `#6B7A99`
+For the record, the pink that was replaced measured 4.56:1 under white,
+4.11:1 under the rail's own ink (which is why the active item took pure white
+and still does), and 3.95:1 as a block on the rail.
+
+**Two numbers that are not comfortable, and are written down so nobody has to
+rediscover them.**
+
+*First, the fill boundary.* `#4f46e5` as a block on `#17132b` is 2.87:1 —
+under the 3:1 that 1.4.11 asks of a component state conveyed by colour, and
+weaker than the 3.95:1 the pink had. The active item is not resting on that
+boundary alone: three things change together, the fill appearing, the label
+going from `rail-ink-muted` (7.02:1) to pure white (16.23:1), and the icon
+with it. That is what carries "you are here" the rest of the way, and it is
+why the `text-white` on the active item must not be quietly relaxed back to
+`rail-ink` on the theory that the fill says enough. If the boundary ever has
+to clear the bar on its own, lifting the fill 5% toward white — `#584fe6` —
+buys 3.16:1 on the ground while keeping 5.71:1 under white text. Not done,
+because it is a deviation from a supplied value and the compensations above
+are real.
+
+*Second, the mark stop.* `--color-rail-live-mark` is the one value not taken
+from the supplied palette verbatim. `#4f46e5` at 2.87:1 is survivable as a
+fill under white text; as the 8px Live dot and the 14px target-agent glyph —
+which sit *on* the rail ground with no text to carry them — it would make the
+console's permanent "am I looking at live Azure" signal one the back of a room
+cannot resolve. Those two use the same indigo lifted 25% toward white,
+`#7b74ec`, 4.77:1. Same hue, not a third colour; the precedent is `#6B7A99`
 darkened to `#5A6884` in §0.2 for exactly the same reason.
+
+**The focus ring is `rail-ink`, and that is a consequence rather than a
+preference.** A ring has to read against the rail ground *and* against the
+fill it surrounds, and the active item — the indigo fill — is where a keyboard
+user lands first. An accent ring on an accent fill does not work: the pink
+ring the first cut used measures 1.38:1 against this indigo. The rail's own
+ink clears both surfaces (16.23:1 and 5.66:1) and introduces no colour.
 
 **The rail is still fixed-dark in both themes.** §0.8's argument is untouched
 and was re-checked in captures: nothing in the `--color-rail-*` block is
@@ -885,18 +923,39 @@ attribution, not a claim about the deployment. Collapsed there is no room for
 words, so the tooltip on the mark carries both the product name and the
 attribution.
 
-**An open collision, stated rather than fixed.** The mark's crimson
-(`#d50243`) and the active-item pink (`#e2196f`) measure **1.17:1 against each
-other** — the same colour to any audience. They now sit within 40px, the mark
-directly above the nav list. The rail reads correctly because the two differ
-in *form* (a shape on the ground versus a filled pill), not in hue. Fixing it
-properly means changing one of them, and both were specified: the pink by
-instruction, the crimson by the presenter's brand. Flagged for the review of
-the captures.
+**The collision, and the wrong instrument that nearly hid it.** Promoting the
+mark put the presenter's crimson (`#d50243`) 40px above a nav list whose
+active item was the palette's pink (`#e2196f`). Two colours from the same
+family, one above the other, one of them meaning "you are here" and the other
+meaning nothing at all.
+
+It was first reported here as "1.17:1 against each other". That number is
+correct and it is the wrong instrument, in a way worth keeping on the record:
+**WCAG contrast is a luminance ratio and is blind to hue.** Crimson against
+*indigo* also measures 1.17:1, and those two are obviously different colours.
+A contrast ratio can say two colours are hard to tell apart by brightness; it
+cannot say they are the same colour. The measure that can is hue angle and
+perceptual difference:
+
+| | hue gap | ΔE2000 |
+|---|---|---|
+| mark `#d50243` vs pink `#e2196f` | 15.9° | 10.3 |
+| mark `#d50243` vs indigo `#4f46e5` | 77.8° | **38.0** |
+
+**Resolved by moving the active item to the indigo**, at the presenter's
+instruction, on the second pass. The mark keeps its crimson — it is not ours
+to change — and the nav accent moves 78° away from it, 3.7× further apart
+perceptually. `--color-rail-accent` and `--color-rail-accent-hover` were
+deleted rather than left unused. What it cost is written up under "the rail's
+own accent" above and under the fill boundary below: the active section and a
+pressed toggle share a colour again, and the fill's own boundary against the
+ground drops from 3.95:1 to 2.87:1.
 
 **Verification.** Same probe, same floor, same nine screens, both rail states
-and both modes — 32 measurements, all of them **identical to the pre-change
-baseline** in content, budget, hidden px and margin. Platform-Simulation's
+and both modes — 32 measurements, run **twice**: once on the pink cut and
+again after the move to indigo. Both passes are **identical to the pre-change
+baseline** in content, budget, hidden px and margin, and identical to each
+other. Platform-Simulation's
 known i18n gap (§4.11) reproduced at exactly 51px hidden expanded, which is
 what says the rig is measuring the same thing this document has been measuring
 all along; it is unchanged, not new. The rail's own `scrollHeight` equals its

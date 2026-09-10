@@ -835,12 +835,22 @@ El único `text-affirm` es `components/StatusPill.tsx:23`, renderizado desde
 `features/gateway/CredentialTestStop.tsx` y desde ningún otro sitio. El verde
 sigue siendo un solo uso, y sigue siendo el 401.
 
-**Dos acentos donde el riel tomaba prestado uno.** El riel usaba
+**El acento propio del riel, y el rosa que duró un commit.** El riel usaba
 `--color-accent` para la sección activa, un control presionado y el indicador
-Live por igual — un color haciendo tres afirmaciones. La paleta los separa y
-la separación vale la pena: `rail-accent` (rosa `#e2196f`) es *dónde estás*,
-exactamente uno en pantalla; `rail-live` (índigo `#4f46e5`) es *qué está
-encendido*. Nada fuera de `Sidebar.tsx` usa ninguno de los dos.
+Live por igual — un color haciendo tres afirmaciones. La paleta aportada los
+separa, y el primer corte de este trabajo mantuvo la separación:
+`rail-accent` (rosa `#e2196f`) para *dónde estás*, `rail-live` (índigo
+`#4f46e5`) para *qué está encendido*. El rosa no sobrevivió a la revisión —
+ver "la colisión" más abajo. Ambos roles son ahora `rail-live`, en dos
+luminosidades, y nada fuera de `Sidebar.tsx` lo usa.
+
+Eso significa que la sección activa y un toggle presionado vuelven a ser un
+color diciendo dos cosas, que es justo lo que este cambio se proponía
+arreglar. Conviene ser claro: es un regreso al arreglo que el riel siempre
+tuvo — `--color-accent` hacía la misma doble función y nunca se reportó como
+problema — y los dos viven en regiones distintas del riel, la lista de
+navegación y la fila de iconos del pie. La separación semántica era la idea
+más bonita; perdió contra una restricción que no podía conocer.
 
 **El contraste se midió, no se heredó.** La paleta venía de un mockup, y la
 última vez que eso pasó dos de sus valores no pasaron AA (§0.2: `#2F6FED` a
@@ -852,23 +862,51 @@ valor se apoya realmente:
 | tinta `#f4f2f8` sobre `#17132b` | 16.23:1 | pasa |
 | apagado `#a49dc2` sobre `#17132b` | 7.02:1 | pasa |
 | apagado `#a49dc2` sobre hover `#251f42` | 6.04:1 | pasa |
-| blanco sobre `#e2196f` | 4.56:1 | pasa |
-| `#f4f2f8` sobre `#e2196f` | 4.11:1 | **falla — el ítem activo usa blanco puro, no la tinta del riel** |
-| `#e2196f` como bloque sobre el riel | 3.95:1 | por encima de la barra gráfica de 3:1 |
-| blanco sobre `#4f46e5` | 6.29:1 | pasa |
-| `#4f46e5` como marca sobre el riel | 2.87:1 | **falla incluso 3:1 — ver abajo** |
+| blanco sobre `#4f46e5` (el ítem activo) | 6.29:1 | pasa |
+| `#f4f2f8` sobre `#4f46e5` | 5.66:1 | pasa — se usa blanco igual, por ser el más brillante de dos |
+| blanco sobre hover `#4338ca` | 7.90:1 | pasa |
+| anillo de foco `#f4f2f8` sobre `#17132b` | 16.23:1 | pasa |
+| anillo de foco `#f4f2f8` sobre el relleno `#4f46e5` | 5.66:1 | pasa |
+| `#4f46e5` como bloque sobre el riel | 2.87:1 | **bajo la barra de 3:1 — ver abajo** |
+| `#7b74ec` como marca sobre el riel | 4.77:1 | pasa |
 | la marca carmesí sobre `#17132b` | 3.37:1 | por encima de la barra gráfica de 3:1 |
 
-**Un valor no es el literal de la paleta, y esa es la razón de haber hecho la
-comprobación.** `#4f46e5` mide 2.87:1 directamente sobre `#17132b`. Como
-relleno bajo texto blanco eso es irrelevante, pero el indicador Live es un
-punto de 8px y el glifo del agente objetivo mide 14px, y ambos se apoyan
-*sobre* el fondo del riel: a 2.87:1, la señal permanente de "¿estoy viendo
-Azure en vivo?" sería una que el fondo de la sala no puede resolver.
-`--color-rail-live-mark` es por tanto el mismo índigo levantado un 25% hacia
-el blanco — `#7b74ec`, 4.77:1 — usado solo para esas dos marcas. Mismo tono,
-misma familia, no un tercer color; el precedente es `#6B7A99` oscurecido a
-`#5A6884` en §0.2 por exactamente la misma razón.
+Para el registro, el rosa reemplazado medía 4.56:1 bajo blanco, 4.11:1 bajo
+la tinta propia del riel (por eso el ítem activo tomó blanco puro y lo
+mantiene), y 3.95:1 como bloque sobre el riel.
+
+**Dos números que no son cómodos, y quedan escritos para que nadie tenga que
+redescubrirlos.**
+
+*Primero, el borde del relleno.* `#4f46e5` como bloque sobre `#17132b` es
+2.87:1 — bajo el 3:1 que 1.4.11 pide a un estado de componente transmitido
+por color, y más débil que el 3.95:1 que tenía el rosa. El ítem activo no se
+apoya solo en ese borde: cambian tres cosas a la vez, aparece el relleno, la
+etiqueta pasa de `rail-ink-muted` (7.02:1) a blanco puro (16.23:1), y el icono
+con ella. Eso es lo que lleva el "estás aquí" el resto del camino, y es la
+razón por la que el `text-white` del ítem activo no debe relajarse en silencio
+a `rail-ink` bajo la teoría de que el relleno ya dice bastante. Si el borde
+alguna vez tiene que pasar la barra por sí solo, levantar el relleno un 5%
+hacia blanco — `#584fe6` — compra 3.16:1 sobre el fondo manteniendo 5.71:1
+bajo texto blanco. No hecho, porque es desviarse de un valor aportado y las
+compensaciones de arriba son reales.
+
+*Segundo, la parada de marca.* `--color-rail-live-mark` es el único valor no
+tomado literal de la paleta aportada. `#4f46e5` a 2.87:1 es tolerable como
+relleno bajo texto blanco; como punto Live de 8px y glifo del agente de 14px
+— que se apoyan *sobre* el fondo del riel sin texto que los sostenga — haría
+que la señal permanente de "¿estoy viendo Azure en vivo?" fuera una que el
+fondo de la sala no puede resolver. Esos dos usan el mismo índigo levantado un
+25% hacia blanco, `#7b74ec`, 4.77:1. Mismo tono, no un tercer color; el
+precedente es `#6B7A99` oscurecido a `#5A6884` en §0.2 por la misma razón.
+
+**El anillo de foco es `rail-ink`, y eso es una consecuencia, no una
+preferencia.** Un anillo tiene que leerse contra el fondo del riel *y* contra
+el relleno que rodea, y el ítem activo — el relleno índigo — es donde aterriza
+primero quien navega por teclado. Un anillo de acento sobre un relleno de
+acento no funciona: el anillo rosa del primer corte mide 1.38:1 contra este
+índigo. La tinta propia del riel pasa en ambas superficies (16.23:1 y 5.66:1)
+y no introduce color.
 
 **El riel sigue siendo oscuro fijo en ambos temas.** El argumento de §0.8
 queda intacto y se volvió a comprobar en capturas: nada del bloque
@@ -906,19 +944,39 @@ honestidad de §1.6 — atribución del presentador, no una afirmación sobre el
 despliegue. Colapsado no hay sitio para palabras, así que el tooltip de la
 marca lleva el nombre del producto y la atribución.
 
-**Una colisión abierta, declarada en vez de corregida.** El carmesí de la
-marca (`#d50243`) y el rosa del ítem activo (`#e2196f`) miden **1.17:1 entre
-sí** — el mismo color para cualquier audiencia. Ahora conviven a menos de
-40px, con la marca justo encima de la lista de navegación. El riel se lee
-correctamente porque los dos difieren en *forma* (una silueta sobre el fondo
-frente a una píldora rellena), no en tono. Arreglarlo de verdad implica
-cambiar uno de los dos, y ambos vienen especificados: el rosa por
-instrucción, el carmesí por la marca del presentador. Señalado para la
-revisión de las capturas.
+**La colisión, y el instrumento equivocado que casi la esconde.** Promover la
+marca puso el carmesí del presentador (`#d50243`) 40px por encima de una lista
+de navegación cuyo ítem activo era el rosa de la paleta (`#e2196f`). Dos
+colores de la misma familia, uno sobre otro, uno significando "estás aquí" y
+el otro no significando nada.
+
+Aquí se reportó primero como "1.17:1 entre sí". Ese número es correcto y es el
+instrumento equivocado, de un modo que vale la pena dejar registrado: **el
+contraste WCAG es una relación de luminancia y es ciego al tono.** El carmesí
+contra el *índigo* también mide 1.17:1, y esos dos son obviamente colores
+distintos. Una relación de contraste puede decir que dos colores cuestan de
+distinguir por brillo; no puede decir que son el mismo color. La medida que sí
+puede es el ángulo de tono y la diferencia perceptual:
+
+| | separación de tono | ΔE2000 |
+|---|---|---|
+| marca `#d50243` vs rosa `#e2196f` | 15.9° | 10.3 |
+| marca `#d50243` vs índigo `#4f46e5` | 77.8° | **38.0** |
+
+**Resuelto moviendo el ítem activo al índigo**, por instrucción del
+presentador, en la segunda pasada. La marca conserva su carmesí — no es
+nuestro para cambiarlo — y el acento de navegación se aleja 78° de ella, 3,7×
+más lejos perceptualmente. `--color-rail-accent` y `--color-rail-accent-hover`
+se borraron en lugar de dejarse sin uso. Lo que costó está escrito arriba en
+"el acento propio del riel" y abajo en el borde del relleno: la sección activa
+y un toggle presionado vuelven a compartir color, y el borde propio del
+relleno contra el fondo baja de 3.95:1 a 2.87:1.
 
 **Verificación.** Misma sonda, mismo suelo, mismas nueve pantallas, ambos
-estados del riel y ambos modos — 32 mediciones, todas **idénticas a la línea
-base previa al cambio** en contenido, presupuesto, px ocultos y margen. La
+estados del riel y ambos modos — 32 mediciones, ejecutadas **dos veces**: una
+sobre el corte rosa y otra tras el paso al índigo. Ambas pasadas son
+**idénticas a la línea base previa al cambio** en contenido, presupuesto, px
+ocultos y margen, e idénticas entre sí. La
 laguna de i18n conocida de Plataforma-Simulación (§4.11) se reprodujo en
 exactamente 51px ocultos expandido, que es lo que dice que el instrumento está
 midiendo lo mismo que este documento lleva midiendo desde el principio; no

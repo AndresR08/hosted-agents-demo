@@ -136,20 +136,29 @@ and [`HISTORY.md`](HISTORY.md) item 15.
 
 ## 4d. Rail palette, and the mark promoted to the brand block (2026-09-10)
 
-The navigation rail took a supplied palette — plum ground `#17132b`, pink
-`#e2196f` for the active section, indigo `#4f46e5` for "live" — and the
-presenter's mark moved from the rail footer to the brand block at the top,
-with the attribution line staying in the footer. `Sidebar.tsx` and the
-`--color-rail-*` block are the whole change; every other colour in the console
-is untouched.
+The navigation rail took a supplied palette — plum ground `#17132b`, indigo
+`#4f46e5` for the active section and for "live" — and the presenter's mark
+moved from the rail footer to the brand block at the top, with the attribution
+line staying in the footer. `Sidebar.tsx` and the `--color-rail-*` block are
+the whole change; every other colour in the console is untouched.
+
+The palette's pink `#e2196f` was the active section for one commit and was
+withdrawn: promoting the mark put the presenter's crimson 40px above it, and
+the two are the same hue (15.9° apart, ΔE2000 10.3). Indigo is 77.8° and
+ΔE2000 38.0 from the mark. The contrast ratio that first reported the
+collision was the wrong instrument for it — it measures luminance and is blind
+to hue.
 
 Green did not come across from the reference mockup: `affirm` is still
 **exactly one use** in the codebase (`StatusPill.tsx`, the 401), verified by
 census before and after. One palette value was not adopted verbatim —
 `#4f46e5` measures 2.87:1 on the rail ground and is used at `#7b74ec` (4.77:1)
-for the two marks that sit directly on it. All nine screens re-measured at
-1366×768, both rail states and both modes: 32 measurements, all identical to
-the baseline. Full detail in [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.13.
+for the two marks that sit directly on it. The same 2.87:1 applies to the
+active item's fill boundary, which is under the 3:1 bar and compensated by the
+label going to pure white rather than by the fill alone — see §4.13 before
+touching it. All nine screens re-measured at 1366×768, both rail states and
+both modes: 32 measurements, run twice (pink cut, then indigo), both identical
+to the baseline. Full detail in [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.13.
 
 **Not deployed.** Held at the presenter's instruction pending review of the
 captures.

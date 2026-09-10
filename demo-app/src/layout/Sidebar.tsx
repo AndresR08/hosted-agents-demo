@@ -68,19 +68,27 @@ const ICONS: Record<SectionId, ComponentType<{ fontSize?: number }>> = {
  * reason and are never redefined under `.dark`. This did not change when the
  * palette did — the rail is still fixed-dark in light and dark theme alike.
  *
- * WHY THE RAIL HAS TWO ACCENTS AND THE REST OF THE CONSOLE HAS ONE
+ * WHY THE RAIL HAS ITS OWN ACCENT AND WHY IT IS INDIGO
  *
- * The rail used to borrow `--color-accent` for the active section, a pressed
- * control and the Live indicator alike — one colour making three different
- * claims. `theme/index.css` now splits them: `rail-accent` (pink) is *where
- * you are*, `rail-live` (indigo) is *what is on*. Nothing outside this file
- * uses either; the four sections, the tables and the badges are on the same
- * `--color-accent` they were.
+ * The rail marks three things — the active section, a pressed control, the
+ * Live indicator — and used to borrow `--color-accent` for all of them. It
+ * now uses `--color-rail-live` instead, at two lightnesses. Nothing outside
+ * this file uses it; the four sections, the tables and the badges are on the
+ * same `--color-accent` they were.
  *
- * `rail-live` is indigo and not green on purpose. The palette came from a
- * dashboard that paints "healthy" green; `--color-affirm` here is the 401
- * rejection and nothing else (§4.4/§4.5), and a second green would undo the
- * F4 audit in one step. See the token block in `theme/index.css`.
+ * The colour is indigo for two independent reasons, and both are worth
+ * knowing before anyone changes it back:
+ *
+ *  - Not green, because the reference palette this came from paints
+ *    "healthy/live" green and `--color-affirm` here is the 401 rejection and
+ *    nothing else (§4.4/§4.5). A second green undoes the F4 audit in one step.
+ *  - Not the pink it briefly was, because the presenter's crimson mark sits
+ *    40px above the nav list and pink is the same hue as it — 15.9° apart,
+ *    ΔE2000 10.3. Indigo is 77.8° and ΔE2000 38.0 from the mark. See §4.13.
+ *
+ * The focus ring is `rail-ink`, not an accent: it has to read against the
+ * rail ground *and* against the indigo fill it surrounds, and an accent ring
+ * on an accent fill does not.
  *
  * WHY THE FOUR SECTIONS STAY FLAT
  *
@@ -262,16 +270,27 @@ export function Sidebar({ className }: { className?: string }) {
               className={cn(
                 "flex w-full items-center gap-2.5 rounded-[10px] text-caption font-semibold",
                 "transition-colors duration-150 motion-reduce:transition-none",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rail-accent",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rail-ink",
                 collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5",
                 /*
-                  `text-white`, not `text-rail-ink`: the rail's off-white
-                  measures 4.11:1 on this pink and pure white measures 4.56:1.
-                  The one string in the rail that sits on a coloured plate is
-                  the one string that cannot use the rail's own ink.
+                  Three things change at once here, and that is deliberate:
+                  the fill appears, the label goes from `rail-ink-muted` to
+                  pure white, and the icon goes with it. The fill alone
+                  measures 2.87:1 against the rail ground — under the 3:1 bar
+                  a state conveyed by colour has to clear — so the label's
+                  jump from 7.02:1 to 16.23:1 is not decoration, it is what
+                  carries "you are here" the rest of the way. Do not quietly
+                  drop it back to `rail-ink` on the theory that the fill says
+                  enough.
+
+                  `text-white` rather than `text-rail-ink` is only a margin
+                  call at this point (6.29:1 against 5.66:1, both AA); it was
+                  load-bearing when the fill was pink and 4.11:1, and is kept
+                  because the brighter of two passing values is the right
+                  default at the back of a room.
                 */
                 isActive
-                  ? "bg-rail-accent text-white hover:bg-rail-accent-hover"
+                  ? "bg-rail-live text-white hover:bg-rail-live-hover"
                   : "text-rail-ink-muted hover:bg-rail-hover hover:text-rail-ink",
               )}
             >
@@ -476,13 +495,7 @@ function RailIconButton({
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
           "transition-colors duration-150 motion-reduce:transition-none",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rail-accent",
-          /*
-            `rail-live`, not `rail-accent`. Pink is reserved for the one thing
-            that answers "where am I" — the active section — and there is
-            exactly one of those on screen. A pressed toggle answers "what is
-            on", which is the indigo's job, the same job the Live dot has.
-          */
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rail-ink",
           pressed
             ? "bg-rail-live text-white hover:bg-rail-live-hover"
             : "text-rail-ink-muted hover:bg-rail-hover hover:text-rail-ink",

@@ -97,6 +97,16 @@ al bloque de marca de arriba; la línea de atribución se quedó en el pie,
 porque una marca carmesí sola junto a "Microsoft Foundry Hosted Agents" se lee
 como una afirmación de autoría y las palabras son lo que lo impide.
 
+El rosa duró un commit. Promover la marca había puesto el carmesí del
+presentador 40px por encima de la lista de navegación, y los dos son el mismo
+tono — 15.9° de separación, ΔE2000 10.3. La sección activa pasó al índigo, a
+77.8° y ΔE2000 38.0 de distancia, y los tokens rosas se borraron. Lo que vale
+la pena llevarse de ahí: la colisión se reportó primero como una relación de
+contraste de 1.17:1, que es el instrumento equivocado — el contraste WCAG mide
+luminancia y es ciego al tono, y el carmesí contra el índigo también mide
+1.17:1. Dos colores difíciles de distinguir no son el mismo hallazgo que dos
+colores que son el mismo color.
+
 Tres cosas vale la pena llevarse. El mockup pintaba de verde "saludable/en
 vivo" y eso no se importó — `affirm` sigue siendo exactamente un uso, el 401,
 confirmado con un censo antes/después y no por afirmación. Un valor aportado
@@ -104,7 +114,8 @@ no pasó su propia comprobación de contraste (`#4f46e5` a 2.87:1 sobre el fondo
 del riel) y se usa levantado a `#7b74ec` para las dos marcas que se apoyan en
 ese fondo — la segunda vez que hay que corregir la paleta de un mockup para un
 proyector. Y las nueve pantallas de escenario se remidieron en ambos estados
-del riel y ambos modos: 32 mediciones, todas idénticas a la línea base.
+del riel y ambos modos, una vez por corte: 64 mediciones en dos pasadas, todas
+idénticas a la línea base y entre sí.
 Detalle técnico completo en
 [`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.13.
 
