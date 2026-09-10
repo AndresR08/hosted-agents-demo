@@ -13,7 +13,6 @@ import {
   BotFilled,
   BotRegular,
   ChatRegular,
-  CubeRegular,
   HomeRegular,
   PulseRegular,
   ServerRegular,
@@ -66,7 +65,22 @@ const ICONS: Record<SectionId, ComponentType<{ fontSize?: number }>> = {
  * §0.8. It reads as deliberate rather than as a theme bug, and it gives the
  * console a fixed anchor that does not move when a presenter switches theme
  * mid-session. The `--color-rail-*` tokens are absolute for exactly that
- * reason and are never redefined under `.dark`.
+ * reason and are never redefined under `.dark`. This did not change when the
+ * palette did — the rail is still fixed-dark in light and dark theme alike.
+ *
+ * WHY THE RAIL HAS TWO ACCENTS AND THE REST OF THE CONSOLE HAS ONE
+ *
+ * The rail used to borrow `--color-accent` for the active section, a pressed
+ * control and the Live indicator alike — one colour making three different
+ * claims. `theme/index.css` now splits them: `rail-accent` (pink) is *where
+ * you are*, `rail-live` (indigo) is *what is on*. Nothing outside this file
+ * uses either; the four sections, the tables and the badges are on the same
+ * `--color-accent` they were.
+ *
+ * `rail-live` is indigo and not green on purpose. The palette came from a
+ * dashboard that paints "healthy" green; `--color-affirm` here is the 401
+ * rejection and nothing else (§4.4/§4.5), and a second green would undo the
+ * F4 audit in one step. See the token block in `theme/index.css`.
  *
  * WHY THE FOUR SECTIONS STAY FLAT
  *
@@ -162,7 +176,7 @@ export function Sidebar({ className }: { className?: string }) {
         className,
       )}
     >
-      {/* Brand. The icon is the constant; the words are what folds away. */}
+      {/* Brand. The mark is the constant; the words are what folds away. */}
       {/*
         items-start, not items-center: the tagline wraps to several lines in a
         250px column and a centred mark ends up floating in the middle of the
@@ -177,12 +191,39 @@ export function Sidebar({ className }: { className?: string }) {
           collapsed ? "justify-center" : "items-start px-1",
         )}
       >
-        <span
-          className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] bg-accent text-white"
-          aria-hidden="true"
-        >
-          <CubeRegular fontSize={20} />
-        </span>
+        {/*
+          The presenter's mark, promoted here from the rail footer.
+
+          It is NOT tinted, boxed or given a coloured plate: it carries its own
+          crimson, which measures 3.37:1 on `--color-rail` — above the 3:1 bar
+          a non-text graphic has to clear, and it clears it in both themes
+          because the rail does not change between them.
+
+          `alt=""` and `aria-hidden`: the words beside it already name the
+          console, and the attribution this mark stands for is spelled out in
+          the rail footer. A screen reader that announced the mark here would
+          read the presenter's name before the product's.
+
+          Collapsed, both of those sets of words are gone, so the tooltip is
+          the only thing left that can say what this rail is and whose mark is
+          on it. That is the one state where it is labelled rather than hidden.
+        */}
+        {collapsed ? (
+          <Tooltip
+            content={`Microsoft ${t("header.productName")} · ${t("footer.presentedBy")}`}
+            relationship="label"
+            positioning="after"
+          >
+            <img src={controlesEmpresarialesMark} alt="" className="h-[38px] w-auto shrink-0" />
+          </Tooltip>
+        ) : (
+          <img
+            src={controlesEmpresarialesMark}
+            alt=""
+            aria-hidden="true"
+            className="h-[38px] w-auto shrink-0"
+          />
+        )}
         {/*
           Wrapping, not truncating. 250px minus the 38px mark leaves ~185px,
           and both of these strings are longer than that in both locales - with
@@ -221,10 +262,16 @@ export function Sidebar({ className }: { className?: string }) {
               className={cn(
                 "flex w-full items-center gap-2.5 rounded-[10px] text-caption font-semibold",
                 "transition-colors duration-150 motion-reduce:transition-none",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rail-accent",
                 collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5",
+                /*
+                  `text-white`, not `text-rail-ink`: the rail's off-white
+                  measures 4.11:1 on this pink and pure white measures 4.56:1.
+                  The one string in the rail that sits on a coloured plate is
+                  the one string that cannot use the rail's own ink.
+                */
                 isActive
-                  ? "bg-accent text-white"
+                  ? "bg-rail-accent text-white hover:bg-rail-accent-hover"
                   : "text-rail-ink-muted hover:bg-rail-hover hover:text-rail-ink",
               )}
             >
@@ -270,7 +317,11 @@ export function Sidebar({ className }: { className?: string }) {
               collapsed && "justify-center px-0",
             )}
           >
-            <BotFilled fontSize={14} className="shrink-0 text-accent" aria-hidden="true" />
+            <BotFilled
+              fontSize={14}
+              className="shrink-0 text-rail-live-mark"
+              aria-hidden="true"
+            />
             {!collapsed && (
               <>
                 <span className="truncate text-caption font-medium">{targetAgent}</span>
@@ -285,9 +336,10 @@ export function Sidebar({ className }: { className?: string }) {
         </Tooltip>
 
         {/*
-          The live / simulation indicator, now permanent. accent for Live per
-          §4.5 and illustrative-fg for Simulation; affirm is the 401 and
-          nothing else. This is the indicator only — the toggle is in the
+          The live / simulation indicator, now permanent. `rail-live-mark` for
+          Live and illustrative-fg for Simulation; affirm is the 401 and
+          nothing else — which is exactly the dot the reference palette wanted
+          painted green. This is the indicator only — the toggle is in the
           drawer and on `L`, per §1.2.
         */}
         <Tooltip
@@ -300,7 +352,7 @@ export function Sidebar({ className }: { className?: string }) {
               <span
                 className={cn(
                   "h-2 w-2 shrink-0 rounded-full transition-colors duration-300 motion-reduce:transition-none",
-                  mode === "live" ? "bg-accent" : "bg-illustrative-fg",
+                  mode === "live" ? "bg-rail-live-mark" : "bg-illustrative-fg",
                 )}
                 aria-hidden="true"
               />
@@ -345,38 +397,31 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
 
         {/*
-          Presenter-brand mark, not a demo fact — kept out of the honesty
-          system's vocabulary on purpose. Just the geometric mark, not the
-          full lockup: the source file's wordmark is set in a dark navy that
-          has no contrast against the rail's fixed #0b1220 ground, and this
-          rail never lightens to give it one. The mark's red does, cleanly,
-          in both themes, because the rail itself does not change with them.
+          The presenter attribution, now words only — the mark it used to sit
+          beside was promoted to the brand block at the top of the rail.
+
+          It stays behind rather than moving with the mark, and that is the
+          point of keeping it: a crimson mark alone, at the top, next to
+          "Microsoft Foundry Hosted Agents", is a lockup that reads as *this
+          company made this product*. This line is what says what the mark
+          actually means. Presenter attribution, not a demo fact — still
+          deliberately outside the honesty-band vocabulary of §1.6.
 
           Wrapping, not truncating, for the same reason as the brand lockup
           above: "Presentado por Controles Empresariales" does not fit one
           line in a 250px column and this rail has the spare vertical space
-          to let it wrap rather than clip.
+          to let it wrap rather than clip. Collapsed there is no room for
+          words at all, so the tooltip on the rail's own mark carries it.
         */}
-        <Tooltip content={t("footer.presentedBy")} relationship="label" positioning="after">
-          <div
-            className={cn(
-              "flex items-start gap-1.5 px-1 pt-1 opacity-70",
-              collapsed && "justify-center px-0",
-            )}
-          >
-            <img
-              src={controlesEmpresarialesMark}
-              alt=""
-              aria-hidden="true"
-              className="mt-0.5 h-3 w-auto shrink-0"
-            />
-            {!collapsed && (
-              <span className="min-w-0 text-caption leading-snug text-rail-ink-muted">
+        {!collapsed && (
+          <Tooltip content={t("footer.presentedBy")} relationship="label" positioning="after">
+            <div className="px-1 pt-1 opacity-70">
+              <span className="block text-caption leading-snug text-rail-ink-muted">
                 {t("footer.presentedBy")}
               </span>
-            )}
-          </div>
-        </Tooltip>
+            </div>
+          </Tooltip>
+        )}
       </div>
 
       <Dialog open={confirmOpen} onOpenChange={(_, data) => setConfirmOpen(data.open)}>
@@ -431,9 +476,15 @@ function RailIconButton({
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
           "transition-colors duration-150 motion-reduce:transition-none",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rail-accent",
+          /*
+            `rail-live`, not `rail-accent`. Pink is reserved for the one thing
+            that answers "where am I" — the active section — and there is
+            exactly one of those on screen. A pressed toggle answers "what is
+            on", which is the indigo's job, the same job the Live dot has.
+          */
           pressed
-            ? "bg-accent text-white"
+            ? "bg-rail-live text-white hover:bg-rail-live-hover"
             : "text-rail-ink-muted hover:bg-rail-hover hover:text-rail-ink",
         )}
       >

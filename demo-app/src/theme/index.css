@@ -63,14 +63,70 @@
    * .dark or prefers-color-scheme - a rail token that flipped would be a bug,
    * not a feature.
    *
-   * Contrast against --color-rail: ink 13.9:1, ink-muted 7.4:1, both above AA
-   * at the 16px projector floor.
+   * The values below are the presenter's supplied palette, MEASURED rather
+   * than trusted. Against --color-rail: ink 16.23:1, ink-muted 7.02:1 (6.04:1
+   * on the hover ground), both above AA at the 16px projector floor.
+   *
+   * The border is the one value with no contrast requirement to meet - it is a
+   * hairline separator, not information. At 9% white over this ground it
+   * composites to #2c283e (1.27:1), which is the same weight the previous
+   * #1b2438 carried over #0b1220 (1.21:1).
    */
-  --color-rail: #0b1220;
-  --color-rail-hover: #141d30;
-  --color-rail-border: #1b2438;
-  --color-rail-ink: #dbe2ef;
-  --color-rail-ink-muted: #8996b0;
+  --color-rail: #17132b;
+  --color-rail-hover: #251f42;
+  --color-rail-border: rgba(255, 255, 255, 0.09);
+  --color-rail-ink: #f4f2f8;
+  --color-rail-ink-muted: #a49dc2;
+
+  /*
+   * THE RAIL'S TWO ACCENTS, AND WHY THERE ARE TWO RATHER THAN ONE
+   *
+   * The rail used to borrow --color-accent for everything it needed to mark:
+   * the active section, a pressed control, and the Live indicator. One colour
+   * for three different claims. The supplied palette separates them, and the
+   * separation is worth keeping because the two claims are genuinely
+   * different:
+   *
+   *   rail-accent (pink)  = WHERE YOU ARE. Exactly one on screen at a time -
+   *                         the active section. Pure wayfinding.
+   *   rail-live (indigo)  = WHAT IS ON. The Live/Simulation indicator, the
+   *                         agent currently answering, a pressed toggle.
+   *
+   * The reference mockup this palette came from used GREEN for the second of
+   * those. That is the one thing not imported. Green is --color-affirm and
+   * --color-affirm is the 401 rejection in the Credentials panel, nothing
+   * else (DESIGN_DECISIONS.md 4.4/4.5, and the F4 audit that removed it from
+   * five other places). A "healthy/live" green anywhere in this console would
+   * undo that in one step, so "live" is indigo here instead.
+   *
+   * Contrast, measured against the surface each value actually sits on:
+   *
+   *   #e2196f under white text            4.56:1   AA
+   *   #e2196f as a block on the rail      3.95:1   above the 3:1 graphical bar
+   *   #b8125b under white text            6.41:1   AA
+   *   #4f46e5 under white text            6.29:1   AA
+   *   #4338ca under white text            7.90:1   AA
+   *   #7b74ec as a mark on the rail       4.77:1   AA
+   *
+   * --color-rail-live-mark is the one value NOT taken from the palette
+   * verbatim, and the reason is the reason this file is contrast-checked at
+   * all: #4f46e5 measures 2.87:1 directly on #17132b, which is below even the
+   * 3:1 bar for a non-text graphic. As the 8px Live dot and the 14px agent
+   * glyph - both of which sit ON the rail ground rather than under white text
+   * - it would be a status signal the back of the room cannot see. So it is
+   * the same indigo lifted 25% toward white: same hue, same family, not a
+   * third colour. The precedent is #6B7A99 -> #5A6884 in the palette above,
+   * darkened for exactly the same reason.
+   *
+   * These are absolute for the same reason the five values above are: the
+   * rail does not flip with the theme, so nothing here is ever redefined
+   * under .dark.
+   */
+  --color-rail-accent: #e2196f;
+  --color-rail-accent-hover: #b8125b;
+  --color-rail-live: #4f46e5;
+  --color-rail-live-hover: #4338ca;
+  --color-rail-live-mark: #7b74ec;
 
   /*
    * F7, the projector floor. 4.5: "The 16 px base body size is the 'projector

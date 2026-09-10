@@ -797,6 +797,145 @@ uno nuevo. También se confirmó que el `scrollHeight` del propio riel es igual
 a su `clientHeight` — sin recorte silencioso — expandido, colapsado, y con el
 copiloto abierto.
 
+### 4.13 Una segunda paleta para el riel, y la marca movida a su cabecera (2026-09-10)
+
+**Estado: implementado y medido. No desplegado — retenido a la espera de la
+revisión de las capturas. Las nueve pantallas son idénticas antes y después,
+en las 32 mediciones.**
+
+El presentador aportó una paleta y un archivo de logo extraídos de un mockup
+de referencia de otro proyecto (un dashboard "Gemini Models"), con la
+instrucción de tomar el lenguaje *visual* y nada estructural: las cuatro
+secciones y sus sub-pestañas se quedan exactamente como están.
+
+**Alcance: el riel y solo el riel.** `Sidebar.tsx` y el bloque
+`--color-rail-*` de `theme/index.css` son todo el cambio. `--color-accent`,
+`--color-affirm`, el par ilustrativo, las cuatro secciones, las tablas y los
+badges siguen en los valores que tenían. Verificado por censo, no por
+intención — ver el conteo abajo.
+
+**El verde no se importó, y es la segunda vez que un mockup de referencia lo
+pide.** Ese mockup pinta de verde "saludable / en vivo / suscripción ok",
+exactamente como hacía la referencia Foundry IQ en §0.6 de
+`ADOPCION_LENGUAJE_VISUAL.md`. `--color-affirm` es el rechazo 401 del panel
+Credenciales y nada más (§4.4, §4.5, y la auditoría F4 que lo quitó de otros
+cinco sitios). Así que "en vivo" en el riel es el **índigo** de la paleta, y
+el censo de honestidad confirma el resultado en vez de afirmarlo:
+
+| | antes | después |
+|---|---|---|
+| `text-affirm` | 1 | **1** |
+| `bg-affirm` / `border-affirm` | 0 | 0 |
+| `<StatusPill>` (el único componente que renderiza affirm) | 1 | 1 |
+| `<ProvenanceBadge>` | 13 | 13 |
+| `illustrative-bg` / `illustrative-fg` | 33 / 5 | 33 / 5 |
+| `border-dashed` (el marco de referencia) | 6 | 6 |
+
+El único `text-affirm` es `components/StatusPill.tsx:23`, renderizado desde
+`features/gateway/CredentialTestStop.tsx` y desde ningún otro sitio. El verde
+sigue siendo un solo uso, y sigue siendo el 401.
+
+**Dos acentos donde el riel tomaba prestado uno.** El riel usaba
+`--color-accent` para la sección activa, un control presionado y el indicador
+Live por igual — un color haciendo tres afirmaciones. La paleta los separa y
+la separación vale la pena: `rail-accent` (rosa `#e2196f`) es *dónde estás*,
+exactamente uno en pantalla; `rail-live` (índigo `#4f46e5`) es *qué está
+encendido*. Nada fuera de `Sidebar.tsx` usa ninguno de los dos.
+
+**El contraste se midió, no se heredó.** La paleta venía de un mockup, y la
+última vez que eso pasó dos de sus valores no pasaron AA (§0.2: `#2F6FED` a
+~4.0:1, `#6B7A99` a 4.31:1). Medido contra la superficie sobre la que cada
+valor se apoya realmente:
+
+| | ratio | |
+|---|---|---|
+| tinta `#f4f2f8` sobre `#17132b` | 16.23:1 | pasa |
+| apagado `#a49dc2` sobre `#17132b` | 7.02:1 | pasa |
+| apagado `#a49dc2` sobre hover `#251f42` | 6.04:1 | pasa |
+| blanco sobre `#e2196f` | 4.56:1 | pasa |
+| `#f4f2f8` sobre `#e2196f` | 4.11:1 | **falla — el ítem activo usa blanco puro, no la tinta del riel** |
+| `#e2196f` como bloque sobre el riel | 3.95:1 | por encima de la barra gráfica de 3:1 |
+| blanco sobre `#4f46e5` | 6.29:1 | pasa |
+| `#4f46e5` como marca sobre el riel | 2.87:1 | **falla incluso 3:1 — ver abajo** |
+| la marca carmesí sobre `#17132b` | 3.37:1 | por encima de la barra gráfica de 3:1 |
+
+**Un valor no es el literal de la paleta, y esa es la razón de haber hecho la
+comprobación.** `#4f46e5` mide 2.87:1 directamente sobre `#17132b`. Como
+relleno bajo texto blanco eso es irrelevante, pero el indicador Live es un
+punto de 8px y el glifo del agente objetivo mide 14px, y ambos se apoyan
+*sobre* el fondo del riel: a 2.87:1, la señal permanente de "¿estoy viendo
+Azure en vivo?" sería una que el fondo de la sala no puede resolver.
+`--color-rail-live-mark` es por tanto el mismo índigo levantado un 25% hacia
+el blanco — `#7b74ec`, 4.77:1 — usado solo para esas dos marcas. Mismo tono,
+misma familia, no un tercer color; el precedente es `#6B7A99` oscurecido a
+`#5A6884` en §0.2 por exactamente la misma razón.
+
+**El riel sigue siendo oscuro fijo en ambos temas.** El argumento de §0.8
+queda intacto y se volvió a comprobar en capturas: nada del bloque
+`--color-rail-*` se redefine bajo `.dark`. Vale saber que la relación se
+invirtió — el riel era más oscuro que el lienzo oscuro (`#0b1220` contra
+`#0e1420`) y ahora es más claro y violeta contra él. Se lee como una banda
+deliberada y no como un borde que desaparece, pero es un cambio, no un no-op.
+
+**La marca se movió del pie al bloque de marca**, por instrucción del
+presentador, y lo que se movió es la marca, no un lockup:
+
+- El archivo aportado (220×236, alfa real) es **solo el símbolo geométrico**.
+  Se describió como el lockup completo con el texto "Controles /
+  Empresariales" apilado; decodificado, todo píxel opaco pertenece a una sola
+  familia carmesí (~`#d50243`) y el perfil de ocupación por filas es continuo
+  — no hay texto en el archivo. Así que la contingencia de §4.12 para el
+  estado colapsado — "recorta el símbolo del lockup si el lockup no cabe a
+  64px" — nunca llegó a plantearse.
+- Tampoco es una fuente de mejor calidad que el asset que reemplaza, solo más
+  grande. El `controles-empresariales-mark.png` anterior (159×200) es color
+  plano — 9.179 píxeles de un único valor. El nuevo arrastra ruido de
+  compresión con pérdida por toda su superficie. A 38px ninguno de los dos se
+  aprecia; se anota aquí para que nadie vuelva a deducir "el nuevo tiene que
+  ser más limpio" a partir de los tamaños de archivo.
+- La razón de §4.12 para tomar la marca y no el lockup sigue en pie, y nunca
+  se puso a prueba contra un lockup real: el texto en las fuentes originales
+  es azul marino oscuro, y este riel nunca se aclara para darle contraste.
+
+**La línea de atribución se quedó en el pie cuando la marca lo dejó.** Una
+marca carmesí sola, arriba, junto a "Microsoft Foundry Hosted Agents", es un
+lockup que se lee como *esta empresa hizo este producto*. "Presentado por
+Controles Empresariales" en el pie es lo que dice qué significa realmente la
+marca, y sigue estando deliberadamente fuera del vocabulario de bandas de
+honestidad de §1.6 — atribución del presentador, no una afirmación sobre el
+despliegue. Colapsado no hay sitio para palabras, así que el tooltip de la
+marca lleva el nombre del producto y la atribución.
+
+**Una colisión abierta, declarada en vez de corregida.** El carmesí de la
+marca (`#d50243`) y el rosa del ítem activo (`#e2196f`) miden **1.17:1 entre
+sí** — el mismo color para cualquier audiencia. Ahora conviven a menos de
+40px, con la marca justo encima de la lista de navegación. El riel se lee
+correctamente porque los dos difieren en *forma* (una silueta sobre el fondo
+frente a una píldora rellena), no en tono. Arreglarlo de verdad implica
+cambiar uno de los dos, y ambos vienen especificados: el rosa por
+instrucción, el carmesí por la marca del presentador. Señalado para la
+revisión de las capturas.
+
+**Verificación.** Misma sonda, mismo suelo, mismas nueve pantallas, ambos
+estados del riel y ambos modos — 32 mediciones, todas **idénticas a la línea
+base previa al cambio** en contenido, presupuesto, px ocultos y margen. La
+laguna de i18n conocida de Plataforma-Simulación (§4.11) se reprodujo en
+exactamente 51px ocultos expandido, que es lo que dice que el instrumento está
+midiendo lo mismo que este documento lleva midiendo desde el principio; no
+cambió, no es nueva. El `scrollHeight` del propio riel es igual a su
+`clientHeight` en las 32, expandido y colapsado, y ninguna pantalla introdujo
+scroll de página.
+
+**Algo que las capturas no pudieron mostrar en vivo.** El grupo de recursos
+`lab-hosted-agents-demo` ya no existe — `az` responde `ResourceGroupNotFound`
+y el host del broker `hosted-agents-demo-f76df303.azurewebsites.net` es
+NXDOMAIN en resolutores públicos. El modo en vivo renderiza por tanto su
+estado honesto de "la llamada en vivo no se completó" en todas partes, que es
+contra lo que se midió el antes/después en ambos lados. La captura del 401
+usó un fixture inyectado en la capa de red del arnés de captura — ningún
+código de la aplicación lo acepta, y existe solo para poder fotografiar el
+color affirm contra el riel nuevo.
+
 ---
 
 ## 5. Coreografía de la demo, riesgos y preparación

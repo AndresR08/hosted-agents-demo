@@ -134,6 +134,42 @@ code-only redeploy (infrastructure, agent images, and agent registration all
 skipped) and verified live. Full detail in [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.12
 and [`HISTORY.md`](HISTORY.md) item 15.
 
+## 4d. Rail palette, and the mark promoted to the brand block (2026-09-10)
+
+The navigation rail took a supplied palette — plum ground `#17132b`, pink
+`#e2196f` for the active section, indigo `#4f46e5` for "live" — and the
+presenter's mark moved from the rail footer to the brand block at the top,
+with the attribution line staying in the footer. `Sidebar.tsx` and the
+`--color-rail-*` block are the whole change; every other colour in the console
+is untouched.
+
+Green did not come across from the reference mockup: `affirm` is still
+**exactly one use** in the codebase (`StatusPill.tsx`, the 401), verified by
+census before and after. One palette value was not adopted verbatim —
+`#4f46e5` measures 2.87:1 on the rail ground and is used at `#7b74ec` (4.77:1)
+for the two marks that sit directly on it. All nine screens re-measured at
+1366×768, both rail states and both modes: 32 measurements, all identical to
+the baseline. Full detail in [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.13.
+
+**Not deployed.** Held at the presenter's instruction pending review of the
+captures.
+
+## 4e. The lab resource group no longer exists (observed 2026-09-10)
+
+`az` reports `ResourceGroupNotFound` for `lab-hosted-agents-demo`, and the
+broker host baked into `demo-app/.env.local`
+(`hosted-agents-demo-f76df303.azurewebsites.net`) is NXDOMAIN on public
+resolvers. Everything §6 and [`AZURE_INTEGRATION_REPORT.md`](AZURE_INTEGRATION_REPORT.md)
+record as verified-live was verified against an environment that is now gone.
+
+The console degrades honestly — every live panel renders its "the live call
+did not complete" state rather than inventing content — but **Live mode has no
+backend today**, and the credential test (the 401, the demo's strongest beat)
+cannot run at all. Redeploying the lab is a prerequisite for any rehearsal,
+and for re-validating the live figures in this document. Noted here rather
+than fixed: it was found while measuring an unrelated change, and tearing the
+lab back up is its own decision.
+
 ## 5. Current architecture
 
 ```

@@ -778,6 +778,140 @@ one. The rail's own `scrollHeight` was also confirmed equal to its
 `clientHeight` — no silent clipping — expanded, collapsed, and with the
 copilot open.
 
+### 4.13 A second palette for the rail, and the mark moved to the top of it (2026-09-10)
+
+**Status: shipped and measured. Not deployed — held for review of the
+captures. The nine screens are byte-identical before and after, all 32
+measurements.**
+
+The presenter supplied a palette and a logo file lifted from a reference
+mockup belonging to a different project (a "Gemini Models" dashboard), with
+the instruction to take the *visual* language and nothing structural: the four
+sections and their sub-tabs stay exactly as they are.
+
+**Scope: the rail and only the rail.** `Sidebar.tsx` and the `--color-rail-*`
+block in `theme/index.css` are the whole change. `--color-accent`,
+`--color-affirm`, the illustrative pair, the four sections, the tables and the
+badges are on the values they were. Verified by census rather than by
+intention — see the count below.
+
+**The green did not come across, and this is the second time a reference
+mockup has asked for it.** That mockup paints "healthy / live / subscription
+ok" green, exactly as the Foundry IQ reference did in §0.6 of
+`VISUAL_LANGUAGE_ADOPTION.md`. `--color-affirm` is the 401 rejection in the
+Credentials panel and nothing else (§4.4, §4.5, and the F4 audit that removed
+it from five other places). So "live" in the rail is the palette's **indigo**
+instead, and the honesty census confirms the outcome rather than asserting it:
+
+| | before | after |
+|---|---|---|
+| `text-affirm` | 1 | **1** |
+| `bg-affirm` / `border-affirm` | 0 | 0 |
+| `<StatusPill>` (the only component that renders affirm) | 1 | 1 |
+| `<ProvenanceBadge>` | 13 | 13 |
+| `illustrative-bg` / `illustrative-fg` | 33 / 5 | 33 / 5 |
+| `border-dashed` (the reference frame) | 6 | 6 |
+
+The single `text-affirm` is `components/StatusPill.tsx:23`, rendered from
+`features/gateway/CredentialTestStop.tsx` and nowhere else. Green is still one
+use, and it is still the 401.
+
+**Two accents where the rail used to borrow one.** The rail took
+`--color-accent` for the active section, a pressed control and the Live
+indicator alike — one colour making three claims. The palette separates them
+and the separation is worth keeping: `rail-accent` (pink `#e2196f`) is *where
+you are*, exactly one on screen; `rail-live` (indigo `#4f46e5`) is *what is
+on*. Nothing outside `Sidebar.tsx` uses either.
+
+**Contrast was measured, not inherited.** The palette arrived from a mockup,
+and the last time that happened two of its values did not clear AA (§0.2:
+`#2F6FED` at ~4.0:1, `#6B7A99` at 4.31:1). Measured against the surface each
+value actually sits on:
+
+| | ratio | |
+|---|---|---|
+| `#f4f2f8` ink on `#17132b` | 16.23:1 | passes |
+| `#a49dc2` muted on `#17132b` | 7.02:1 | passes |
+| `#a49dc2` muted on `#251f42` hover | 6.04:1 | passes |
+| white on `#e2196f` | 4.56:1 | passes |
+| `#f4f2f8` on `#e2196f` | 4.11:1 | **fails — the active item uses pure white, not the rail's ink** |
+| `#e2196f` as a block on the rail | 3.95:1 | above the 3:1 graphical bar |
+| white on `#4f46e5` | 6.29:1 | passes |
+| `#4f46e5` as a mark on the rail | 2.87:1 | **fails even 3:1 — see below** |
+| the crimson mark on `#17132b` | 3.37:1 | above the 3:1 graphical bar |
+
+**One value is not the palette's verbatim, and this is the reason the check
+was run.** `#4f46e5` measures 2.87:1 directly on `#17132b`. As a fill under
+white text that is irrelevant, but the Live indicator is an 8px dot and the
+target-agent glyph is 14px, and both sit *on* the rail ground: at 2.87:1 the
+console's permanent "am I looking at live Azure" signal would be one the back
+of a room cannot resolve. `--color-rail-live-mark` is therefore the same
+indigo lifted 25% toward white — `#7b74ec`, 4.77:1 — used for those two marks
+only. Same hue, same family, not a third colour; the precedent is `#6B7A99`
+darkened to `#5A6884` in §0.2 for exactly the same reason.
+
+**The rail is still fixed-dark in both themes.** §0.8's argument is untouched
+and was re-checked in captures: nothing in the `--color-rail-*` block is
+redefined under `.dark`. Worth knowing that the relationship inverted — the
+rail used to be darker than the dark canvas (`#0b1220` against `#0e1420`) and
+is now lighter and violet against it. It reads as a deliberate band rather
+than as an edge that disappears, but it is a change, not a no-op.
+
+**The mark moved from the footer to the brand block**, at the presenter's
+instruction, and what moved is the mark, not a lockup:
+
+- The supplied file (220×236, real alpha) is **the geometric mark alone**. It
+  was described as the full lockup with a stacked "Controles / Empresariales"
+  wordmark; decoded, every opaque pixel in it is one crimson family (~`#d50243`)
+  and the row-occupancy profile is continuous — there is no wordmark in the
+  file. So §4.12's contingency for a collapsed state — "crop the symbol out of
+  the lockup if the lockup will not fit at 64px" — never arose.
+- It is also not a higher-quality source than the asset it replaces, only a
+  larger one. The old `controles-empresariales-mark.png` (159×200) is flat
+  colour — 9,179 pixels of a single value. The new file carries lossy
+  compression noise across its face. At 38px neither is visible; recorded here
+  so nobody re-derives "the new one must be cleaner" from the file sizes.
+- §4.12's reason for taking the mark rather than the lockup therefore still
+  holds and was never tested against a real lockup: the wordmark in the
+  original sources is dark navy, and this rail never lightens to give it
+  contrast.
+
+**The attribution line stayed in the footer when the mark left it.** A crimson
+mark alone, at the top, beside "Microsoft Foundry Hosted Agents", is a lockup
+that reads as *this company made this product*. "Presented by Controles
+Empresariales" in the footer is what says what the mark actually means, and it
+is still deliberately outside the honesty-band vocabulary of §1.6 — presenter
+attribution, not a claim about the deployment. Collapsed there is no room for
+words, so the tooltip on the mark carries both the product name and the
+attribution.
+
+**An open collision, stated rather than fixed.** The mark's crimson
+(`#d50243`) and the active-item pink (`#e2196f`) measure **1.17:1 against each
+other** — the same colour to any audience. They now sit within 40px, the mark
+directly above the nav list. The rail reads correctly because the two differ
+in *form* (a shape on the ground versus a filled pill), not in hue. Fixing it
+properly means changing one of them, and both were specified: the pink by
+instruction, the crimson by the presenter's brand. Flagged for the review of
+the captures.
+
+**Verification.** Same probe, same floor, same nine screens, both rail states
+and both modes — 32 measurements, all of them **identical to the pre-change
+baseline** in content, budget, hidden px and margin. Platform-Simulation's
+known i18n gap (§4.11) reproduced at exactly 51px hidden expanded, which is
+what says the rig is measuring the same thing this document has been measuring
+all along; it is unchanged, not new. The rail's own `scrollHeight` equals its
+`clientHeight` in every one of the 32, expanded and collapsed, and no screen
+introduced a page scroll.
+
+**One thing the captures could not show live.** The lab resource group
+`lab-hosted-agents-demo` no longer exists — `az` reports `ResourceGroupNotFound`
+and the broker host `hosted-agents-demo-f76df303.azurewebsites.net` is NXDOMAIN
+on public resolvers. Live mode therefore renders its honest "the live call did
+not complete" state throughout, which is what the before/after was measured
+against on both sides. The 401 capture used a fixture injected at the network
+layer in the capture harness — no application code accepts it, and it exists
+only so the affirm colour could be photographed against the new rail.
+
 ---
 
 ## 5. Demo choreography, risks, and prep

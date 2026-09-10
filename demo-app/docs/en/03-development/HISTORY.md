@@ -84,6 +84,33 @@ code-only redeploy that touched neither infrastructure, agent images, nor
 agent registration. Full technical detail in
 [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.12.
 
+## 16. The rail took a second palette, and the mark moved to the top of it (2026-09-10)
+
+A palette and a logo file were supplied from a reference mockup belonging to
+another project, with the instruction to take the visual language and nothing
+structural. The rail's ground, ink, hover and border became the supplied
+values; the active section became pink and "live" became indigo, splitting a
+single borrowed `--color-accent` into two rail-scoped tokens that say two
+different things. The presenter's mark moved from the rail footer to the brand
+block at the top; the attribution line stayed in the footer, because a crimson
+mark alone beside "Microsoft Foundry Hosted Agents" reads as a claim of
+authorship and the words are what prevent it.
+
+Three things are worth carrying forward. The mockup painted "healthy/live"
+green and that did not come across — `affirm` is still exactly one use, the
+401, confirmed by a before/after census rather than by assertion. One supplied
+value failed its own contrast check (`#4f46e5` at 2.87:1 on the rail ground)
+and is used lifted to `#7b74ec` for the two marks that sit on that ground —
+the second time a mockup palette has needed correcting for a projector. And
+the nine stage screens were re-measured in both rail states and both modes:
+32 measurements, all identical to the baseline. Full technical detail in
+[`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.13.
+
+Found while measuring, unrelated to the change and more consequential than it:
+the lab resource group `lab-hosted-agents-demo` no longer exists, so Live mode
+has no backend and the credential test cannot run. See
+[`PROJECT_STATUS.md`](PROJECT_STATUS.md) §4e.
+
 ## See also
 
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — where everything stands, today.

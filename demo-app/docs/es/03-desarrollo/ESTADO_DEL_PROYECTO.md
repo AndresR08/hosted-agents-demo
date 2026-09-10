@@ -136,6 +136,44 @@ verificado en vivo. Detalle completo en
 [`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.12 y
 [`HISTORIAL.md`](HISTORIAL.md) punto 15.
 
+## 4d. Paleta del riel, y la marca promovida al bloque de marca (2026-09-10)
+
+El riel de navegación tomó una paleta aportada — fondo ciruela `#17132b`,
+rosa `#e2196f` para la sección activa, índigo `#4f46e5` para "en vivo" — y la
+marca del presentador pasó del pie del riel al bloque de marca de arriba,
+quedándose la línea de atribución en el pie. `Sidebar.tsx` y el bloque
+`--color-rail-*` son todo el cambio; ningún otro color de la consola se tocó.
+
+El verde no se importó del mockup de referencia: `affirm` sigue siendo
+**exactamente un uso** en el código (`StatusPill.tsx`, el 401), verificado por
+censo antes y después. Un valor de la paleta no se adoptó literal — `#4f46e5`
+mide 2.87:1 sobre el fondo del riel y se usa a `#7b74ec` (4.77:1) para las dos
+marcas que se apoyan directamente sobre él. Las nueve pantallas remedidas a
+1366×768, ambos estados del riel y ambos modos: 32 mediciones, todas idénticas
+a la línea base. Detalle completo en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.13.
+
+**No desplegado.** Retenido por instrucción del presentador a la espera de la
+revisión de las capturas.
+
+## 4e. El grupo de recursos del laboratorio ya no existe (observado 2026-09-10)
+
+`az` responde `ResourceGroupNotFound` para `lab-hosted-agents-demo`, y el host
+del broker grabado en `demo-app/.env.local`
+(`hosted-agents-demo-f76df303.azurewebsites.net`) es NXDOMAIN en resolutores
+públicos. Todo lo que la §6 y el
+[`REPORTE_INTEGRACION_AZURE.md`](REPORTE_INTEGRACION_AZURE.md) registran como
+verificado en vivo se verificó contra un entorno que ya no está.
+
+La consola degrada con honestidad — cada panel en vivo renderiza su estado de
+"la llamada en vivo no se completó" en lugar de inventar contenido — pero
+**el modo En vivo no tiene backend hoy**, y la prueba de credenciales (el 401,
+el momento más fuerte de la demo) no puede ejecutarse en absoluto. Volver a
+desplegar el laboratorio es prerrequisito para cualquier ensayo, y para
+revalidar las cifras en vivo de este documento. Se anota en lugar de
+corregirse: se encontró midiendo un cambio no relacionado, y volver a levantar
+el laboratorio es una decisión propia.
+
 ## 5. Arquitectura actual
 
 ```

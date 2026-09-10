@@ -85,6 +85,34 @@ redespliegue de solo código que no tocó infraestructura, imágenes de agentes,
 ni el registro de agentes. Detalle técnico completo en
 [`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.12.
 
+## 16. El riel tomó una segunda paleta, y la marca subió a su cabecera (2026-09-10)
+
+Se aportaron una paleta y un archivo de logo de un mockup de referencia
+perteneciente a otro proyecto, con la instrucción de tomar el lenguaje visual
+y nada estructural. El fondo, la tinta, el hover y el borde del riel pasaron a
+los valores aportados; la sección activa pasó a rosa y "en vivo" a índigo,
+partiendo un único `--color-accent` prestado en dos tokens propios del riel
+que dicen dos cosas distintas. La marca del presentador pasó del pie del riel
+al bloque de marca de arriba; la línea de atribución se quedó en el pie,
+porque una marca carmesí sola junto a "Microsoft Foundry Hosted Agents" se lee
+como una afirmación de autoría y las palabras son lo que lo impide.
+
+Tres cosas vale la pena llevarse. El mockup pintaba de verde "saludable/en
+vivo" y eso no se importó — `affirm` sigue siendo exactamente un uso, el 401,
+confirmado con un censo antes/después y no por afirmación. Un valor aportado
+no pasó su propia comprobación de contraste (`#4f46e5` a 2.87:1 sobre el fondo
+del riel) y se usa levantado a `#7b74ec` para las dos marcas que se apoyan en
+ese fondo — la segunda vez que hay que corregir la paleta de un mockup para un
+proyector. Y las nueve pantallas de escenario se remidieron en ambos estados
+del riel y ambos modos: 32 mediciones, todas idénticas a la línea base.
+Detalle técnico completo en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.13.
+
+Encontrado al medir, ajeno al cambio y más consecuente que él: el grupo de
+recursos `lab-hosted-agents-demo` ya no existe, así que el modo En vivo no
+tiene backend y la prueba de credenciales no puede ejecutarse. Ver
+[`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) §4e.
+
 ## Ver también
 
 - [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) — dónde quedó cada cosa, hoy.
