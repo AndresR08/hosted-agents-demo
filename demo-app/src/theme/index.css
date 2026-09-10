@@ -79,68 +79,69 @@
   --color-rail-ink-muted: #a49dc2;
 
   /*
-   * THE RAIL'S ACCENT: ONE HUE, TWO LIGHTNESSES
+   * THE RAIL'S TWO ACCENTS
    *
-   * This block briefly carried two hues - a pink for the active section and
-   * this indigo for "live" - which read well as semantics and badly on the
-   * rail, because the pink and the presenter's crimson mark 40px above it are
-   * the same hue (see DESIGN_DECISIONS.md 4.13). The pink is gone; indigo
-   * marks everything the rail marks.
+   *   rail-accent (pink)  = WHERE YOU ARE. Exactly one on screen at a time -
+   *                         the active section. Pure wayfinding.
+   *   rail-live (indigo)  = WHAT IS ON. The Live/Simulation indicator, the
+   *                         agent currently answering, a pressed toggle.
    *
-   * What that costs, stated rather than buried: the active section and a
-   * pressed toggle are again one colour saying two things ("where you are"
-   * and "what is on"). That is the state the rail was in before the palette
-   * arrived, with --color-accent doing the same double duty, and it was never
-   * a reported problem - the two live in different regions of the rail, the
-   * nav list and the footer icon row.
+   * The reference mockup this palette came from used GREEN for the second of
+   * those. That is the one thing not imported. Green is --color-affirm and
+   * --color-affirm is the 401 rejection in the Credentials panel, nothing
+   * else (DESIGN_DECISIONS.md 4.4/4.5, and the F4 audit that removed it from
+   * five other places). A "healthy/live" green anywhere in this console would
+   * undo that in one step, so "live" is indigo here instead.
    *
-   * The reference mockup this palette came from used GREEN for "live". That
-   * is the one thing not imported. Green is --color-affirm and --color-affirm
-   * is the 401 rejection in the Credentials panel, nothing else
-   * (DESIGN_DECISIONS.md 4.4/4.5, and the F4 audit that removed it from five
-   * other places). A "healthy/live" green anywhere in this console would undo
-   * that in one step.
+   * The active item was briefly moved OFF this pink and onto the indigo, on
+   * the theory that the pink and the presenter's crimson mark above it are
+   * the same hue and would collide. They are the same hue - 15.9 degrees
+   * apart, deltaE2000 10.3 - and they do not collide, because a 34px mark and
+   * a filled 215px bar separated by ~30px of ground are not competing for the
+   * same read. A screenshot of the deployed app this palette comes from
+   * settled it. See DESIGN_DECISIONS.md 4.13: the fix was proportion, not
+   * hue.
    *
    * Contrast, measured against the surface each value actually sits on:
    *
+   *   #e2196f under white text            4.56:1   AA
+   *   #e2196f as a block on the rail      3.95:1   above the 3:1 bar 1.4.11
+   *                                                asks of a state carried by
+   *                                                colour - the indigo's
+   *                                                2.87:1 did not clear it
+   *   #b8125b under white text            6.41:1   AA
    *   #4f46e5 under white text            6.29:1   AA
-   *   #4f46e5 under --color-rail-ink      5.66:1   AA (white is used anyway)
    *   #4338ca under white text            7.90:1   AA
    *   #7b74ec as a mark on the rail       4.77:1   AA
    *   #f4f2f8 focus ring on the rail     16.23:1
-   *   #f4f2f8 focus ring on #4f46e5       5.66:1
+   *   #f4f2f8 focus ring on #e2196f       4.11:1
    *
-   * TWO NUMBERS THAT ARE NOT COMFORTABLE, AND ARE HERE SO NOBODY HAS TO
-   * REDISCOVER THEM
+   * #f4f2f8 on #e2196f is 4.11:1, so the active item's LABEL is pure white
+   * (4.56:1) and not the rail's own ink. It is the one string in the rail
+   * that cannot use the rail's ink.
    *
-   * 1. #4f46e5 as a BLOCK on the rail measures 2.87:1 - under the 3:1 bar
-   *    1.4.11 sets for a component state conveyed by colour. The active item
-   *    is not relying on that boundary alone: its label goes from
-   *    --color-rail-ink-muted to pure white and its icon with it, so the
-   *    state is carried by three changes, not one. But the fill boundary IS
-   *    weaker than the pink it replaced (3.95:1), and that is the price of
-   *    resolving the hue collision. Lifting the fill 5% toward white
-   *    (#584fe6) buys 3.16:1 on the ground while keeping 5.71:1 under white
-   *    text, if the boundary ever needs to clear the bar on its own.
+   * --color-rail-live-mark is the one value NOT taken from the palette
+   * verbatim, and the reason is the reason this file is contrast-checked at
+   * all: #4f46e5 measures 2.87:1 directly on #17132b, which is below even the
+   * 3:1 bar for a non-text graphic. As the 8px Live dot and the 14px agent
+   * glyph - both of which sit ON the rail ground rather than under white text
+   * - it would be a status signal the back of the room cannot see. So it is
+   * the same indigo lifted 25% toward white: same hue, same family, not a
+   * third colour. The precedent is #6B7A99 -> #5A6884 in the palette above,
+   * darkened for exactly the same reason.
    *
-   * 2. --color-rail-live-mark is the one value NOT taken from the supplied
-   *    palette verbatim. #4f46e5 at 2.87:1 is survivable as a fill under
-   *    white text; as the 8px Live dot and the 14px agent glyph - which sit
-   *    ON the rail ground with no text to carry them - it would be a status
-   *    signal the back of the room cannot see. So those two use the same
-   *    indigo lifted 25% toward white. Same hue, not a third colour; the
-   *    precedent is #6B7A99 -> #5A6884 in the palette above.
-   *
-   * The focus ring is --color-rail-ink rather than an accent, and that is a
-   * consequence of the change rather than a preference: a ring in any accent
-   * has to be legible against the rail ground AND against the fill it
-   * surrounds, and the indigo fill is where every keyboard user lands first.
-   * The rail's own ink clears both (16.23:1 and 5.66:1) and adds no colour.
+   * The focus ring is --color-rail-ink rather than either accent, and that is
+   * not a style choice: a ring has to be legible against the rail ground AND
+   * against the fill it surrounds, and the active item is where a keyboard
+   * user lands first. A pink ring on the pink fill is 1:1 - invisible. The
+   * rail's own ink clears both surfaces and adds no colour.
    *
    * These are absolute for the same reason the five values above are: the
    * rail does not flip with the theme, so nothing here is ever redefined
    * under .dark.
    */
+  --color-rail-accent: #e2196f;
+  --color-rail-accent-hover: #b8125b;
   --color-rail-live: #4f46e5;
   --color-rail-live-hover: #4338ca;
   --color-rail-live-mark: #7b74ec;

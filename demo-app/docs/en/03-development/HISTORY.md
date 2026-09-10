@@ -121,6 +121,28 @@ the lab resource group `lab-hosted-agents-demo` no longer exists, so Live mode
 has no backend and the credential test cannot run. See
 [`PROJECT_STATUS.md`](PROJECT_STATUS.md) §4e.
 
+## 17. The pink came back — the collision was the lockup's size, not its hue (2026-09-10)
+
+Item 16's fix held for one round trip. The presenter supplied a screenshot of
+the actual deployed application this palette comes from, running the same
+crimson mark and the same pink active item a real 30px apart and reading
+fine — a materially better source than the static HTML this project had
+audited before. The active item moved back to pink.
+
+What had actually been wrong was never the hue pairing; it was that the brand
+block above it was a 150px stacked lockup — a 38px mark over a two-line name
+over a four-line tagline — giving the crimson enough size and proximity to
+compete with the pink pill 20px below it. The reference's own lockup is 34px
+tall, symbol and name in one row, and the nav list starts 30px after it. The
+brand block was resized and reflowed to match those measurements; the
+tagline, which is real positioning copy and not decoration, moved to the rail
+footer rather than being cut, mirroring where the reference keeps its own
+line. The fix that held was proportion, not colour.
+
+Re-measured a third time: 32 measurements, identical to the original
+baseline and to both prior cuts. Full detail in
+[`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.14.
+
 ## See also
 
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — where everything stands, today.

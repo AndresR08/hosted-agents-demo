@@ -124,6 +124,30 @@ recursos `lab-hosted-agents-demo` ya no existe, así que el modo En vivo no
 tiene backend y la prueba de credenciales no puede ejecutarse. Ver
 [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) §4e.
 
+## 17. El rosa volvió — la colisión era el tamaño del lockup, no su tono (2026-09-10)
+
+El arreglo del punto 16 duró un round-trip. El presentador aportó una captura
+de la aplicación realmente desplegada de la que viene esta paleta, corriendo
+el mismo carmesí de la marca y el mismo rosa del ítem activo, separados de
+verdad 30px, y leyéndose bien — una fuente materialmente mejor que el HTML
+estático que este proyecto había auditado antes. El ítem activo volvió al
+rosa.
+
+Lo que en realidad estaba mal nunca fue el emparejamiento de tono; era que el
+bloque de marca encima era un lockup apilado de 150px — un símbolo de 38px
+sobre un nombre de dos líneas sobre un eslogan de cuatro — dándole al carmesí
+tamaño y proximidad suficientes como para competir con la píldora rosa 20px
+más abajo. El propio lockup de la referencia mide 34px de alto, símbolo y
+nombre en una fila, y la lista de navegación empieza 30px después. El bloque
+de marca se redimensionó y reordenó para calzar con esas medidas; el eslogan,
+que es texto de posicionamiento real y no decoración, se movió al pie del
+riel en vez de recortarse, reflejando dónde guarda la referencia su propia
+línea. El arreglo que se sostuvo fue de proporción, no de color.
+
+Remedido una tercera vez: 32 mediciones, idénticas a la línea base original
+y a los dos cortes anteriores. Detalle completo en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.14.
+
 ## Ver también
 
 - [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) — dónde quedó cada cosa, hoy.

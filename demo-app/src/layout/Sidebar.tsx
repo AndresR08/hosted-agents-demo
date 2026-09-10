@@ -68,27 +68,30 @@ const ICONS: Record<SectionId, ComponentType<{ fontSize?: number }>> = {
  * reason and are never redefined under `.dark`. This did not change when the
  * palette did — the rail is still fixed-dark in light and dark theme alike.
  *
- * WHY THE RAIL HAS ITS OWN ACCENT AND WHY IT IS INDIGO
+ * WHY THE RAIL HAS TWO ACCENTS AND THE REST OF THE CONSOLE HAS ONE
  *
  * The rail marks three things — the active section, a pressed control, the
- * Live indicator — and used to borrow `--color-accent` for all of them. It
- * now uses `--color-rail-live` instead, at two lightnesses. Nothing outside
- * this file uses it; the four sections, the tables and the badges are on the
- * same `--color-accent` they were.
+ * Live indicator — and used to borrow `--color-accent` for all of them. The
+ * supplied palette splits them: `rail-accent` (pink) is *where you are*,
+ * `rail-live` (indigo) is *what is on*. Nothing outside this file uses
+ * either; the four sections, the tables and the badges are on the same
+ * `--color-accent` they were.
  *
- * The colour is indigo for two independent reasons, and both are worth
- * knowing before anyone changes it back:
+ * `rail-live` is indigo and not green on purpose: the palette came from a
+ * dashboard that paints "healthy" green, `--color-affirm` here is the 401
+ * rejection and nothing else (§4.4/§4.5), and a second green undoes the F4
+ * audit in one step.
  *
- *  - Not green, because the reference palette this came from paints
- *    "healthy/live" green and `--color-affirm` here is the 401 rejection and
- *    nothing else (§4.4/§4.5). A second green undoes the F4 audit in one step.
- *  - Not the pink it briefly was, because the presenter's crimson mark sits
- *    40px above the nav list and pink is the same hue as it — 15.9° apart,
- *    ΔE2000 10.3. Indigo is 77.8° and ΔE2000 38.0 from the mark. See §4.13.
+ * The active item spent one commit on the indigo instead, because the pink
+ * and the crimson mark above it are the same hue. They are — and they do not
+ * collide at these proportions. §4.13 has the whole exchange; the short
+ * version is that the deployed app this palette comes from runs the same two
+ * colours the same distance apart and reads fine, and what was actually
+ * wrong here was the size of the lockup, not its hue.
  *
- * The focus ring is `rail-ink`, not an accent: it has to read against the
- * rail ground *and* against the indigo fill it surrounds, and an accent ring
- * on an accent fill does not.
+ * The focus ring is `rail-ink`, not either accent, and it stayed that way
+ * through the revert: it has to read against the rail ground *and* against
+ * the fill it surrounds, and a pink ring on the pink fill is 1:1.
  *
  * WHY THE FOUR SECTIONS STAY FLAT
  *
@@ -186,17 +189,34 @@ export function Sidebar({ className }: { className?: string }) {
     >
       {/* Brand. The mark is the constant; the words are what folds away. */}
       {/*
-        items-start, not items-center: the tagline wraps to several lines in a
-        250px column and a centred mark ends up floating in the middle of the
-        text block instead of sitting at the top of the lockup. The tagline
-        stays despite the height - it is the positioning sentence (2), the one
-        that says custom frameworks first and governance second, and the rail
-        has empty space between the nav and the footer to spend on it.
+        PROPORTIONS TAKEN FROM THE DEPLOYED REFERENCE, MEASURED
+
+        This block was a mark, a two-line product name and a four-line tagline
+        - roughly 150px of lockup before the first nav item could start. The
+        presenter supplied a screenshot of the live app this palette comes
+        from, and its brand block is a different shape entirely. Measured off
+        that screenshot rather than eyeballed:
+
+          rail width          239px          (ours: 250)
+          symbol              34 x 34px      (ours was 38)
+          symbol -> text gap  11px           (ours: 10, gap-2.5)
+          text                two short lines, white, bold, TO THE RIGHT
+          brand block height  34px total - the symbol governs it
+          air before nav      ~30px          (ours was 20, pb-5)
+
+        So: 34px mark, the product name beside it, centred as one row, and
+        pb-8 for the air. `items-center` rather than `items-start` follows
+        from the tagline leaving - two lines of name against a 34px mark
+        centre cleanly, which is what the reference does.
+
+        The tagline did not get deleted, it moved to the bottom of the rail.
+        See the footer block. The reference does the same thing with its own
+        positioning line.
       */}
       <div
         className={cn(
-          "flex gap-2.5 pb-5",
-          collapsed ? "justify-center" : "items-start px-1",
+          "flex gap-2.5 pb-8",
+          collapsed ? "justify-center" : "items-center px-1",
         )}
       >
         {/*
@@ -222,31 +242,28 @@ export function Sidebar({ className }: { className?: string }) {
             relationship="label"
             positioning="after"
           >
-            <img src={controlesEmpresarialesMark} alt="" className="h-[38px] w-auto shrink-0" />
+            <img src={controlesEmpresarialesMark} alt="" className="h-[34px] w-auto shrink-0" />
           </Tooltip>
         ) : (
           <img
             src={controlesEmpresarialesMark}
             alt=""
             aria-hidden="true"
-            className="h-[38px] w-auto shrink-0"
+            className="h-[34px] w-auto shrink-0"
           />
         )}
         {/*
-          Wrapping, not truncating. 250px minus the 38px mark leaves ~185px,
-          and both of these strings are longer than that in both locales - with
-          `truncate` the console introduced itself as "Microsoft Foundry H..."
-          above a tagline reading "Frameworks personali...". A brand lockup that
-          cannot say the product's name is worse than a taller one, and this
-          block is rendered once at the top of a column with room to spare.
+          Wrapping, not truncating. 250px minus the 34px mark and its gap
+          leaves ~188px, and the name is longer than that in both locales -
+          with `truncate` the console introduced itself as "Microsoft Foundry
+          H...". A brand lockup that cannot say the product's name is worse
+          than a two-line one, and two lines is exactly what the reference
+          sets its own name in.
         */}
         {!collapsed && (
           <span className="min-w-0">
             <span className="block text-body font-semibold leading-tight">
               Microsoft {t("header.productName")}
-            </span>
-            <span className="mt-0.5 block text-caption leading-tight text-rail-ink-muted">
-              {t("header.tagline")}
             </span>
           </span>
         )}
@@ -273,24 +290,17 @@ export function Sidebar({ className }: { className?: string }) {
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rail-ink",
                 collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5",
                 /*
-                  Three things change at once here, and that is deliberate:
-                  the fill appears, the label goes from `rail-ink-muted` to
-                  pure white, and the icon goes with it. The fill alone
-                  measures 2.87:1 against the rail ground — under the 3:1 bar
-                  a state conveyed by colour has to clear — so the label's
-                  jump from 7.02:1 to 16.23:1 is not decoration, it is what
-                  carries "you are here" the rest of the way. Do not quietly
-                  drop it back to `rail-ink` on the theory that the fill says
-                  enough.
+                  `text-white`, not `text-rail-ink`: the rail's off-white
+                  measures 4.11:1 on this pink and pure white measures 4.56:1.
+                  The one string in the rail that sits on a coloured plate is
+                  the one string that cannot use the rail's own ink.
 
-                  `text-white` rather than `text-rail-ink` is only a margin
-                  call at this point (6.29:1 against 5.66:1, both AA); it was
-                  load-bearing when the fill was pink and 4.11:1, and is kept
-                  because the brighter of two passing values is the right
-                  default at the back of a room.
+                  The fill also clears the 3:1 that 1.4.11 asks of a state
+                  carried by colour — 3.95:1 on the rail ground, where the
+                  indigo this briefly used managed only 2.87:1.
                 */
                 isActive
-                  ? "bg-rail-live text-white hover:bg-rail-live-hover"
+                  ? "bg-rail-accent text-white hover:bg-rail-accent-hover"
                   : "text-rail-ink-muted hover:bg-rail-hover hover:text-rail-ink",
               )}
             >
@@ -318,7 +328,34 @@ export function Sidebar({ className }: { className?: string }) {
         })}
       </ul>
 
-      <div className="mt-auto flex flex-col gap-2 border-t border-rail-border pt-3">
+      {/*
+        The positioning sentence, moved out of the brand lockup.
+
+        It is the one that says custom frameworks first and governance second,
+        so deleting it to make the lockup compact was not an option. It sits
+        here instead: `mt-auto` pushes it to the bottom of the rail's empty
+        middle, above the status group's hairline rather than inside it, so it
+        reads as a standalone line about the product and not as another piece
+        of deployment status. The reference this layout came from puts its own
+        positioning line in exactly this position.
+
+        Collapsed there is no column to set it in, and it is the least urgent
+        thing in the rail, so it goes rather than truncating.
+      */}
+      {!collapsed && (
+        <p className="mt-auto px-1 pb-3 text-caption leading-snug text-rail-ink-muted">
+          {t("header.tagline")}
+        </p>
+      )}
+
+      <div
+        className={cn(
+          "flex flex-col gap-2 border-t border-rail-border pt-3",
+          // Collapsed, the tagline above is not rendered, so the footer group
+          // has to be the thing that claims the leftover space.
+          collapsed && "mt-auto",
+        )}
+      >
         {/*
           Which agent is answering. The room should always be able to see this
           — switching with 1/2 is otherwise invisible until the next answer

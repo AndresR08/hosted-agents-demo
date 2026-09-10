@@ -971,6 +971,82 @@ against on both sides. The 401 capture used a fixture injected at the network
 layer in the capture harness — no application code accepts it, and it exists
 only so the affirm colour could be photographed against the new rail.
 
+### 4.14 The hue was never the problem, the lockup's size was — pink restored, brand block resized (2026-09-10)
+
+**Status: shipped and measured. Not deployed — still held for review.**
+
+§4.13 resolved the mark/pink hue collision by moving the active section to
+indigo. The presenter supplied a screenshot of the deployed application this
+palette actually comes from, running the same crimson mark and the same pink
+active item, 30px apart, reading fine. That is a materially better source than
+the static HTML this project audited in `VISUAL_LANGUAGE_ADOPTION.md` — it
+shows the two colours doing their job in a real browser rather than in
+markup — and it overrides §4.13's conclusion. **The indigo active item is
+reverted.** `--color-rail-accent` (`#e2196f`) is restored, `rail-live` goes
+back to marking only the Live indicator and pressed controls.
+
+**What the reference actually shows, measured off the screenshot rather than
+estimated:**
+
+| | reference | ours, before this fix |
+|---|---|---|
+| rail width | 239px | 250px |
+| symbol | 34×34px | 38×38px, alone, above the text |
+| symbol → text gap | 11px | text below the symbol, not beside it |
+| product name | 2 lines, bold, white, beside the symbol | 2 lines + a 4-line tagline, stacked under it |
+| brand block height | ~34px, symbol-governed | ~150px |
+| air before first nav item | ~30px | ~20px |
+
+**The diagnosis in §4.13 was half right.** The hue read was correct — 15.9°
+apart is a real collision *in the abstract*. What that read missed is that
+hue proximity does not collide on its own; it collides when the two shapes
+are close enough, large enough, and similar enough in form to be read
+together. The reference's mark is 34px and sits beside two short lines of
+text, the whole block barely taller than the nav items below it; ours was a
+38px mark stacked over a four-line paragraph, occupying nearly a third of the
+rail's vertical space before the first nav item appeared. The 150px lockup
+was the actual problem — it gave the crimson enough presence, and put it
+close enough to the pink pill, for two colours that would otherwise pass each
+other quietly to compete for attention instead.
+
+**The fix is proportion, not colour:**
+
+- **Mark: 38px → 34px**, the reference's own measurement.
+- **Layout: stacked → single row.** Symbol and two-line name side by side,
+  `items-center` rather than `items-start` — that only made sense with a
+  four-line tagline to align against, and the tagline is gone from this block.
+- **The tagline did not get deleted.** "Custom frameworks, governed by API
+  Management" is real positioning copy (§3), not decoration, and the reference
+  makes the same move: its own line ("Transformamos ideas en soluciones
+  seguras") lives at the bottom of the rail, not in the lockup. Same
+  `header.tagline` i18n key, same string, moved to sit above the footer's
+  status group, `mt-auto` so it claims the rail's empty middle. Collapsed,
+  there is no column for it and it is the least urgent line in the rail, so it
+  is omitted rather than truncated — consistent with how the rest of this
+  block already handles collapse.
+- **`pb-5` → `pb-8`** on the brand block, closer to the reference's ~30px of
+  air before the first nav item (was ~20px).
+
+**Contrast, unaffected by any of this.** Nothing about the active item's
+colour changed from the version already verified in §4.13's first pass:
+white on `#e2196f` is 4.56:1, the fill is 3.95:1 on the rail ground — clearing
+the 3:1 bar the reverted indigo could not (2.87:1). The focus ring stays on
+`--color-rail-ink`, which was already correct for either accent — a ring in
+either colour on a fill of the same colour is unreadable, and that argument
+never depended on which accent the active item used.
+
+**`--color-rail-live` is untouched** — it still marks the Live indicator, the
+answering agent's glyph, and pressed controls (`#4f46e5`, lifted to `#7b74ec`
+where it sits directly on the rail ground). Only the active nav item moved
+back.
+
+**Verification.** Same probe, same nine screens, both rail states, both
+modes — 32 measurements, identical to the pre-change baseline, to the pink
+cut (§4.13), and to the indigo cut. Three passes now, all in agreement. Rail
+`scrollHeight` equals `clientHeight` in every one; no page scroll anywhere;
+the honesty census (`text-affirm`, `<StatusPill>`, `<ProvenanceBadge>`,
+`illustrative-*`, `border-dashed`) unchanged from baseline in every count.
+
 ---
 
 ## 5. Demo choreography, risks, and prep

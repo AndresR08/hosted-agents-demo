@@ -139,29 +139,33 @@ verificado en vivo. Detalle completo en
 ## 4d. Paleta del riel, y la marca promovida al bloque de marca (2026-09-10)
 
 El riel de navegación tomó una paleta aportada — fondo ciruela `#17132b`,
-índigo `#4f46e5` para la sección activa y para "en vivo" — y la marca del
-presentador pasó del pie del riel al bloque de marca de arriba, quedándose la
-línea de atribución en el pie. `Sidebar.tsx` y el bloque `--color-rail-*` son
-todo el cambio; ningún otro color de la consola se tocó.
+rosa `#e2196f` para la sección activa, índigo `#4f46e5` para "en vivo" — y la
+marca del presentador pasó del pie del riel al bloque de marca de arriba,
+redimensionada a un lockup compacto de una sola fila, con el eslogan de
+posicionamiento reubicado al pie del riel. `Sidebar.tsx` y el bloque
+`--color-rail-*` son todo el cambio; ningún otro color de la consola se tocó.
 
-El rosa `#e2196f` de la paleta fue la sección activa durante un commit y se
-retiró: promover la marca puso el carmesí del presentador 40px por encima, y
-los dos son el mismo tono (15.9° de separación, ΔE2000 10.3). El índigo está a
-78° y ΔE2000 38.0 de la marca. La relación de contraste que reportó la
-colisión al principio era el instrumento equivocado — mide luminancia y es
-ciega al tono.
+El ítem activo pasó brevemente a índigo a mitad de sesión, por una lectura de
+colisión de tono entre el rosa y el carmesí de la marca del presentador
+(15.9° de separación, ΔE2000 10.3 — correcta como medida de tono). Una
+captura de la aplicación desplegada de la que realmente viene esta paleta
+anuló esa lectura: corre los mismos dos colores a la misma distancia y se lee
+bien, porque un símbolo de 34px junto a dos líneas de texto no compite con
+una píldora de navegación rellena 30px más abajo del modo en que sí lo hacía
+un lockup apilado de 150px. **El ítem activo vuelve a ser rosa** (`#e2196f`,
+3.95:1 sobre el fondo del riel, superando la barra que el 2.87:1 del índigo no
+lograba); lo que realmente cambió fue el tamaño y layout del bloque de marca,
+no su color. Secuencia completa en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.13–§4.14.
 
 El verde no se importó del mockup de referencia: `affirm` sigue siendo
 **exactamente un uso** en el código (`StatusPill.tsx`, el 401), verificado por
-censo antes y después. Un valor de la paleta no se adoptó literal — `#4f46e5`
-mide 2.87:1 sobre el fondo del riel y se usa a `#7b74ec` (4.77:1) para las dos
-marcas que se apoyan directamente sobre él. El mismo 2.87:1 aplica al borde
-del relleno del ítem activo, que queda bajo la barra de 3:1 y se compensa con
-la etiqueta pasando a blanco puro, no con el relleno solo — leer §4.13 antes
-de tocarlo. Las nueve pantallas remedidas a 1366×768, ambos estados del riel y
-ambos modos: 32 mediciones, ejecutadas dos veces (corte rosa, luego índigo),
-ambas idénticas a la línea base. Detalle completo en
-[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.13.
+censo en las tres revisiones. Un valor de la paleta no se adoptó literal —
+`#4f46e5` mide 2.87:1 sobre el fondo del riel y se usa a `#7b74ec` (4.77:1)
+para las dos marcas (el punto Live, el glifo del agente) que se apoyan
+directamente sobre él. Las nueve pantallas remedidas a 1366×768, ambos
+estados del riel y ambos modos, tres veces (rosa → índigo → rosa de nuevo):
+32 mediciones por pasada, todas idénticas a la línea base previa al cambio.
 
 **No desplegado.** Retenido por instrucción del presentador a la espera de la
 revisión de las capturas.

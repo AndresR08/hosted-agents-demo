@@ -994,6 +994,88 @@ usó un fixture inyectado en la capa de red del arnés de captura — ningún
 código de la aplicación lo acepta, y existe solo para poder fotografiar el
 color affirm contra el riel nuevo.
 
+### 4.14 El tono nunca fue el problema, lo fue el tamaño del lockup — rosa restaurado, bloque de marca redimensionado (2026-09-10)
+
+**Estado: implementado y medido. No desplegado — sigue retenido para revisión.**
+
+§4.13 resolvió la colisión de tono marca/rosa moviendo la sección activa al
+índigo. El presentador aportó una captura de la aplicación desplegada de la
+que realmente viene esta paleta, corriendo el mismo carmesí de la marca y el
+mismo rosa del ítem activo, separados 30px, y leyéndose bien. Esa es una
+fuente materialmente mejor que el HTML estático que este proyecto auditó en
+`ADOPCION_LENGUAJE_VISUAL.md` — muestra a los dos colores haciendo su trabajo
+en un navegador real y no en marcado — y anula la conclusión de §4.13. **El
+ítem activo en índigo se revierte.** `--color-rail-accent` (`#e2196f`) se
+restaura, `rail-live` vuelve a marcar solo el indicador Live y los controles
+presionados.
+
+**Lo que la referencia muestra realmente, medido sobre la captura en vez de
+estimado:**
+
+| | referencia | lo nuestro, antes de este arreglo |
+|---|---|---|
+| ancho del riel | 239px | 250px |
+| símbolo | 34×34px | 38×38px, solo, encima del texto |
+| separación símbolo → texto | 11px | el texto iba debajo del símbolo, no al lado |
+| nombre del producto | 2 líneas, negrita, blanco, junto al símbolo | 2 líneas + un eslogan de 4 líneas, apilado debajo |
+| altura del bloque de marca | ~34px, gobernada por el símbolo | ~150px |
+| aire antes del primer ítem de navegación | ~30px | ~20px |
+
+**El diagnóstico de §4.13 tenía razón a medias.** La lectura de tono era
+correcta — 15.9° de separación es una colisión real *en abstracto*. Lo que esa
+lectura pasó por alto es que la proximidad de tono no colisiona por sí sola;
+colisiona cuando las dos formas están lo bastante cerca, son lo bastante
+grandes y lo bastante parecidas en forma como para leerse juntas. El símbolo
+de la referencia mide 34px y va junto a dos líneas cortas de texto, con todo
+el bloque apenas más alto que los ítems de navegación debajo; el nuestro era
+un símbolo de 38px apilado sobre un párrafo de cuatro líneas, ocupando casi un
+tercio del espacio vertical del riel antes de que apareciera el primer ítem de
+navegación. El lockup de 150px era el problema real — le dio al carmesí
+presencia suficiente, y lo puso lo bastante cerca de la píldora rosa, como
+para que dos colores que de otro modo pasarían desapercibidos entre sí
+compitieran por la atención.
+
+**El arreglo es de proporción, no de color:**
+
+- **Símbolo: 38px → 34px**, la medida propia de la referencia.
+- **Layout: apilado → una sola fila.** Símbolo y nombre de dos líneas uno al
+  lado del otro, `items-center` en vez de `items-start` — eso solo tenía
+  sentido con un eslogan de cuatro líneas contra el cual alinear, y el eslogan
+  ya no está en este bloque.
+- **El eslogan no se eliminó.** "Frameworks personalizados, gobernados por API
+  Management" es texto de posicionamiento real (§3), no decoración, y la
+  referencia hace el mismo movimiento: su propia línea ("Transformamos ideas
+  en soluciones seguras") vive al fondo del riel, no en el lockup. Misma clave
+  i18n `header.tagline`, misma cadena, movida para sentarse encima del grupo
+  de estado del pie, `mt-auto` para que reclame el medio vacío del riel.
+  Colapsado no hay columna para ella y es la línea menos urgente del riel, así
+  que se omite en vez de truncarse — consistente con cómo el resto de este
+  bloque ya maneja el colapso.
+- **`pb-5` → `pb-8`** en el bloque de marca, más cerca de los ~30px de aire de
+  la referencia antes del primer ítem de navegación (antes ~20px).
+
+**Contraste, sin cambios por nada de esto.** Nada del color del ítem activo
+cambió respecto a la versión ya verificada en la primera pasada de §4.13:
+blanco sobre `#e2196f` es 4.56:1, el relleno es 3.95:1 sobre el fondo del
+riel — pasando la barra de 3:1 que el índigo revertido no lograba (2.87:1).
+El anillo de foco se queda en `--color-rail-ink`, que ya era correcto para
+cualquiera de los dos acentos — un anillo en cualquiera de los dos colores
+sobre un relleno del mismo color es ilegible, y ese argumento nunca dependió
+de qué acento usara el ítem activo.
+
+**`--color-rail-live` no se toca** — sigue marcando el indicador Live, el
+glifo del agente que responde, y los controles presionados (`#4f46e5`,
+levantado a `#7b74ec` donde se apoya directamente sobre el fondo del riel).
+Solo el ítem de navegación activo volvió.
+
+**Verificación.** Misma sonda, mismas nueve pantallas, ambos estados del
+riel, ambos modos — 32 mediciones, idénticas a la línea base previa al
+cambio, al corte rosa (§4.13) y al corte índigo. Tres pasadas ya, todas de
+acuerdo. El `scrollHeight` del riel es igual a su `clientHeight` en las 32; sin
+scroll de página en ninguna; el censo de honestidad (`text-affirm`,
+`<StatusPill>`, `<ProvenanceBadge>`, `illustrative-*`, `border-dashed`) sin
+cambios respecto a la línea base en cada conteo.
+
 ---
 
 ## 5. Coreografía de la demo, riesgos y preparación
