@@ -170,23 +170,37 @@ estados del riel y ambos modos, tres veces (rosa → índigo → rosa de nuevo):
 **No desplegado.** Retenido por instrucción del presentador a la espera de la
 revisión de las capturas.
 
-## 4e. El grupo de recursos del laboratorio ya no existe (observado 2026-09-10)
+## 4e. `.env.local` y el valor por defecto de este repo apuntaban a un grupo de recursos que ya no existe — el que está vivo es `-v2` (corregido 2026-09-10)
 
-`az` responde `ResourceGroupNotFound` para `lab-hosted-agents-demo`, y el host
-del broker grabado en `demo-app/.env.local`
-(`hosted-agents-demo-f76df303.azurewebsites.net`) es NXDOMAIN en resolutores
-públicos. Todo lo que la §6 y el
-[`REPORTE_INTEGRACION_AZURE.md`](REPORTE_INTEGRACION_AZURE.md) registran como
-verificado en vivo se verificó contra un entorno que ya no está.
+**Corrigiendo la entrada que esto reemplaza.** Decía que el modo En vivo no
+tenía backend en absoluto. Eso era incorrecto en la mitad que importa: existe
+un despliegue en vivo, solo que no el que la configuración de este repo
+nombraba.
 
-La consola degrada con honestidad — cada panel en vivo renderiza su estado de
-"la llamada en vivo no se completó" en lugar de inventar contenido — pero
-**el modo En vivo no tiene backend hoy**, y la prueba de credenciales (el 401,
-el momento más fuerte de la demo) no puede ejecutarse en absoluto. Volver a
-desplegar el laboratorio es prerrequisito para cualquier ensayo, y para
-revalidar las cifras en vivo de este documento. Se anota en lugar de
-corregirse: se encontró midiendo un cambio no relacionado, y volver a levantar
-el laboratorio es una decisión propia.
+`az` sí responde `ResourceGroupNotFound` para `lab-hosted-agents-demo`, y
+`hosted-agents-demo-f76df303.azurewebsites.net` — el host en
+`demo-app/.env.local`, y el `ResourceGroupName` por defecto propio de
+`deploy.ps1` en `config/lab.defaults.psd1` — es NXDOMAIN. Pero un `az webapp
+list` más amplio encontró `hosted-agents-demo-ba8fb6d3` en el grupo de
+recursos `lab-hosted-agents-demo-v2`, `Running`, `/api/health` respondiendo
+`{"ok":true}`, `/api/environment` devolviendo datos reales de ARM. El
+despliegue se recreó bajo un sufijo nuevo en algún momento y nada en este
+repo — `.env.local`, el `ResourceGroupName` por defecto de
+`lab.defaults.psd1`, la propia §6 de este documento — se actualizó para
+reflejarlo.
+
+**Lo que realmente es cierto:** el modo En vivo tiene un backend real, en
+`https://hosted-agents-demo-ba8fb6d3.azurewebsites.net`, en
+`lab-hosted-agents-demo-v2`. `.env.local` (usado solo para desarrollo
+independiente del frontend contra un broker remoto) y el nombre de grupo de
+recursos por defecto de `lab.defaults.psd1` están desactualizados y deberían
+corregirse en una pasada dedicada — no se hace aquí, porque esto se encontró
+desplegando un cambio de UI no relacionado y un valor por defecto de
+configuración es una decisión con su propio radio de impacto (toda ejecución
+futura de `deploy.ps1` sin `-ResourceGroupName` apuntaría al grupo muerto). La
+§6 y el [`REPORTE_INTEGRACION_AZURE.md`](REPORTE_INTEGRACION_AZURE.md) siguen
+registrando cifras verificadas contra el despliegue *anterior*; nada en esta
+entrada las revalida contra `-v2`.
 
 ## 5. Arquitectura actual
 

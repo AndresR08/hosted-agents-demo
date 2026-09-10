@@ -166,21 +166,34 @@ each pass, all identical to the pre-change baseline.
 **Not deployed.** Held at the presenter's instruction pending review of the
 captures.
 
-## 4e. The lab resource group no longer exists (observed 2026-09-10)
+## 4e. `.env.local` and this repo's own deploy default pointed at a resource group that no longer exists — the live one is `-v2` (corrected 2026-09-10)
 
-`az` reports `ResourceGroupNotFound` for `lab-hosted-agents-demo`, and the
-broker host baked into `demo-app/.env.local`
-(`hosted-agents-demo-f76df303.azurewebsites.net`) is NXDOMAIN on public
-resolvers. Everything §6 and [`AZURE_INTEGRATION_REPORT.md`](AZURE_INTEGRATION_REPORT.md)
-record as verified-live was verified against an environment that is now gone.
+**Correcting the entry this replaces.** It said Live mode had no backend at
+all. That was wrong in the consequential half: a live deployment exists, just
+not the one this repo's own configuration named.
 
-The console degrades honestly — every live panel renders its "the live call
-did not complete" state rather than inventing content — but **Live mode has no
-backend today**, and the credential test (the 401, the demo's strongest beat)
-cannot run at all. Redeploying the lab is a prerequisite for any rehearsal,
-and for re-validating the live figures in this document. Noted here rather
-than fixed: it was found while measuring an unrelated change, and tearing the
-lab back up is its own decision.
+`az` does report `ResourceGroupNotFound` for `lab-hosted-agents-demo`, and
+`hosted-agents-demo-f76df303.azurewebsites.net` — the host in
+`demo-app/.env.local`, and `deploy.ps1`'s own default `ResourceGroupName` in
+`config/lab.defaults.psd1` — is NXDOMAIN. But a broader `az webapp list`
+turned up `hosted-agents-demo-ba8fb6d3` in resource group
+`lab-hosted-agents-demo-v2`, `Running`, `/api/health` returning `{"ok":true}`,
+`/api/environment` returning real ARM data. The deployment was recreated under
+a new suffix at some point and nothing in this repo — `.env.local`,
+`lab.defaults.psd1`'s `ResourceGroupName`, this document's own §6 — was
+updated to say so.
+
+**What is actually true:** Live mode has a real backend, at
+`https://hosted-agents-demo-ba8fb6d3.azurewebsites.net`, in
+`lab-hosted-agents-demo-v2`. `.env.local` (used only for standalone frontend
+dev against a remote broker) and `lab.defaults.psd1`'s default resource group
+name are stale and should be corrected in a dedicated pass — not done here,
+because this was found while deploying an unrelated UI change and a config
+default is a decision with its own blast radius (every future `deploy.ps1`
+run with no `-ResourceGroupName` would target the dead group). §6 and
+[`AZURE_INTEGRATION_REPORT.md`](AZURE_INTEGRATION_REPORT.md) still record
+figures verified against the *previous* deployment; nothing in this entry
+re-verifies them against `-v2`.
 
 ## 5. Current architecture
 
