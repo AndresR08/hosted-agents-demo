@@ -25,6 +25,16 @@ export const color = {
     affirm: "#0E7A5F",
     illustrativeFg: "#7D8AA3",
     illustrativeBg: "#EEF1F7",
+    /**
+     * The canonical brand red (FIGMA_ADOPTION.md §1.6). `brand` is a fill and
+     * does not flip with the theme; `brandInk` and `brandTint` do, because
+     * they have to clear the page behind them — see index.css for the
+     * measured ratios.
+     */
+    brand: "#D4003B",
+    brandHover: "#B00031",
+    brandInk: "#D4003B",
+    brandTint: "#FFF5F5",
   },
   dark: {
     canvas: "#0E1420",
@@ -36,6 +46,10 @@ export const color = {
     affirm: "#3FC79A",
     illustrativeFg: "#7F8CA4",
     illustrativeBg: "#1E2637",
+    brand: "#D4003B",
+    brandHover: "#B00031",
+    brandInk: "#E35980",
+    brandTint: "#2A1520",
   },
 } as const;
 

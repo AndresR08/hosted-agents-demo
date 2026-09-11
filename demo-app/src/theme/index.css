@@ -42,6 +42,36 @@
   --color-illustrative-bg: #eef1f7;
 
   /*
+   * THE BRAND RED - canonical, and the first colour in this file that comes
+   * from a real brand specification rather than from a reference mockup.
+   *
+   * #d4003b supersedes the approximated crimsons and pinks earlier sessions
+   * arrived at (FIGMA_ADOPTION.md 1.6). Adopting it is, unusually, a
+   * contrast *improvement* rather than a trade: under white text it measures
+   * 5.44:1 where the #e2196f it replaces managed 4.56:1.
+   *
+   * FILL vs INK are two tokens on purpose, and the reason is the theme.
+   * A fill carries its own ground, so --color-brand is the same value in
+   * both themes and white text on it is always 5.44:1. Brand as *text or a
+   * hairline on the page* has to clear the page behind it, and #d4003b is a
+   * dark red: 5.44:1 on white, but 3.10:1 on the dark theme's surface -
+   * under AA. So --color-brand-ink is the brand lifted 35% toward white in
+   * dark mode (#e35980, 4.83:1 there). Same hue, same family; the precedent
+   * is --color-rail-live-mark and, before it, #6B7A99 -> #5A6884.
+   *
+   *   white on #d4003b                 5.44:1  AA
+   *   #d4003b text on white            5.44:1  AA
+   *   #d4003b text on --color-canvas   5.07:1  AA
+   *   #d4003b hairline on canvas       5.07:1  clears the 3:1 bar
+   *   white on #b00031 (hover)         7.27:1  AA
+   *   #0f2547 on #fff5f5 (tint)       14.27:1  AA
+   */
+  --color-brand: #d4003b;
+  --color-brand-hover: #b00031;
+  --color-brand-ink: #d4003b;
+  --color-brand-tint: #fff5f5;
+
+  /*
    * 14px, up from Tailwind's 8px `rounded-lg`. The reference's softer corner
    * is most of what makes it read as current, and unlike its shadow it costs
    * nothing: 4.5 rejects shadow-defined cards ("heavily shadowed cards read
@@ -63,85 +93,98 @@
    * .dark or prefers-color-scheme - a rail token that flipped would be a bug,
    * not a feature.
    *
-   * The values below are the presenter's supplied palette, MEASURED rather
-   * than trusted. Against --color-rail: ink 16.23:1, ink-muted 7.02:1 (6.04:1
-   * on the hover ground), both above AA at the 16px projector floor.
+   * ONE DARK, NOT TWO (FIGMA_ADOPTION.md 1.5)
+   *
+   * The rail ground is now #1c1c1c - the topbar's value from the Figma
+   * spec - and the topbar uses this same token rather than a second one.
+   * That is the decision, not an accident: two near-blacks differing
+   * slightly read as a rendering defect rather than as intent, and the
+   * seam between them would be the first thing the eye lands on. The
+   * #17132b it replaces was itself adopted only one session earlier from a
+   * *different* reference's palette, so it had no claim to permanence that
+   * a real brand specification does not outrank.
+   *
+   * The ink-muted stop moved with the ground: #a49dc2 was a violet-tinted
+   * grey chosen for a violet-tinted ground, and it reads as a colour cast
+   * on a true neutral. #94a3b8 is the neutral equivalent at the same
+   * weight.
+   *
+   * MEASURED against the new #1c1c1c ground, not assumed to survive it:
+   *
+   *   ink #f4f2f8                     15.34:1  AA  (was 16.23 on #17132b)
+   *   ink-muted #94a3b8                6.65:1  AA
+   *   ink-muted on hover #262626       5.90:1  AA
+   *   brand #d4003b as a fill          3.13:1  clears the 3:1 block bar
+   *   white on that brand fill         5.44:1  AA
+   *   live-mark #7b74ec                4.51:1  AA
+   *   illustrative-fg (Simulation)     4.90:1  AA
    *
    * The border is the one value with no contrast requirement to meet - it is a
-   * hairline separator, not information. At 9% white over this ground it
-   * composites to #2c283e (1.27:1), which is the same weight the previous
-   * #1b2438 carried over #0b1220 (1.21:1).
+   * hairline separator, not information.
    */
-  --color-rail: #17132b;
-  --color-rail-hover: #251f42;
+  --color-rail: #1c1c1c;
+  --color-rail-hover: #262626;
   --color-rail-border: rgba(255, 255, 255, 0.09);
   --color-rail-ink: #f4f2f8;
-  --color-rail-ink-muted: #a49dc2;
+  --color-rail-ink-muted: #94a3b8;
 
   /*
    * THE RAIL'S TWO ACCENTS
    *
-   *   rail-accent (pink)  = WHERE YOU ARE. Exactly one on screen at a time -
-   *                         the active section. Pure wayfinding.
-   *   rail-live (indigo)  = WHAT IS ON. The Live/Simulation indicator, the
-   *                         agent currently answering, a pressed toggle.
+   *   brand  (crimson) = WHERE YOU ARE. Exactly one on screen at a time -
+   *                      the active section. Pure wayfinding.
+   *   rail-live (indigo) = WHAT IS ON. The Live/Simulation indicator, the
+   *                      agent currently answering, a pressed toggle.
    *
-   * The reference mockup this palette came from used GREEN for the second of
-   * those. That is the one thing not imported. Green is --color-affirm and
+   * The rail no longer carries its own accent value. It uses --color-brand,
+   * because there is now exactly one brand red in the project and a rail-
+   * scoped near-duplicate of it would be a second source of truth for the
+   * same idea. --color-rail-accent and --color-rail-accent-hover are gone.
+   *
+   * Neither reference's GREEN came across, and that has now survived two
+   * separate mockups asking for it. Green is --color-affirm and
    * --color-affirm is the 401 rejection in the Credentials panel, nothing
    * else (DESIGN_DECISIONS.md 4.4/4.5, and the F4 audit that removed it from
-   * five other places). A "healthy/live" green anywhere in this console would
-   * undo that in one step, so "live" is indigo here instead.
+   * five other places).
    *
-   * The active item was briefly moved OFF this pink and onto the indigo, on
-   * the theory that the pink and the presenter's crimson mark above it are
-   * the same hue and would collide. They are the same hue - 15.9 degrees
-   * apart, deltaE2000 10.3 - and they do not collide, because a 34px mark and
-   * a filled 215px bar separated by ~30px of ground are not competing for the
-   * same read. A screenshot of the deployed app this palette comes from
-   * settled it. See DESIGN_DECISIONS.md 4.13: the fix was proportion, not
-   * hue.
+   * WHAT THE FIGMA REFERENCE ASKED FOR HERE, AND WHY IT IS NOT WHAT SHIPPED
+   *
+   * Its active item is a tinted row (#1e293b on #0f172a) carrying a 4x16px
+   * crimson bar at the right edge. Measured, that bar is 2.50:1 against the
+   * tinted row it sits on - under the 3:1 that 1.4.11 asks of a state
+   * carried by colour. Lifting the crimson until it clears takes +20% white
+   * (#dd3362), which walks it straight back to the pink this very session
+   * retired, and would undo "one canonical brand red" to satisfy a
+   * decoration. So the solid brand fill stays: it is a stronger signal from
+   * the back of a room, it needs no second red, and every value in it
+   * passes. What the reference genuinely contributes here is the per-item
+   * SUBTITLE, which is information rather than decoration, and that is
+   * adopted - see Sidebar.tsx.
    *
    * Contrast, measured against the surface each value actually sits on:
    *
-   *   #e2196f under white text            4.56:1   AA
-   *   #e2196f as a block on the rail      3.95:1   above the 3:1 bar 1.4.11
-   *                                                asks of a state carried by
-   *                                                colour - the indigo's
-   *                                                2.87:1 did not clear it
-   *   #b8125b under white text            6.41:1   AA
+   *   #d4003b under white text            5.44:1   AA
+   *   #d4003b as a block on the rail      3.13:1   clears the 3:1 bar 1.4.11
+   *                                                asks of a state carried
+   *                                                by colour
+   *   #b00031 under white text            7.27:1   AA
+   *   white at 90% on the brand fill      4.56:1   AA - the item subtitle
    *   #4f46e5 under white text            6.29:1   AA
    *   #4338ca under white text            7.90:1   AA
-   *   #7b74ec as a mark on the rail       4.77:1   AA
-   *   #f4f2f8 focus ring on the rail     16.23:1
-   *   #f4f2f8 focus ring on #e2196f       4.11:1
+   *   #7b74ec as a mark on the rail       4.51:1   AA
+   *   #f4f2f8 focus ring on the rail     15.34:1
+   *   #f4f2f8 focus ring on #d4003b       3.77:1   clears 3:1 for a ring
    *
-   * #f4f2f8 on #e2196f is 4.11:1, so the active item's LABEL is pure white
-   * (4.56:1) and not the rail's own ink. It is the one string in the rail
-   * that cannot use the rail's ink.
-   *
-   * --color-rail-live-mark is the one value NOT taken from the palette
-   * verbatim, and the reason is the reason this file is contrast-checked at
-   * all: #4f46e5 measures 2.87:1 directly on #17132b, which is below even the
-   * 3:1 bar for a non-text graphic. As the 8px Live dot and the 14px agent
-   * glyph - both of which sit ON the rail ground rather than under white text
-   * - it would be a status signal the back of the room cannot see. So it is
-   * the same indigo lifted 25% toward white: same hue, same family, not a
-   * third colour. The precedent is #6B7A99 -> #5A6884 in the palette above,
-   * darkened for exactly the same reason.
-   *
-   * The focus ring is --color-rail-ink rather than either accent, and that is
-   * not a style choice: a ring has to be legible against the rail ground AND
-   * against the fill it surrounds, and the active item is where a keyboard
-   * user lands first. A pink ring on the pink fill is 1:1 - invisible. The
-   * rail's own ink clears both surfaces and adds no colour.
+   * --color-rail-live-mark is the one value NOT taken from a supplied
+   * palette verbatim: #4f46e5 measures 2.87:1 directly on the rail ground,
+   * below even the 3:1 bar for a non-text graphic, and as the 8px Live dot
+   * and the 14px agent glyph it would be a status signal the back of the
+   * room cannot see. It is the same indigo lifted 25% toward white.
    *
    * These are absolute for the same reason the five values above are: the
    * rail does not flip with the theme, so nothing here is ever redefined
    * under .dark.
    */
-  --color-rail-accent: #e2196f;
-  --color-rail-accent-hover: #b8125b;
   --color-rail-live: #4f46e5;
   --color-rail-live-hover: #4338ca;
   --color-rail-live-mark: #7b74ec;
@@ -310,6 +353,19 @@
   --color-affirm: #3fc79a;
   --color-illustrative-fg: #7f8ca4;
   --color-illustrative-bg: #1e2637;
+
+  /*
+   * --color-brand does NOT flip: it is a fill, it carries its own ground,
+   * and white on it is 5.44:1 in any theme. The two that do flip are the
+   * ones that have to clear the page behind them:
+   *
+   *   brand-ink  #e35980  4.83:1 on --color-surface, 5.27:1 on --color-canvas
+   *              (#d4003b would be 3.10:1 here - under AA, which is the
+   *              whole reason this token exists separately from the fill)
+   *   brand-tint #2a1520  --color-ink on it measures 14.56:1
+   */
+  --color-brand-ink: #e35980;
+  --color-brand-tint: #2a1520;
 }
 
 html,

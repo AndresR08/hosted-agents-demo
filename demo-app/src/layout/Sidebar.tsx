@@ -72,10 +72,10 @@ const ICONS: Record<SectionId, ComponentType<{ fontSize?: number }>> = {
  *
  * The rail marks three things — the active section, a pressed control, the
  * Live indicator — and used to borrow `--color-accent` for all of them. The
- * supplied palette splits them: `rail-accent` (pink) is *where you are*,
- * `rail-live` (indigo) is *what is on*. Nothing outside this file uses
- * either; the four sections, the tables and the badges are on the same
- * `--color-accent` they were.
+ * supplied palette splits them: `--color-brand` (crimson) is *where you
+ * are*, `rail-live` (indigo) is *what is on*. The rail no longer owns a
+ * near-duplicate red of its own — there is one canonical brand red now and
+ * this uses it (FIGMA_ADOPTION.md §1.6).
  *
  * `rail-live` is indigo and not green on purpose: the palette came from a
  * dashboard that paints "healthy" green, `--color-affirm` here is the 401
@@ -300,7 +300,7 @@ export function Sidebar({ className }: { className?: string }) {
                   indigo this briefly used managed only 2.87:1.
                 */
                 isActive
-                  ? "bg-rail-accent text-white hover:bg-rail-accent-hover"
+                  ? "bg-brand text-white hover:bg-brand-hover"
                   : "text-rail-ink-muted hover:bg-rail-hover hover:text-rail-ink",
               )}
             >
