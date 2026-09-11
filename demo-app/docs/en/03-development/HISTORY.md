@@ -171,6 +171,29 @@ sizing, or warm-up cadence changed.
 Full detail for both in [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) and
 [`PROJECT_STATUS.md`](PROJECT_STATUS.md) §4f/§4g.
 
+## 19. The shared-APIM grant is now automated, not just reapplied (2026-09-11)
+
+Item 18 fixed the live symptom and named what it left open: the grant was
+manual, once, and the automation had no step for it. Closed the same day —
+`Grant-DemoAppServiceRoles` grants it now, as a fifth role alongside the four
+it already made, so the next App Service recreation does not lose it again.
+
+The one real decision in an otherwise mechanical change: not building it on
+`Grant-RoleIfMissing`, the helper the other four grants already use
+successfully. The shared-APIM scope is exactly where item 18's own
+`MissingSubscription` finding lives — folding the new grant into the existing
+helper unmodified would have made a full, unflagged `deploy.ps1` run throw on
+this exact step in this exact environment. `Grant-RoleIfMissingRest`, a
+parallel function with the identical contract over `az rest`, avoids that
+without touching the three call sites that have never shown the problem.
+
+Verified three ways against the live `-v2` deployment rather than assumed
+from a clean `-ValidateOnly` run (which doesn't reach this code at all): a
+direct call to the updated function reported all five grants `(already
+granted)`, and the create branch itself was exercised against a real,
+harmless principal — a role assignment actually created, confirmed present,
+then deleted and reconfirmed gone. No residue left behind.
+
 ## See also
 
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — where everything stands, today.

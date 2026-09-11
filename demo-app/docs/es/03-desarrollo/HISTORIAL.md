@@ -179,6 +179,32 @@ precalentamiento.
 Detalle completo de ambos en [`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md)
 y [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) §4f/§4g.
 
+## 19. La concesión del APIM compartido ahora está automatizada, no solo reaplicada (2026-09-11)
+
+El punto 18 arregló el síntoma en vivo y nombró lo que dejaba abierto: la
+concesión era manual, una vez, y la automatización no tenía paso para ella.
+Cerrado el mismo día — `Grant-DemoAppServiceRoles` la concede ahora, como un
+quinto rol junto a los cuatro que ya hacía, así que la próxima recreación del
+App Service no la vuelve a perder.
+
+La única decisión real en un cambio por lo demás mecánico: no construirla
+sobre `Grant-RoleIfMissing`, el helper que las otras cuatro concesiones ya
+usan con éxito. El scope del APIM compartido es exactamente donde vive el
+hallazgo propio de `MissingSubscription` del punto 18 — incorporar la
+concesión nueva al helper existente sin modificar habría hecho que una
+corrida completa y sin flags de `deploy.ps1` fallara justo en este paso, en
+este entorno exacto. `Grant-RoleIfMissingRest`, una función paralela con el
+contrato idéntico sobre `az rest`, evita eso sin tocar los tres puntos de
+llamada que nunca mostraron el problema.
+
+Verificado de tres maneras contra el despliegue `-v2` en vivo, en vez de
+asumido a partir de una corrida limpia de `-ValidateOnly` (que no llega a
+este código en absoluto): una llamada directa a la función actualizada
+reportó las cinco concesiones `(already granted)`, y la rama de creación en
+sí se ejercitó contra un principal real e inofensivo — una asignación de rol
+realmente creada, confirmada presente, luego eliminada y reconfirmada
+ausente. Sin residuo.
+
 ## Ver también
 
 - [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) — dónde quedó cada cosa, hoy.

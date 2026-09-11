@@ -227,10 +227,23 @@ data. Full detail, including the exact commands and the additive-count
 verification, in
 [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md#the-reader-grant-above-was-never-encoded-into-deployps1-and-recreating-the-app-service-silently-lost-it-2026-09-11).
 
-**Left open, on purpose**: `deploy.ps1` still does not grant this
-automatically — the next App Service recreation loses it again the same way.
-Encoding it is a `deploy.ps1` change with its own review, not folded into this
-fix.
+**Update, same day: the "left open" part is now closed too.** `Grant-
+DemoAppServiceRoles` in `AppService.ps1` grants this Reader itself now, as a
+fifth grant alongside the four it already made — no more manual step after
+the next App Service recreation. Built on a new `Grant-RoleIfMissingRest`
+(same idempotent/retry contract as the existing `Grant-RoleIfMissing`, but
+over `az rest` rather than `az role assignment`, because the shared-APIM
+scope is exactly where that subcommand's `MissingSubscription` quirk lives)
+— `Grant-RoleIfMissing` itself is untouched, since its other three callers
+have never shown the problem. Verified three ways against the live `-v2`
+deployment: `-ValidateOnly` still passes (the weak check — it never reaches
+this code); a direct call to `Grant-DemoAppServiceRoles` against real `-v2`
+values reported all five grants `(already granted)`, correctly recognizing
+the Reader applied by hand hours earlier; and the create branch itself was
+exercised against a real, harmless principal (the shared gateway's own
+identity, temporarily granted AcrPull, confirmed present, then deleted and
+reconfirmed gone). Full detail in
+[`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md#the-gap-closed-grant-demoappserviceroles-now-grants-the-shared-apim-reader-itself-2026-09-11).
 
 ## 4g. Cold start decomposed with real telemetry — diagnosis only, nothing changed (2026-09-11)
 

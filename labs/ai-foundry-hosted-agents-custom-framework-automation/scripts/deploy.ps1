@@ -544,7 +544,9 @@ try {
         Grant-DemoAppServiceRoles -SubscriptionId $ctx.SubscriptionId `
             -ResourceGroupName $config.ResourceGroupName -PrincipalId $site.PrincipalId `
             -ContainerRegistryName $outputs.ContainerRegistryName `
-            -LogAnalyticsWorkspaceName $workspaceName
+            -LogAnalyticsWorkspaceName $workspaceName `
+            -SharedApimName $config.SharedApimName `
+            -SharedApimResourceGroupName $config.SharedApimResourceGroupName
 
         # Same role the human principal gets: the broker creates and deletes
         # hosted agents on the presenter's behalf. Granted through the App

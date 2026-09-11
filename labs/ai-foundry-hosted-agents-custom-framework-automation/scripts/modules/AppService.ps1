@@ -381,7 +381,9 @@ function Grant-DemoAppServiceRoles {
         [Parameter(Mandatory)][string]$ResourceGroupName,
         [Parameter(Mandatory)][string]$PrincipalId,
         [Parameter(Mandatory)][string]$ContainerRegistryName,
-        [Parameter(Mandatory)][string]$LogAnalyticsWorkspaceName
+        [Parameter(Mandatory)][string]$LogAnalyticsWorkspaceName,
+        [Parameter(Mandatory)][string]$SharedApimName,
+        [Parameter(Mandatory)][string]$SharedApimResourceGroupName
     )
 
     Write-Step 'Granting the App Service identity read access to the lab resources'
@@ -409,6 +411,28 @@ function Grant-DemoAppServiceRoles {
     Grant-RoleIfMissing -PrincipalId $PrincipalId -RoleId $script:RoleLogAnalyticsReader `
         -Scope "$rgScope/providers/Microsoft.OperationalInsights/workspaces/$LogAnalyticsWorkspaceName" `
         -Description "Log Analytics Reader on $LogAnalyticsWorkspaceName"
+
+    # ---------------------------------------------------------- SHARED GATEWAY
+    #
+    # The broker reads the shared APIM from ARM - its tier, its API policies,
+    # its diagnostic settings (routes/maintenance.ts, routes/policy.ts) - and
+    # until 2026-09-11 nothing in this function granted access to it. The four
+    # roles above are all scoped to THIS lab's own resource group; the shared
+    # instance lives in a different one and was missed entirely until an audit
+    # clicked the two Settings actions that need it and got a 403.
+    #
+    # The grant itself (Reader, scoped to the API Management RESOURCE rather
+    # than to its resource group, because that group also holds another
+    # team's Log Analytics workspace and Application Insights - see
+    # DESIGN_DECISIONS.md "Permissions cross both ways") is not new: it was
+    # applied by hand once, on 2026-09-07, against whichever App Service
+    # identity existed that day. What is new is that it is now a step in this
+    # function, so the next time the App Service is recreated - a new
+    # system-assigned identity every time, per Get-DemoAppServiceName's own
+    # docstring - the grant is not silently lost again.
+    Grant-RoleIfMissingRest -PrincipalId $PrincipalId -RoleId $script:RoleReader `
+        -Scope "/subscriptions/$SubscriptionId/resourceGroups/$SharedApimResourceGroupName/providers/Microsoft.ApiManagement/service/$SharedApimName" `
+        -Description "Reader on the shared APIM ($SharedApimName)"
 }
 
 <#
@@ -481,6 +505,118 @@ function Grant-RoleIfMissing {
                 '  Check   : granting roles needs Owner, or Contributor + Role Based Access Control',
                 '            Administrator, on the resource group. Re-run with -SkipInfrastructure',
                 '            -SkipImageBuild -SkipAgent once the permission is in place.'
+            ) -join "`n"
+        }
+
+        Write-Warn "$Description - identity not visible to RBAC yet (attempt $attempt/$MaxAttempts), retrying in ${RetryDelaySeconds}s"
+        Start-Sleep -Seconds $RetryDelaySeconds
+    }
+}
+
+<#
+.SYNOPSIS
+  Same contract as Grant-RoleIfMissing - idempotent, retries only a still-
+  propagating identity, throws on anything else - built on `az rest` instead
+  of `az role assignment list`/`create`.
+.DESCRIPTION
+  Found 2026-09-11, reproducibly, across every `az role assignment list`/
+  `create` parameter combination tried (bare `--scope`, `--scope` with
+  `--assignee`/`--role`, with and without `--include-inherited`): both
+  subcommands return `MissingSubscription` against a scope naming a
+  `Microsoft.ApiManagement/service` resource specifically, on this CLI
+  version (2.88.0), while the identical shape against a resource group, an
+  ACR, a Log Analytics workspace or a Foundry project - everything else
+  Grant-RoleIfMissing is asked to grant in this file - works. The raw ARM
+  REST call against the same URL worked on the first try, so that is what
+  this function uses; Grant-RoleIfMissing itself is untouched; three of its
+  four callers have never shown this failure and there is no reason to move
+  proven code off a working command.
+
+  If a future CLI release fixes the underlying bug, this function keeps
+  working exactly as before - `az rest` is not deprecated by a fix to `az
+  role assignment` - so there is no forcing function to revisit it, only an
+  opportunity to simplify back to Grant-RoleIfMissing if someone checks.
+#>
+function Grant-RoleIfMissingRest {
+    param(
+        [Parameter(Mandatory)][string]$PrincipalId,
+        [Parameter(Mandatory)][string]$RoleId,
+        [Parameter(Mandatory)][string]$Scope,
+        [Parameter(Mandatory)][string]$Description,
+        [int]$MaxAttempts = 3,
+        [int]$RetryDelaySeconds = 10
+    )
+
+    $apiVersion = '2022-04-01'
+    $roleDefinitionId = "/subscriptions/$($Scope.Split('/')[2])/providers/Microsoft.Authorization/roleDefinitions/$RoleId"
+
+    $existing = Invoke-Az -Arguments @(
+        'rest', '--method', 'get',
+        '--url', "https://management.azure.com$Scope/providers/Microsoft.Authorization/roleAssignments?api-version=$apiVersion",
+        '-o', 'json'
+    ) -AllowFailure
+
+    if ($existing.Success -and $existing.Json -and $existing.Json.value) {
+        $alreadyGranted = @($existing.Json.value) | Where-Object {
+            $_.properties.principalId -eq $PrincipalId -and
+            $_.properties.roleDefinitionId -eq $roleDefinitionId
+        }
+        if (@($alreadyGranted).Count -gt 0) {
+            Write-Ok "$Description (already granted)"
+            return
+        }
+    }
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $assignmentName = [guid]::NewGuid().ToString()
+        $body = [ordered]@{
+            properties = [ordered]@{
+                roleDefinitionId = $roleDefinitionId
+                principalId      = $PrincipalId
+                principalType    = 'ServicePrincipal'
+            }
+        } | ConvertTo-Json -Compress
+        $bodyFile = [System.IO.Path]::GetTempFileName()
+        try {
+            Set-Content -Path $bodyFile -Value $body -Encoding utf8 -NoNewline
+
+            $create = Invoke-Az -Arguments @(
+                'rest', '--method', 'put',
+                '--url', "https://management.azure.com$Scope/providers/Microsoft.Authorization/roleAssignments/${assignmentName}?api-version=$apiVersion",
+                '--body', "@$bodyFile", '-o', 'json'
+            ) -AllowFailure
+        }
+        finally {
+            Remove-Item -Path $bodyFile -Force -ErrorAction SilentlyContinue
+        }
+
+        if ($create.Success) {
+            Write-Ok $Description
+            return
+        }
+
+        $azureError = ''
+        if ($create.Error) { $azureError = $create.Error.Trim() }
+
+        # A concurrent or inherited assignment the list above did not see.
+        if ($azureError -match 'RoleAssignmentExists') {
+            Write-Ok "$Description (already granted)"
+            return
+        }
+
+        $stillPropagating = ($azureError -match 'PrincipalNotFound') -or
+                            ($azureError -match 'does not exist in the directory')
+
+        if (-not $stillPropagating -or $attempt -eq $MaxAttempts) {
+            throw @(
+                "Could not grant: $Description",
+                "  Scope   : $Scope",
+                "  Azure   : $azureError",
+                "  Attempts: $attempt of $MaxAttempts",
+                '  Check   : granting roles needs Owner, or Contributor + Role Based Access Control',
+                '            Administrator, on the shared APIM (not this lab''s own resource group).',
+                '            Re-run with -SkipInfrastructure -SkipImageBuild -SkipAgent once the',
+                '            permission is in place.'
             ) -join "`n"
         }
 

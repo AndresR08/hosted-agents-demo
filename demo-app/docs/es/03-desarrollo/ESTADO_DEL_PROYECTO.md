@@ -236,10 +236,25 @@ Detalle completo, incluyendo los comandos exactos y la verificación del
 conteo aditivo, en
 [`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md#la-concesión-de-reader-de-arriba-nunca-se-codificó-en-deployps1-y-recrear-el-app-service-la-perdió-en-silencio-2026-09-11).
 
-**Se deja abierto, a propósito**: `deploy.ps1` todavía no concede esto
-automáticamente — la próxima recreación del App Service lo vuelve a perder
-del mismo modo. Codificarlo es un cambio de `deploy.ps1` con su propia
-revisión, no algo incluido en este arreglo.
+**Actualización, mismo día: la parte "se deja abierto" también se cerró.**
+`Grant-DemoAppServiceRoles` en `AppService.ps1` concede este Reader por sí
+sola ahora, como una quinta concesión junto a las cuatro que ya hacía — sin
+más paso manual tras la próxima recreación del App Service. Construida sobre
+una `Grant-RoleIfMissingRest` nueva (mismo contrato idempotente/de reintento
+que la `Grant-RoleIfMissing` existente, pero sobre `az rest` en vez de `az
+role assignment`, porque el scope del APIM compartido es exactamente donde
+vive la rareza de `MissingSubscription` de ese subcomando) —
+`Grant-RoleIfMissing` en sí queda intacta, ya que sus otras tres llamadas
+nunca mostraron el problema. Verificado de tres maneras contra el despliegue
+`-v2` en vivo: `-ValidateOnly` sigue pasando (la comprobación débil — nunca
+llega a este código); una llamada directa a `Grant-DemoAppServiceRoles` con
+los valores reales de `-v2` reportó las cinco concesiones `(already
+granted)`, reconociendo correctamente el Reader aplicado a mano horas antes;
+y la rama de creación en sí se ejercitó contra un principal real e inofensivo
+(la identidad propia del gateway compartido, con AcrPull concedido
+temporalmente, confirmado presente, y luego eliminado y reconfirmado
+ausente). Detalle completo en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md#la-brecha-se-cerró-grant-demoappserviceroles-ahora-concede-el-reader-del-apim-compartido-por-sí-sola-2026-09-11).
 
 ## 4g. Arranque en frío desglosado con telemetría real — solo diagnóstico, no se cambió nada (2026-09-11)
 
