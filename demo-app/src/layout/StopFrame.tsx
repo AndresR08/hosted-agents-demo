@@ -62,7 +62,7 @@ export function StopFrame({
   tone?: "default" | "reference";
 }) {
   return (
-    <Surface tone={tone} className="flex min-h-0 flex-1 animate-fade-slide-in flex-col gap-4 p-6">
+    <Surface tone={tone} className="flex min-h-0 flex-1 animate-fade-slide-in flex-col gap-3 p-5">
       <header className={cn("flex shrink-0 items-center justify-between gap-6", MEASURE)}>
         <div className="min-w-0">
           <p className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">

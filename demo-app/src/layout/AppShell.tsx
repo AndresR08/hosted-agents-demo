@@ -3,6 +3,7 @@ import { useDemoStore } from "@/state/store";
 import { STOP_TO_SECTION } from "@/state/types";
 import { cn } from "@/lib/cn";
 import { Sidebar } from "./Sidebar";
+import { Topbar } from "./Topbar";
 import { CopilotPanel } from "@/features/copilot/CopilotPanel";
 import { AgentsView } from "@/features/agents/AgentsView";
 import { CredentialTestStop } from "@/features/gateway/CredentialTestStop";
@@ -54,46 +55,61 @@ export function AppShell() {
   const section = STOP_TO_SECTION[stop];
 
   return (
-    <div className={cn("flex h-screen w-full overflow-hidden", transitioning && "animate-fade-out")}>
-      <Sidebar className="animate-fade-in-up" />
+    /*
+      Column, not row, since the topbar arrived: the 56px band spans the full
+      viewport and the rail begins beneath it (FIGMA_ADOPTION.md 0.2). The
+      inner row below keeps the rail/stage relationship exactly as it was, so
+      every measurement in 4.8/4.9/4.11 still describes the same two boxes -
+      only 56px shorter.
+    */
+    <div
+      className={cn(
+        "flex h-screen w-full flex-col overflow-hidden",
+        transitioning && "animate-fade-out",
+      )}
+    >
+      <Topbar />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <Sidebar className="animate-fade-in-up" />
 
-      {/*
+        {/*
         Capped and centred rather than edge-to-edge. At 1920 an application
         that fills every pixel reads as a web page; a composition with canvas
         around it reads as a product. At 1366 the cap never engages.
       */}
-      <main className="mx-auto flex min-h-0 min-w-0 max-w-[1600px] flex-1 gap-grid-gutter overflow-hidden px-grid-margin py-grid-gutter">
-        {/*
+        <main className="mx-auto flex min-h-0 min-w-0 max-w-[1600px] flex-1 gap-grid-gutter overflow-hidden px-grid-margin py-4">
+          {/*
           `key` on the stage is deliberate: moving between stops remounts, so
           each stop plays its entry animation and none of them inherit scroll
           position from the last one.
         */}
-        <div key={stop} className="flex min-w-0 flex-1 flex-col">
-          {section === "agents" && <AgentsView />}
-          {/*
+          <div key={stop} className="flex min-w-0 flex-1 flex-col">
+            {section === "agents" && <AgentsView />}
+            {/*
             The Gateway sub-nav is no longer a row here: each Gateway screen
             passes it to its own StopFrame `action` slot. That reclaimed the
             36px these three screens were paying and no other section paid.
             It still does not remount on tab change, because StopFrame's header
             is outside the animated body.
           */}
-          {stop === "gateway" && <GatewayStop />}
-          {stop === "gatewayCredentials" && <CredentialTestStop />}
-          {stop === "apimCapabilities" && <ApimCapabilitiesStop />}
-          {stop === "observability" && <ObservabilityStop />}
-          {stop === "observabilityMeasurements" && <MeasurementsStop />}
-          {stop === "operations" && <OperationsStop />}
-        </div>
+            {stop === "gateway" && <GatewayStop />}
+            {stop === "gatewayCredentials" && <CredentialTestStop />}
+            {stop === "apimCapabilities" && <ApimCapabilitiesStop />}
+            {stop === "observability" && <ObservabilityStop />}
+            {stop === "observabilityMeasurements" && <MeasurementsStop />}
+            {stop === "operations" && <OperationsStop />}
+          </div>
 
-        {/*
+          {/*
           Always mounted, hidden when closed. `hidden` is display:none, so it
           occupies no space at all — but the conversation survives being closed
           and reopened, which it would not if this unmounted. A presenter who
           collapses the panel to show a stop in full is not asking to lose the
           exchange they just had.
         */}
-        <CopilotPanel className={cn(!copilotOpen && "hidden")} />
-      </main>
+          <CopilotPanel className={cn(!copilotOpen && "hidden")} />
+        </main>
+      </div>
     </div>
   );
 }
