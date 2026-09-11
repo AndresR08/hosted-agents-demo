@@ -124,7 +124,7 @@ export function Sidebar({ className }: { className?: string }) {
   const copilotOpen = useDemoStore((s) => s.copilotOpen);
   const toggleCopilot = useDemoStore((s) => s.toggleCopilot);
   const hasActiveConversation = useDemoStore((s) => s.hasActiveConversation);
-  const goToLanding = useDemoStore((s) => s.goToLanding);
+  const resetDemoState = useDemoStore((s) => s.resetDemoState);
 
   const [agentVersions, setAgentVersions] = useState<Record<string, string>>(
     {},
@@ -160,13 +160,18 @@ export function Sidebar({ className }: { className?: string }) {
   const targetAgentVersion = agentVersions[targetAgent] ?? "";
 
   /*
-   * Home confirms before discarding an active conversation. `Esc` still works
-   * and, as before, silently does nothing in that state - this button is the
-   * discoverable exit, and it came across from the header unchanged.
+   * Home restarts the demonstration in place. It used to navigate back to
+   * the landing page; with that screen gone it calls resetDemoState, which
+   * does everything the trip to the landing page used to do - including
+   * remounting the stage and the copilot, via sessionKey.
+   *
+   * The confirmation survives unchanged, because the reason for it did: a
+   * reset still discards a live conversation. `Esc` still silently does
+   * nothing in that state; this button is the discoverable exit.
    */
   function handleHome() {
     if (hasActiveConversation) setConfirmOpen(true);
-    else goToLanding();
+    else resetDemoState();
   }
 
   return (
@@ -407,7 +412,7 @@ export function Sidebar({ className }: { className?: string }) {
                 appearance="primary"
                 onClick={() => {
                   setConfirmOpen(false);
-                  goToLanding();
+                  resetDemoState();
                 }}
               >
                 {t("header.homeLabel")}

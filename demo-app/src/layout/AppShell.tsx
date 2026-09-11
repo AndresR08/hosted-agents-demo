@@ -51,7 +51,7 @@ export function AppShell() {
 
   const stop = useDemoStore((s) => s.stop);
   const copilotOpen = useDemoStore((s) => s.copilotOpen);
-  const transitioning = useDemoStore((s) => s.transitioning);
+  const sessionKey = useDemoStore((s) => s.sessionKey);
   const section = STOP_TO_SECTION[stop];
 
   return (
@@ -62,12 +62,7 @@ export function AppShell() {
       every measurement in 4.8/4.9/4.11 still describes the same two boxes -
       only 56px shorter.
     */
-    <div
-      className={cn(
-        "flex h-screen w-full flex-col overflow-hidden",
-        transitioning && "animate-fade-out",
-      )}
-    >
+    <div className="flex h-screen w-full flex-col overflow-hidden">
       <Topbar />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <Sidebar className="animate-fade-in-up" />
@@ -83,7 +78,10 @@ export function AppShell() {
           each stop plays its entry animation and none of them inherit scroll
           position from the last one.
         */}
-          <div key={stop} className="flex min-w-0 flex-1 flex-col">
+          <div
+            key={`${sessionKey}-${stop}`}
+            className="flex min-w-0 flex-1 flex-col"
+          >
             {section === "agents" && <AgentsView />}
             {/*
             The Gateway sub-nav is no longer a row here: each Gateway screen
@@ -107,7 +105,18 @@ export function AppShell() {
           collapses the panel to show a stop in full is not asking to lose the
           exchange they just had.
         */}
-          <CopilotPanel className={cn(!copilotOpen && "hidden")} />
+          {/*
+          `sessionKey` in the key is what replaced the landing page's
+          unmount. Returning to the landing page used to take the copilot's
+          history with it for free; resetDemoState bumps the key instead, and
+          a remount discards the same conversation the same way. Without it,
+          "start a second demonstration" would leave the first one's messages
+          on screen.
+        */}
+          <CopilotPanel
+            key={sessionKey}
+            className={cn(!copilotOpen && "hidden")}
+          />
         </main>
       </div>
     </div>

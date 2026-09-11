@@ -89,9 +89,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "header.statusLive": "Azure Live",
     "header.statusSimulation": "Simulation",
     "header.settingsLabel": "Settings",
-    "header.homeLabel": "Return to Start",
-    "header.confirmReturnTitle": "Return to the landing page?",
-    "header.confirmReturnBody": "The current conversation will be lost.",
+    "header.homeLabel": "Restart the demonstration",
+    "header.confirmReturnTitle": "Restart the demonstration?",
+    "header.confirmReturnBody": "The current conversation will be lost, and the console returns to the first section.",
     "footer.presentedBy": "Presented by Controles Empresariales",
 
     "settings.title": "Settings",
@@ -110,11 +110,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.reducedMotionOff": "Off",
     "settings.close": "Close",
 
-    "landing.headline": "Different frameworks. Same platform.",
-    "landing.description":
-      "Containers your teams build, running as Microsoft Foundry Hosted Agents — governed by Azure API Management, observed through Azure Monitor.",
-    "landing.startButton": "Start Executive Demonstration",
-    "landing.openSettings": "Open Settings",
 
     "assistant.title": "Your Agent",
     "assistant.container": "container",
@@ -511,9 +506,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "header.statusLive": "Azure en vivo",
     "header.statusSimulation": "Simulación",
     "header.settingsLabel": "Configuración",
-    "header.homeLabel": "Volver al inicio",
-    "header.confirmReturnTitle": "¿Volver a la página de inicio?",
-    "header.confirmReturnBody": "Se perderá la conversación actual.",
+    "header.homeLabel": "Reiniciar la demostración",
+    "header.confirmReturnTitle": "¿Reiniciar la demostración?",
+    "header.confirmReturnBody": "Se perderá la conversación actual, y la consola vuelve a la primera sección.",
     "footer.presentedBy": "Presentado por Controles Empresariales",
 
     "settings.title": "Configuración",
@@ -532,11 +527,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.reducedMotionOff": "Desactivado",
     "settings.close": "Cerrar",
 
-    "landing.headline": "Frameworks distintos. La misma plataforma.",
-    "landing.description":
-      "Contenedores construidos por sus equipos, ejecutándose como Microsoft Foundry Hosted Agents: gobernados por Azure API Management y observados con Azure Monitor.",
-    "landing.startButton": "Iniciar demostración ejecutiva",
-    "landing.openSettings": "Abrir configuración",
 
     "assistant.title": "Tu agente",
     "assistant.container": "contenedor",

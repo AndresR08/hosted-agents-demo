@@ -17,7 +17,7 @@ import { useDemoStore } from "@/state/store";
  */
 export function useKeyboardShortcuts() {
   const runAccessControlTest = useDemoStore((s) => s.runAccessControlTest);
-  const goToLanding = useDemoStore((s) => s.goToLanding);
+  const resetDemoState = useDemoStore((s) => s.resetDemoState);
   const nextStop = useDemoStore((s) => s.nextStop);
   const previousStop = useDemoStore((s) => s.previousStop);
   const toggleMode = useDemoStore((s) => s.toggleMode);
@@ -60,14 +60,16 @@ export function useKeyboardShortcuts() {
           toggleMode();
           break;
         case "Escape":
-          // Innermost thing first: the copilot, then the console itself —
-          // and never leave while a conversation would be lost (see
-          // store.goToLanding). Dialogs (Policy Viewer, request detail, …)
-          // own Escape themselves and are not this hook's concern.
+          // Innermost thing first: the copilot, then the demonstration
+          // itself. With the landing page gone there is nowhere to navigate
+          // to, so the second step resets in place instead — same guard as
+          // before, because a reset still discards a live conversation.
+          // Dialogs (Policy Viewer, request detail, …) own Escape themselves
+          // and are not this hook's concern.
           if (copilotOpen) {
             setCopilotOpen(false);
           } else if (!hasActiveConversation) {
-            goToLanding();
+            resetDemoState();
           }
           break;
       }
@@ -81,7 +83,7 @@ export function useKeyboardShortcuts() {
     copilotOpen,
     toggleMode,
     runAccessControlTest,
-    goToLanding,
+    resetDemoState,
     nextStop,
     previousStop,
     toggleCopilot,

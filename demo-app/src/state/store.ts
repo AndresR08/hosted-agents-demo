@@ -1,10 +1,7 @@
 import { create } from "zustand";
 import { env } from "@/config/env";
 import { STOP_ORDER } from "./types";
-import type { AgentName, DemoMode, Locale, StopId, ThemePreference, View } from "./types";
-
-/** How long one screen fades out before the other takes over (both directions). */
-const TRANSITION_MS = 320;
+import type { AgentName, DemoMode, Locale, StopId, ThemePreference } from "./types";
 
 /**
  * Single store for cross-cutting UI state — navigation, settings, and the
@@ -13,9 +10,15 @@ const TRANSITION_MS = 320;
  * data via the service layer (see src/services).
  */
 export interface DemoStore {
-  view: View;
-  /** True during the brief landing→dashboard fade — see startDemonstration(). */
-  transitioning: boolean;
+  /**
+   * Bumped by `resetDemoState`, used as a React `key` in AppShell. This is
+   * what replaced the landing page: the console used to be reset by being
+   * *unmounted* when `view` went back to "landing", which took the copilot
+   * history and the journey timings with it for free. With no landing page
+   * to return to, that unmount has to be asked for explicitly, and a
+   * changing key is how React spells it.
+   */
+  sessionKey: number;
   /**
    * Which stop is on stage. Four sections (Agents · Gateway · Observability ·
    * Platform) map onto five stops — Agents alone carries two, Frameworks and
@@ -77,10 +80,6 @@ export interface DemoStore {
    */
   resetDemoState: () => void;
 
-  /** Landing page primary button / `Enter` — begins the fade into the console. */
-  startDemonstration: () => void;
-  /** Header Home button / `Esc` — fades back to the landing page. Callers are responsible for confirming data loss first (see Header.tsx). */
-  goToLanding: () => void;
 
   /** `L` — toggle Live / Simulation. */
   toggleMode: () => void;
@@ -100,9 +99,8 @@ export interface DemoStore {
   closeSettings: () => void;
 }
 
-export const useDemoStore = create<DemoStore>((set, get) => ({
-  view: "landing",
-  transitioning: false,
+export const useDemoStore = create<DemoStore>((set) => ({
+  sessionKey: 0,
   stop: "frameworks",
   copilotOpen: false,
   mode: env.defaultMode,
@@ -135,40 +133,25 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
   setCopilotOpen: (copilotOpen) => set({ copilotOpen }),
 
   resetDemoState: () =>
-    set({
+    set((state) => ({
       lastAskId: null,
       hasActiveConversation: false,
       targetAgent: "pydantic-agent",
       accessControlRunToken: 0,
       capturedAt: null,
-    }),
-
-  startDemonstration: () => {
-    set({ transitioning: true });
-    const delay = get().reducedMotion ? 0 : TRANSITION_MS;
-    window.setTimeout(() => {
-      set({
-        view: "dashboard",
-        transitioning: false,
-        stop: "frameworks",
-        copilotOpen: false,
-        // The same clearing the Settings button performs, so the two routes
-        // into a fresh demonstration cannot drift apart.
-        lastAskId: null,
-        hasActiveConversation: false,
-        targetAgent: "pydantic-agent",
-        accessControlRunToken: 0,
-      });
-    }, delay);
-  },
-
-  goToLanding: () => {
-    set({ transitioning: true });
-    const delay = get().reducedMotion ? 0 : TRANSITION_MS;
-    window.setTimeout(() => {
-      set({ view: "landing", transitioning: false });
-    }, delay);
-  },
+      // Back to the first stop with the copilot closed. This is now the ONLY
+      // way to begin a fresh demonstration, so it has to leave the console
+      // the way it looked on load rather than merely clearing some flags -
+      // it absorbed what startDemonstration used to do.
+      stop: "frameworks",
+      copilotOpen: false,
+      // The part that used to happen for free. Everything above is store
+      // state; the copilot's message history and the journey timings live
+      // inside components, and the landing page cleared them by causing
+      // AppShell to unmount. Bumping this key remounts them - the same
+      // mechanism, asked for rather than inherited.
+      sessionKey: state.sessionKey + 1,
+    })),
 
   toggleMode: () =>
     set((state) => ({
