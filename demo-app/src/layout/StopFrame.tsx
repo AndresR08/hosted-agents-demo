@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { InfoRegular } from "@fluentui/react-icons";
 import { Surface } from "@/components/Surface";
 import { PanelBody } from "@/components/PanelBody";
+import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/cn";
 
 /**
@@ -61,13 +63,37 @@ export function StopFrame({
    */
   tone?: "default" | "reference";
 }) {
+  const t = useTranslation();
+
   return (
     <Surface tone={tone} className="flex min-h-0 flex-1 animate-fade-slide-in flex-col gap-3 p-5">
       <header className={cn("flex shrink-0 items-center justify-between gap-6", MEASURE)}>
         <div className="min-w-0">
-          <p className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
-            {title}
-          </p>
+          {/*
+            The breadcrumb. This is a RESHAPE of the uppercase line that was
+            already here, not a new band - same slot, same height, one more
+            segment of information (FIGMA_ADOPTION.md 0.1). That is why the
+            breadcrumb costs nothing in a budget where 56px of topbar had to
+            be argued for.
+
+            Two segments, like the reference. A third for the sub-tab is
+            deliberately not built: StopFrame is handed a `title` and does
+            not know which tab rendered it, and threading that through to
+            gain "/ CREDENCIALES" would buy a word at the cost of a prop on
+            every screen.
+          */}
+          <nav aria-label={t("breadcrumb.label")}>
+            <ol className="flex min-w-0 items-center gap-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+              <li className="truncate">{t("breadcrumb.root")}</li>
+              <li aria-hidden="true" className="shrink-0 text-border">
+                /
+              </li>
+              {/* The current segment carries the brand, as the reference does. */}
+              <li className="truncate text-brand-ink" aria-current="page">
+                {title}
+              </li>
+            </ol>
+          </nav>
           {/*
             The question, given the weight a page title would normally get.
             Read from the back of the room without anyone having to say it.
@@ -77,19 +103,50 @@ export function StopFrame({
         {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
       </header>
 
+      {/*
+        The context line. The reference puts a banner here; this is that
+        banner reduced to ONE line, which is the single most important
+        decision in the whole adoption: measured, a banner as a paragraph
+        costs 52px and takes four of the nine screens below zero, where one
+        line costs about 30 and none of them break (FIGMA_ADOPTION.md 1.2).
+
+        It carries the screen's own explanatory sentence - the text that used
+        to sit in the footer. That is a move, not a copy: the sentence
+        qualifies the question, so it reads better under it than under the
+        content it was explaining. The provenance badge did NOT come with it;
+        it stays bottom-right where 1.6 fixed it deliberately.
+      */}
+      {footer && (
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-2 rounded-md border border-border bg-canvas px-3 py-1.5",
+            MEASURE,
+          )}
+        >
+          <InfoRegular fontSize={16} className="shrink-0 text-ink-muted" aria-hidden="true" />
+          <p className="min-w-0 truncate text-caption leading-snug text-ink-muted">{footer}</p>
+        </div>
+      )}
+
       <PanelBody className={cn("pr-1", bodyClassName)}>
         <div className={MEASURE}>{children}</div>
       </PanelBody>
 
-      {(footer || provenance) && (
+      {/*
+        Provenance, and only provenance. The caption that shared this row
+        moved up into the context line; the badge stays exactly where it has
+        always been, because "where a figure came from" belongs at the end of
+        the reading and a badge that moves between screens is a badge the
+        room has to hunt for (1.6).
+      */}
+      {provenance && (
         <div
           className={cn(
-            "flex shrink-0 items-center justify-between gap-6 border-t border-border pt-2.5",
+            "flex shrink-0 items-center justify-end border-t border-border pt-2.5",
             MEASURE,
           )}
         >
-          <p className="min-w-0 text-caption leading-snug text-ink-muted">{footer}</p>
-          {provenance && <div className="shrink-0">{provenance}</div>}
+          <div className="shrink-0">{provenance}</div>
         </div>
       )}
     </Surface>
