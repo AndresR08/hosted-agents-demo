@@ -211,6 +211,69 @@ como hizo el propio redespliegue de esta sesión. La
 registrando cifras verificadas contra el despliegue *anterior*; nada en esta
 entrada las revalida contra `-v2`.
 
+## 4f. A `-v2` le faltaba Reader sobre el APIM compartido — arreglado y verificado en vivo (2026-09-11)
+
+Dos acciones de Configuración → Mantenimiento ("Recargar políticas",
+"Actualizar información del despliegue") daban 403. La causa raíz tenía
+exactamente la forma de §4e un nivel más abajo: la identidad del App Service
+es nueva cada vez que se recrea el propio App Service, y `Grant-
+DemoAppServiceRoles` en `deploy.ps1` nunca ha concedido nada sobre el gateway
+compartido — la concesión Reader que este documento ya registra en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) (2026-09-07) se aplicó a
+mano, una vez, contra la identidad vieja, y nunca se codificó en la
+automatización. Confirmado directamente: 0 asignaciones para el principal
+actual (`a29165e4-…`) sobre el APIM compartido antes de este arreglo; la
+concesión de la identidad vieja (`c15d914a-…`) sigue ahí, huérfana.
+
+**Arreglado**: la misma concesión Reader, mismo alcance estrecho (el recurso
+APIM, no el resource group), reaplicada a la identidad actual vía `az rest`
+(los subcomandos `az role assignment` devolvieron `MissingSubscription`
+contra este scope exacto, de forma reproducible — una rareza del CLI,
+resuelta con la llamada REST cruda). **Verificado en vivo**, no solo
+concedido: ambas acciones se hicieron clic de verdad contra la consola
+desplegada inmediatamente después, ambas `200` con datos reales de APIM.
+Detalle completo, incluyendo los comandos exactos y la verificación del
+conteo aditivo, en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md#la-concesión-de-reader-de-arriba-nunca-se-codificó-en-deployps1-y-recrear-el-app-service-la-perdió-en-silencio-2026-09-11).
+
+**Se deja abierto, a propósito**: `deploy.ps1` todavía no concede esto
+automáticamente — la próxima recreación del App Service lo vuelve a perder
+del mismo modo. Codificarlo es un cambio de `deploy.ps1` con su propia
+revisión, no algo incluido en este arreglo.
+
+## 4g. Arranque en frío desglosado con telemetría real — solo diagnóstico, no se cambió nada (2026-09-11)
+
+"8–17 s medidos" (§6, el ítem #1 del registro de riesgos) es ahora un
+desglose real, no un rango. Tres invocaciones reales contra `pydantic-agent`
+— un precalentamiento (respuesta de una palabra), y dos preguntas abiertas
+(respuesta corta y larga) — cruzadas contra dos fuentes de telemetría
+independientes (`ApiManagementGatewayLogs` y `union AppRequests,
+AppDependencies`, las mismas tablas que ya consultan `journey.ts`/
+`observability.ts`):
+
+| | espera fija antes de que arranque `invoke_agent` | `invoke_agent` en sí | — de eso, la llamada al modelo |
+|---|---|---|---|
+| precalentamiento (una palabra) | 7,30 s | 4,98 s | 1,98 s |
+| respuesta corta | 6,67 s | 5,45 s | 2,85 s |
+| respuesta larga | 6,40 s | 10,28 s | 8,34 s |
+
+**El costo dominante es una espera de 6,4–7,3 s *antes* de que arranque el
+propio código instrumentado del agente** (`invoke_agent`, el primer span que
+emite la telemetría de cualquiera de los dos frameworks) — no escala con la
+longitud de la respuesta, que es la firma de un costo fijo y no de trabajo
+del agente. Nada del código de este repositorio está en posición de ver
+dentro de esa espera, mucho menos de acortarla: está por encima del broker,
+la consola y los contenedores de agente por igual, en la propia plataforma de
+Foundry Hosted Agents. El overhead del gateway se confirma otra vez
+despreciable (2–14 ms). Lo que sí escala correctamente es la propia llamada
+al modelo (1,98 s → 8,34 s con la longitud de la respuesta). Desglose
+completo, metodología, y el costo más pequeño del lado del framework que vale
+la pena distinguir de la espera fija, en
+[`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md#la-latencia-tiene-un-desglose-real-ahora-no-solo-un-rango-medido-2026-09-11).
+
+**No se cambió nada** — ni código de agente, ni tamaño de contenedor, ni
+cadencia de precalentamiento. Se alcanzó a propósito solo como diagnóstico.
+
 ## 5. Arquitectura actual
 
 ```

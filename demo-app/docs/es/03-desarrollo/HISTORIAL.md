@@ -148,6 +148,37 @@ Remedido una tercera vez: 32 mediciones, idénticas a la línea base original
 y a los dos cortes anteriores. Detalle completo en
 [`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md) §4.14.
 
+## 18. Dos investigaciones reales sobre el despliegue `-v2`: un permiso faltante, y la forma real de la latencia (2026-09-11)
+
+**Permisos.** Dos acciones de Configuración → Mantenimiento daban 403.
+Rastreado hasta la misma forma de la causa raíz de los puntos 16/17, un nivel
+más abajo: la identidad administrada del App Service es nueva cada vez que se
+recrea el App Service, y la concesión Reader sobre el APIM compartido
+(documentada en `DECISIONES_DE_DISENO.md`, 2026-09-07) se aplicó a mano una
+vez, contra la identidad *vieja*, nunca codificada en `deploy.ps1`.
+Confirmado directamente contra Azure — cero asignaciones para la identidad
+actual sobre el APIM compartido, la concesión de la identidad vieja todavía
+presente y huérfana — y luego arreglado con la misma concesión estrecha,
+reaplicada, y verificado con clics reales contra la consola en vivo (ambas
+acciones `200`, datos reales, inmediatamente después).
+
+**Latencia.** "8–17 s medidos" había sido un rango desde que se escribió por
+primera vez el registro de riesgos. Tres invocaciones reales, cruzadas contra
+dos fuentes de telemetría independientes, le dieron una forma: 6,4–7,3
+segundos de costo fijo *antes* de que arranque el propio span instrumentado
+del agente — presente de forma idéntica tanto si la respuesta es una palabra
+como varios párrafos, que es lo que lo marca como fijo y no proporcional —
+seguido de una llamada al modelo que escala correctamente con la longitud de
+la respuesta (1,98 s → 8,34 s). La parte fija está por encima de todo lo que
+toca el código de este repositorio; nada aquí puede ver dentro de ella, lo
+cual es en sí mismo un hallazgo que vale la pena tener registrado antes de
+que alguien busque un arreglo del lado del código que no puede alcanzar el
+costo real. Solo diagnóstico — no se cambió código, tamaño, ni cadencia de
+precalentamiento.
+
+Detalle completo de ambos en [`DECISIONES_DE_DISENO.md`](DECISIONES_DE_DISENO.md)
+y [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) §4f/§4g.
+
 ## Ver también
 
 - [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) — dónde quedó cada cosa, hoy.

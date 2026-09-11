@@ -1151,6 +1151,55 @@ So the migration's permission story is symmetric and both halves are additive: t
 
 It is now read from the instance at deploy time, which makes it derived from the two parameters that already are overridable. That is better than making it a third parameter: there is nothing left to keep in step. The lookup is fatal if it returns nothing, because a missing principal would produce a deployment that succeeds and grants no access — the silent-success shape §8.1 is a catalogue of.
 
+### The Reader grant above was never encoded into deploy.ps1, and recreating the App Service silently lost it (2026-09-11)
+
+**The 403.** "Recargar políticas" and "Actualizar información del despliegue" — two Settings → Maintenance actions that read APIM (`GET .../policies/policy`, `GET .../service`) — started failing on the `-v2` deployment (§4d/§4e). Same broker code, same grant this section already documents; the question was whether it had ever reached the *current* identity.
+
+**It had not, and the reason is process, not code.** `az webapp identity show` on both App Services confirms two different `principalId`s — a fresh system-assigned identity is created whenever the App Service resource itself is recreated, which is exactly what happened between `f76df303` and `ba8fb6d3`. `Grant-DemoAppServiceRoles` in `AppService.ps1` — the function every `deploy.ps1` run calls, skip flags or not — grants exactly three roles: Reader on the lab's own resource group, AcrPull, Log Analytics Reader. **It has never granted Reader on the shared APIM.** The grant above was applied by hand, once, against the old identity (`329fef5`, 2026-09-07) — a real, correct, narrowly-scoped decision that was never turned into a repeatable step. Confirmed directly against Azure rather than inferred: the shared APIM resource carries a Reader assignment for `c15d914a-…` (the old, now-orphaned identity, still listed — Azure does not garbage-collect a role assignment when its principal is deleted) and nothing at all for `a29165e4-…` (the current one) before this fix.
+
+**Not a skip-flag regression.** `-SkipInfrastructure -SkipImageBuild -SkipAgent` does not gate `Grant-DemoAppServiceRoles` — it would have been just as missing on a full, unflagged run. The `-v2` recreation is what changed the identity; the automation's blind spot around the shared gateway is what let that go unnoticed until someone clicked the two buttons that need it.
+
+**Fixed with the same grant, same narrow scope, reapplied to the current identity:**
+
+```
+az role assignment create --assignee-object-id a29165e4-d7a1-4b5a-95bc-62600ef33c27 \
+  --assignee-principal-type ServicePrincipal --role Reader \
+  --scope /subscriptions/…/resourceGroups/rg-shared-apim-gateway-V2/providers/Microsoft.ApiManagement/service/apim-shared-pdcibwky2f5ms
+```
+
+`az role assignment create`/`list` against this exact resource scope returned `MissingSubscription` from this session's CLI, reproducibly, across every parameter combination tried (`--scope` alone, `--scope`+`--assignee`+`--role`, with and without `--include-inherited`) — a client-side quirk, not an auth problem, since the equivalent raw `az rest` call against the same URL worked on the first try. Applied via `az rest --method put` against `/providers/Microsoft.Authorization/roleAssignments/{new-guid}?api-version=2022-04-01` instead.
+
+**Verified additive, the same way §8's own grant was:** direct assignments at the APIM resource went 2 → 3 — the pre-existing one (`058f749d-…`, a different role, 2026-08-30) and the orphaned old-identity Reader (`c15d914a-…`, 2026-09-07) both untouched. **Verified working, not just granted:** both maintenance actions clicked for real against the live console immediately after — `Recargar políticas` → `200`, real policy XML (`hosted-agents-responses-api` 941 chars, `hosted-agents-inference-api` 570 chars); `Actualizar información del despliegue` → `200`, `apim-shared-pdcibwky2f5ms · Developer · Sweden Central · https://apim-shared-pdcibwky2f5ms.azure-api.net`. Both were 403 immediately before.
+
+**What this leaves open, on purpose.** The orphaned Sep-7 assignment for `c15d914a-…` was not removed — cleaning up a stale role assignment for a deleted identity is a separate, deliberate action, not a side effect of granting a new one. And nothing in `deploy.ps1` grants this automatically yet; the next App Service recreation will lose it again in exactly the same way unless `Grant-DemoAppServiceRoles` (or a sibling function) is taught about the shared gateway. Not done here — this pass fixed the live symptom against the identity that actually needs it, which is what was asked; encoding the grant into the automation is a `deploy.ps1` change with its own review, not a one-line follow-on.
+
+### Latency has a real breakdown now, not just a measured range (2026-09-11)
+
+**Status: diagnosis only, from real telemetry. No optimization made — see PROJECT_STATUS.md for what this changes and doesn't.**
+
+"8–17 s measured" (§6, the risk register) was a range with no shape. Two real invocations against `pydantic-agent` on the live `-v2` deployment, timed end to end and cross-checked against two independent telemetry sources, give it one:
+
+| | Warm-up ("Reply with the single word: ready.") | Real ask (open question, multi-paragraph answer) |
+|---|---|---|
+| Total, client-perceived (APIM hop 1 `TotalTime`) | **12.28 s** | **16.69 s** |
+| Gap before Foundry's own `invoke_agent` span starts | **7.30 s** | **6.40 s** |
+| `invoke_agent` span itself (Application Insights, role `agentsv2`) | 4.98 s | 10.28 s |
+| — of which, the model call (`chat gpt-5-mini`) | 1.98 s | 8.34 s |
+| — of which, agent-side work around the model call | ~3.0 s | ~1.9 s |
+| Gateway overhead, both hops combined (`TotalTime − BackendTime`) | ~2 ms | ~14 ms |
+
+Two sources, cross-validated rather than taken on faith: `ApiManagementGatewayLogs` (`TotalTime`/`BackendTime` per hop, exactly what `journey.ts`/`observability.ts` already compute) and `union AppRequests, AppDependencies` filtered to the same time window (the `agentsv2`/`pydantic-agent` spans `observability.ts` already joins on `traceId`). The two agree on where `invoke_agent` starts and ends to within tens of milliseconds — this is not two guesses, it is the same event measured twice.
+
+**The gateway is not the cost.** ~2–14 ms against 12–17 second requests, matching every prior measurement in this document (§6: "1–5 ms measured"). Confirmed again, not reopened.
+
+**The fixed cost — and the answer to "why does a one-word reply also take ~11 s" — is the 6.4–7.3 second gap *before* the agent's own instrumented code starts.** `invoke_agent` is the first span either agent framework's own telemetry emits; nothing observable from this deployment names what happens in the ~7 seconds before it. It does not scale with the eventual response (7.30 s for one word, 6.40 s for several paragraphs — if anything, slightly less for the longer one, which rules out "the framework is doing more work for a longer answer" as the explanation). That non-scaling is exactly the signature of a fixed cost: the platform allocating or waking compute for the invocation, before any agent code — Pydantic AI's, Strands's, doesn't matter which — gets to run at all. This is Foundry-hosted-agent platform behaviour, upstream of everything this repository's own code touches; nothing in the broker, the console, or the agent containers is positioned to see inside it, let alone shorten it.
+
+**What does scale, correctly:** the model call itself — 1.98 s for "ready.", 8.34 s for a multi-paragraph answer. That is `gpt-5-mini` generating tokens, proportional to output length, exactly as expected and not a concern.
+
+**A second, smaller fixed-ish cost, worth naming so it isn't mistaken for the first one:** `invoke_agent`'s own duration minus the model call — roughly 3.0 s on the warm-up, 1.9 s on the real ask — is time inside the agent's own framework code, around the model call: session/history handling, request construction, response formatting. Real, but a distant second next to the 6.4–7.3 s gap above it, and the one piece of this breakdown that could plausibly be affected by anything in `vendor/ai-gateway/labs/.../src/frameworks/pydantic/`.
+
+**Nothing was changed.** No agent code, no `AgentCpu`/`AgentMemory` sizing, no maintenance-warm-up cadence. The instruction was diagnosis with real evidence, not a fix, and this is exactly the range risk-register entry needed to become actionable — see PROJECT_STATUS.md for what a next session would need to actually move this number.
+
 ### What is deliberately NOT created on the shared gateway
 
 `apim.bicep` creates three service-level resources that **already exist** there: the `appinsights-logger`, the `azuremonitor` diagnostic, and `apimDiagnosticSettings`. That module is not used at all in the migrated path. Recreating `appinsights-logger` would have repointed **every other lab's telemetry** at this lab's Application Insights.

@@ -204,6 +204,64 @@ own redeploy did. §6 and
 figures verified against the *previous* deployment; nothing in this entry
 re-verifies them against `-v2`.
 
+## 4f. `-v2`'s identity was missing Reader on the shared APIM — fixed and verified live (2026-09-11)
+
+Two Settings → Maintenance actions ("Recargar políticas", "Actualizar
+información del despliegue") 403'd. Root cause was exactly §4e's shape one
+level down: the App Service identity is new whenever the App Service itself
+is recreated, and `Grant-DemoAppServiceRoles` in `deploy.ps1` has never
+granted anything on the shared gateway — the Reader grant this document's
+[`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) already records (2026-09-07) was
+applied by hand, once, against the old identity, and was never encoded into
+the automation. Confirmed directly: 0 assignments for the current principal
+(`a29165e4-…`) on the shared APIM before this fix; the old identity's grant
+(`c15d914a-…`) is still there, orphaned.
+
+**Fixed**: the same Reader grant, same narrow scope (the APIM resource, not
+the resource group), reapplied to the current identity via `az rest` (the
+`az role assignment` subcommands returned `MissingSubscription` against this
+exact scope, reproducibly — a CLI quirk, worked around with the raw REST
+call). **Verified live**, not just granted: both actions clicked for real
+against the deployed console immediately after, both `200` with real APIM
+data. Full detail, including the exact commands and the additive-count
+verification, in
+[`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md#the-reader-grant-above-was-never-encoded-into-deployps1-and-recreating-the-app-service-silently-lost-it-2026-09-11).
+
+**Left open, on purpose**: `deploy.ps1` still does not grant this
+automatically — the next App Service recreation loses it again the same way.
+Encoding it is a `deploy.ps1` change with its own review, not folded into this
+fix.
+
+## 4g. Cold start decomposed with real telemetry — diagnosis only, nothing changed (2026-09-11)
+
+"8–17 s measured" (§6, the risk register's #1 item) is now a real breakdown,
+not a range. Three real invocations against `pydantic-agent` — a warm-up
+(one-word reply), and two open questions (short and long answers) — cross-
+validated against two independent telemetry sources
+(`ApiManagementGatewayLogs` and `union AppRequests, AppDependencies`, the same
+tables `journey.ts`/`observability.ts` already query):
+
+| | fixed gap before `invoke_agent` starts | `invoke_agent` itself | — of which, the model call |
+|---|---|---|---|
+| warm-up (one word) | 7.30 s | 4.98 s | 1.98 s |
+| short answer | 6.67 s | 5.45 s | 2.85 s |
+| long answer | 6.40 s | 10.28 s | 8.34 s |
+
+**The dominant cost is a 6.4–7.3 s gap *before* the agent's own instrumented
+code (`invoke_agent`, the first span either framework's telemetry emits) even
+starts** — it does not scale with response length, which is the signature of
+a fixed cost rather than agent work. Nothing this repository's code touches
+is positioned to see inside that gap, let alone shorten it: it is upstream of
+the broker, the console, and the agent containers alike, on the Foundry
+hosted-agent platform itself. Gateway overhead is confirmed negligible again
+(2–14 ms). What scales correctly is the model call itself (1.98 s → 8.34 s
+with response length). Full breakdown, methodology, and the smaller
+framework-side cost worth distinguishing from the fixed gap, in
+[`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md#latency-has-a-real-breakdown-now-not-just-a-measured-range-2026-09-11).
+
+**Nothing was changed** — no agent code, no container sizing, no warm-up
+cadence. This was scoped as diagnosis only.
+
 ## 5. Current architecture
 
 ```

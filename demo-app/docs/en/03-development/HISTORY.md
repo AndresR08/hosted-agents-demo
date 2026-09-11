@@ -143,6 +143,34 @@ Re-measured a third time: 32 measurements, identical to the original
 baseline and to both prior cuts. Full detail in
 [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) §4.14.
 
+## 18. Two real investigations on the `-v2` deployment: a missing permission, and latency's actual shape (2026-09-11)
+
+**Permissions.** Two Settings → Maintenance actions 403'd. Traced to the same
+shape as item 16/17's own root cause one level down: the App Service's
+managed identity is new whenever the App Service is recreated, and the Reader
+grant on the shared APIM (documented in `DESIGN_DECISIONS.md`, 2026-09-07)
+was applied by hand once, against the *old* identity, never encoded into
+`deploy.ps1`. Confirmed directly against Azure — zero assignments for the
+current identity on the shared APIM, the old identity's grant still present
+and orphaned — then fixed with the identical narrow grant, reapplied, and
+verified with real clicks against the live console (both actions `200`,
+real data, immediately after).
+
+**Latency.** "8–17 s measured" had been a range since the risk register was
+first written. Three real invocations, cross-checked against two independent
+telemetry sources, gave it a shape: 6.4–7.3 seconds of fixed cost *before*
+the agent's own instrumented span even starts — present identically whether
+the reply is one word or several paragraphs, which is what marks it fixed
+rather than proportional — followed by a model call that scales correctly
+with response length (1.98 s → 8.34 s). The fixed part sits upstream of
+everything this repository's code touches; nothing here can see inside it,
+which is itself a finding worth having on record before anyone reaches for a
+code-side fix that cannot reach the actual cost. Diagnosis only — no code,
+sizing, or warm-up cadence changed.
+
+Full detail for both in [`DESIGN_DECISIONS.md`](DESIGN_DECISIONS.md) and
+[`PROJECT_STATUS.md`](PROJECT_STATUS.md) §4f/§4g.
+
 ## See also
 
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — where everything stands, today.
