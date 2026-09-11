@@ -185,12 +185,21 @@ updated to say so.
 
 **What is actually true:** Live mode has a real backend, at
 `https://hosted-agents-demo-ba8fb6d3.azurewebsites.net`, in
-`lab-hosted-agents-demo-v2`. `.env.local` (used only for standalone frontend
-dev against a remote broker) and `lab.defaults.psd1`'s default resource group
-name are stale and should be corrected in a dedicated pass — not done here,
-because this was found while deploying an unrelated UI change and a config
-default is a decision with its own blast radius (every future `deploy.ps1`
-run with no `-ResourceGroupName` would target the dead group). §6 and
+`lab-hosted-agents-demo-v2`.
+
+**Resolved, one field each way.** `demo-app/.env.local` (git-ignored, used
+only for standalone frontend dev against a remote broker) is corrected to
+the `-v2` host and resource group. `lab.defaults.psd1`'s `ResourceGroupName`
+default is **deliberately left pointing at the dead group** — not an
+oversight, decided and confirmed with the presenter. That field is also
+`teardown.ps1`'s default when `-ResourceGroupName` is omitted: stale, it
+fails harmlessly; corrected to `-v2`, a bare `teardown.ps1` would target the
+live deployment instead. The full reasoning lives as a comment on the field
+itself in `config/lab.defaults.psd1`, specifically so a future pass does not
+"fix" it back to something that resolves. Every `deploy.ps1` / `teardown.ps1`
+invocation against `-v2` in this project, from here on, passes
+`-ResourceGroupName lab-hosted-agents-demo-v2` explicitly — as this session's
+own redeploy did. §6 and
 [`AZURE_INTEGRATION_REPORT.md`](AZURE_INTEGRATION_REPORT.md) still record
 figures verified against the *previous* deployment; nothing in this entry
 re-verifies them against `-v2`.

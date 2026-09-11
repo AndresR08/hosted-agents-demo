@@ -15,6 +15,34 @@
     # run had to pass -ResourceGroupName to get past "Reading deployment outputs".
     # DeploymentName still mirrors the notebook, because the ARM deployment inside
     # that group really is called 'ai-foundry-hosted-agents-custom-framework'.
+    #
+    # STALE ON PURPOSE (2026-09-10) - do not "fix" this to the live group.
+    #
+    # 'lab-hosted-agents-demo' no longer exists. The live deployment was
+    # recreated at some point as 'lab-hosted-agents-demo-v2' (App Service
+    # hosted-agents-demo-ba8fb6d3), and nothing updated this value when that
+    # happened - which is exactly the failure mode this note exists to stop
+    # from repeating. The value below was left pointing at the dead group
+    # anyway, after actually weighing the alternative:
+    #
+    # This same field is teardown.ps1's default too, read whenever
+    # -ResourceGroupName is omitted (teardown.ps1: '$ResourceGroupName =
+    # $config.ResourceGroupName'). Today that default is inert - a bare
+    # teardown.ps1 targets a group that is already gone and fails harmlessly.
+    # Point this at '-v2' and the same bare invocation would target the live
+    # deployment instead. teardown.ps1 does prompt before deleting unless
+    # -Force is also passed, and its own documented examples always pass
+    # -ResourceGroupName explicitly - so the risk is not "one missed flag
+    # away from disaster", but it is a real, deliberate trade: a stale
+    # default fails loudly and safely; a correct one is one skipped prompt
+    # away from deleting a live, running demo. Asked and confirmed with the
+    # presenter rather than assumed.
+    #
+    # Deploying to -v2 does not need this value changed - every command in
+    # this session passed -ResourceGroupName lab-hosted-agents-demo-v2
+    # explicitly, which is what any future deploy or teardown against the
+    # live instance should keep doing. See demo-app/docs/en/03-development/
+    # PROJECT_STATUS.md §4e and DESIGN_DECISIONS.md for how this was found.
     ResourceGroupName = 'lab-hosted-agents-demo'
     DeploymentName    = 'ai-foundry-hosted-agents-custom-framework'
     Location          = 'swedencentral'

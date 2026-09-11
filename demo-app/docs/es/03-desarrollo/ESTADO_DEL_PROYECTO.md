@@ -191,13 +191,22 @@ reflejarlo.
 
 **Lo que realmente es cierto:** el modo En vivo tiene un backend real, en
 `https://hosted-agents-demo-ba8fb6d3.azurewebsites.net`, en
-`lab-hosted-agents-demo-v2`. `.env.local` (usado solo para desarrollo
-independiente del frontend contra un broker remoto) y el nombre de grupo de
-recursos por defecto de `lab.defaults.psd1` están desactualizados y deberían
-corregirse en una pasada dedicada — no se hace aquí, porque esto se encontró
-desplegando un cambio de UI no relacionado y un valor por defecto de
-configuración es una decisión con su propio radio de impacto (toda ejecución
-futura de `deploy.ps1` sin `-ResourceGroupName` apuntaría al grupo muerto). La
+`lab-hosted-agents-demo-v2`.
+
+**Resuelto, un campo cada uno.** `demo-app/.env.local` (git-ignorado, usado
+solo para desarrollo independiente del frontend contra un broker remoto)
+queda corregido al host y grupo de recursos `-v2`. El `ResourceGroupName` por
+defecto de `lab.defaults.psd1` **se deja apuntando deliberadamente al grupo
+muerto** — no es un descuido, se decidió y se confirmó con el presentador.
+Ese mismo campo es también el default de `teardown.ps1` cuando se omite
+`-ResourceGroupName`: desactualizado, falla de forma inofensiva; corregido a
+`-v2`, un `teardown.ps1` sin argumentos apuntaría al despliegue en vivo. El
+razonamiento completo vive como comentario sobre el propio campo en
+`config/lab.defaults.psd1`, específicamente para que una pasada futura no lo
+"corrija" de vuelta a algo que sí resuelve. Toda invocación de
+`deploy.ps1` / `teardown.ps1` contra `-v2` en este proyecto, de aquí en
+adelante, pasa `-ResourceGroupName lab-hosted-agents-demo-v2` explícito —
+como hizo el propio redespliegue de esta sesión. La
 §6 y el [`REPORTE_INTEGRACION_AZURE.md`](REPORTE_INTEGRACION_AZURE.md) siguen
 registrando cifras verificadas contra el despliegue *anterior*; nada en esta
 entrada las revalida contra `-v2`.
