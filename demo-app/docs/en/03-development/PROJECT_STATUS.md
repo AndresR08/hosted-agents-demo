@@ -275,6 +275,58 @@ framework-side cost worth distinguishing from the fixed gap, in
 **Nothing was changed** — no agent code, no container sizing, no warm-up
 cadence. This was scoped as diagnosis only.
 
+## 4h. The Figma reference adopted; one screen broke and was bought back (2026-09-11)
+
+Adopted across all four sections: 56px topbar, breadcrumb, one-line context
+band, a subtitle on the active rail item, the reference's card cosmetics on
+Agents, `#D4003B` as the canonical brand red, the rail unified to `#1C1C1C`,
+and the landing page removed. Six commits, priced in `FIGMA_ADOPTION.md`
+before any of it was written.
+
+**Not deployed.** Awaiting approval of the complete set with captures.
+
+**Layout budget, 1366×768, measured against the live backend after the
+change:**
+
+| screen | content | budget | margin |
+|---|---|---|---|
+| Agents / Overview | 415 | 550 | +135 |
+| Agents / Versions | 403 | 550 | +147 |
+| Agents / Run | 329 | 550 | +221 |
+| Gateway / Live | 328 | 510 | +182 |
+| Gateway / Credentials | 122 | 510 | +388 |
+| Observability / Record | 421 | 550 | +129 |
+| Observability / Measurements | 132 | 510 | +378 |
+| Platform | 491 | 510 | **+19** |
+
+Eight of nine at 0px hidden. The ninth is Gateway/Reference, which scrolls by
+design (§4.9). Platform/Live had gone to −15px and was recovered from the
+shared frame's padding and gaps; the band cost 48px where the plan predicted
+~30px. Three screens now have *more* room than before the topbar existed.
+
+**The landing page's removal was verified by clicking, not by compiling:** ten
+checks against the live backend — boots into a section, Home raises the
+confirm dialog with a live conversation, confirming clears the copilot without
+reloading, a second full demonstration runs on the same page load, Escape
+resets in place.
+
+**Honesty system after the adoption:** `<ProvenanceBadge>` 13, `<StatusPill>`
+1, `text-affirm` 1, `bg-affirm` 0, `border-affirm` 0, `border-dashed` 6,
+`tone="reference"` 1, no green anywhere. The Live/Simulation dot was
+deduplicated from three copies to one and both branches confirmed at runtime.
+
+**Corrected here:** §4.11's 457px content figure for Platform/Live is stale —
+it is 491px today, on the pre-change baseline as well, so the screen drifted
+with the deployment rather than with any UI change.
+
+**Still open, unchanged:** Platform/Simulation, now −26px against §4.11's
+−51px. Still the untranslated control names on the live path, not a layout
+defect, and deliberately not fixed here.
+
+**Also open, new:** on Platform the context band and the screen's own
+introductory paragraph now sit adjacent — two sentences of preamble before
+content. Composition work across five screens, not a layout defect.
+
 ## 5. Current architecture
 
 ```

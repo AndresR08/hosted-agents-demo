@@ -679,6 +679,15 @@ vez. Los campos pendientes ahora dicen que esperan la ingesta, que es lo que
 existe para que quien traduzca los nombres de control se encuentre con esto
 antes de que se lo encuentre el layout.**
 
+> **Las cifras de contenido de abajo están obsoletas (2026-09-11).** Vueltas a
+> medir como A/B contra el mismo backend real, el contenido de Plataforma/Live
+> es de **491px**, no 457px — la pantalla derivó con el despliegue, no con
+> ningún cambio de UI. Los números actuales son Live **491 en 510 (+19)** y
+> Simulación **536 en 510 (−26)**; ver §4.15. El *hallazgo* de abajo no cambia
+> y sigue abierto: la laguna son los nombres de control sin traducir en la
+> ruta live, y siguen siendo 79px de contenido. Solo se movieron las cifras
+> absolutas.
+
 Medido el 2026-09-03 contra el bundle de producción, en el piso de 1366×768, con
 la misma sonda usada en 4.8 y 4.9:
 
@@ -1075,6 +1084,118 @@ acuerdo. El `scrollHeight` del riel es igual a su `clientHeight` en las 32; sin
 scroll de página en ninguna; el censo de honestidad (`text-affirm`,
 `<StatusPill>`, `<ProvenanceBadge>`, `illustrative-*`, `border-dashed`) sin
 cambios respecto a la línea base en cada conteo.
+
+---
+
+### 4.15 La adopción de Figma, y los 49px que le quitó a la pantalla más ajustada (2026-09-11)
+
+La referencia se adoptó en las cuatro secciones: barra superior de 56px,
+migas de pan, banda de contexto de una línea, subtítulo en el ítem activo del
+riel, la cosmética de tarjetas de la referencia en Agentes, y la página de
+inicio eliminada. Aquí solo queda lo que las mediciones cambiaron del plan.
+
+**El trabajo de la página de inicio se migró antes de borrarla, y se demostró
+haciendo clic, no compilando.** `resetDemoState()` ahora incrementa un
+`sessionKey` que llavea el escenario y el copiloto, de modo que un remontaje
+descarta la conversación igual que hacía volver a la página de inicio.
+Verificado contra el backend real con clics y pulsaciones reales: arranca
+directo en una sección sin página de inicio; Home con una conversación viva
+sigue levantando el diálogo de confirmación; confirmar vuelve a la primera
+sección, limpia el copiloto y **no** recarga
+(`performance.getEntriesByType('navigation')` se queda en 1); una segunda
+demostración completa corre en la misma carga de página; Escape reinicia en
+sitio. Diez comprobaciones, todas pasando.
+
+**Plataforma/Live se rompió, y no es el §4.11.** Midió −15px de margen —
+contenido oculto, que §4.7 prohíbe. El §4.11 habla de
+Plataforma/**Simulación**; esto era Live.
+
+**El dato de 457px de contenido del §4.11 está obsoleto, y esta es la
+corrección.** En vez de fiarme de él, la línea base se volvió a medir como un
+A/B: un worktree disperso en `295a310` servido en un puerto y la rama en otro,
+contra el mismo backend real en el mismo minuto. El contenido de Plataforma es
+**491px en ambos**. La pantalla derivó con el despliegue entre el 2026-09-03 y
+hoy; no creció por este trabajo. El contenido de las nueve pantallas es
+idéntico dentro de 2px, así que cada píxel perdido fue presupuesto, no
+composición.
+
+Atribuido recorriendo el DOM desde el panel que scrollea hasta `<main>`, no
+restando totales:
+
+| | px |
+|---|---|
+| barra superior | −56 |
+| `main` `py-6` → `py-4` | +16 |
+| tarjeta `p-6` → `p-5` | +8 |
+| separaciones `16×2` → `12×3` | −4 |
+| fila de pie 55 → banda 36 + procedencia 32 | −13 |
+| **neto** | **−49** |
+
+**Una predicción de ADOPCION_FIGMA.md §1.2 estaba equivocada.** Cifraba la
+banda de una línea en unos 30px y concluía que ninguna pantalla rompería.
+Medida, la banda cuesta **48px** (36 más sus 12px de separación) y una
+pantalla rompió. La banda está en cinco de las nueve pantallas; las cuatro de
+Agentes no pasan `footer` y por tanto no la pagan.
+
+**Recuperado del marco compartido, nunca del contenido ni de la tipografía:**
+`gap-3` → `gap-2`, tarjeta `p-5` → `p-4`, banda `py-1.5` → `py-1`,
+procedencia `pt-2.5` → `pt-2`, `main` `py-4` → `py-3`. No se toca ningún
+tamaño de fuente, así que el suelo de 16px de proyector del §4.5/F7 se
+mantiene.
+
+Final, 1366×768, backend real:
+
+| pantalla | contenido | presupuesto | margen |
+|---|---|---|---|
+| Agentes / Resumen | 415 | 550 | +135 |
+| Agentes / Versiones | 403 | 550 | +147 |
+| Agentes / Ejecutar | 329 | 550 | +221 |
+| Gateway / En vivo | 328 | 510 | +182 |
+| Gateway / Credenciales | 122 | 510 | +388 |
+| Observabilidad / Registro | 421 | 550 | +129 |
+| Observabilidad / Mediciones | 132 | 510 | +378 |
+| Plataforma | 491 | 510 | **+19** |
+
+Ocho de nueve con 0px oculto. Tres tienen ahora *más* sitio que antes de que
+existiera la barra superior — Observabilidad/Registro gana 37px, porque el
+rediseño de las migas devolvió su pregunta a una sola línea (`questionLines`
+2 → 1). La novena es Gateway/Referencia, que ya scrolleaba por diseño en
+−1648 antes de este trabajo y scrollea en −1628 ahora (§4.9).
+
+**Plataforma/Simulación mide ahora −26px, frente a los −51px del §4.11.**
+Sigue negativa, sigue abierta, sigue siendo la laguna de i18n y no un defecto
+de maquetación. El recorte del marco simplemente le devolvió 25px. No leas la
+mejora como progreso sobre el problema de fondo: los nombres de control
+siguen sin traducir en la ruta live.
+
+**El subtítulo del riel está solo en el ítem activo**, en `--text-caption`
+(16px), blanco/90 sobre el relleno de marca (4.56:1). Tres de las cuatro
+cadenas se cortaban en ambos idiomas en la primera pasada — medido como
+`scrollWidth` contra `clientWidth`, 195/189/184 en 172px en español y
+202/181/218 en ~173px en inglés — y se acortaron hasta que las ocho entran,
+porque un subtítulo cortado por puntos suspensivos es ruido y no información.
+El `scrollHeight` del riel es igual a su `clientHeight`, así que nada de esto
+le cuesta nada al escenario.
+
+**El punto de Simulación se desduplicó, no se perdió.** `illustrative-fg` bajó
+de 5 apariciones en fuente a 1. Trazado: tres eran el mismo punto
+live/simulación renderizado en `LandingPage`, `Header` y `Sidebar`, y dos eran
+líneas de comentario. Ambos archivos ya no existen y la copia del riel se
+movió a la barra superior, así que ahora hay exactamente uno. Confirmado en
+ejecución, no leyendo código: el punto renderiza `rgb(123,116,236)`
+(`--color-rail-live-mark`) en Live y `rgb(125,138,163)`
+(`--color-illustrative-fg`) en Simulación.
+
+**Censo tras toda la adopción:** `<ProvenanceBadge>` 13, `<StatusPill>` 1,
+`text-affirm` 1, `bg-affirm` 0, `border-affirm` 0, `border-dashed` 6,
+`tone="reference"` 1, nada de verde. El verde siguió siendo exclusivo del 401
+por tercer mockup consecutivo.
+
+**Abierto, no corregido aquí:** en Plataforma la banda de contexto y el
+párrafo introductorio propio de la pantalla quedan ahora adyacentes, dos
+frases de preámbulo antes del contenido. Es consecuencia de subir la frase del
+pie a la cabecera del marco, y es trabajo de composición en cinco pantallas,
+no un defecto de maquetación.
 
 ---
 

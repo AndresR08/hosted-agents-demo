@@ -205,6 +205,42 @@ sí se ejercitó contra un principal real e inofensivo — una asignación de ro
 realmente creada, confirmada presente, luego eliminada y reconfirmada
 ausente. Sin residuo.
 
+## 20. La referencia de Figma adoptada en las cuatro secciones, página de inicio eliminada (2026-09-11)
+
+Primero cifrada, en `ADOPCION_FIGMA.md`, porque un cambio de este tamaño ya
+rompió el presupuesto de layout una vez (CP3). Después implementada en seis
+commits.
+
+Lo construido: una barra superior de 56px con la marca de la empresa
+presentadora y la identidad del despliegue; migas de pan rediseñadas a partir
+de la línea de título que ya existía; una banda de contexto de una línea con
+la frase que antes vivía en el pie; un subtítulo solo en el ítem activo del
+riel; la cosmética de tarjetas de la referencia en Agentes; `#D4003B` adoptado
+como único rojo de marca canónico con el riel unificado a `#1C1C1C`; y la
+página de inicio eliminada.
+
+Lo que la especificación pedía y no obtuvo, cada cosa por una razón medida: la
+segunda línea de la barra superior (3,13:1 como texto, 10px contra un suelo de
+16px, y 40+12+12 no es 56), una insignia `v2.4.0` (`package.json` es `0.0.0`,
+así que habría sido una invención renderizada), y un punto de estado verde de
+"sano" — el tercer mockup consecutivo que lo pide y no lo obtiene.
+
+El trabajo de la página de inicio se migró antes de borrarla, y se demostró
+haciendo clic: diez comprobaciones contra el backend real cubriendo Home con
+una conversación viva, el diálogo de confirmación, Escape, y una segunda
+demostración completa en la misma carga de página sin recargar.
+
+**Una pantalla se rompió y hubo que recomprarla.** Plataforma/Live cayó a
+−15px de contenido oculto. La banda se había cifrado en ~30px y midió 48px. Se
+recuperó del relleno y las separaciones del marco compartido — nunca del
+contenido ni de la tipografía — y Plataforma acabó en +19. Por el camino, dos
+cifras de contenido en las que se apoyaba el plan resultaron obsoletas (una
+medida con un panel aún cargando, otra registrada el 2026-09-03), y por eso la
+línea base se volvió a medir como A/B en vivo en lugar de darla por buena. Ocho
+de nueve pantallas con 0px oculto, tres de ellas con más sitio que antes de que
+existiera la barra superior. Atribución completa en
+`DECISIONES_DE_DISENO.md` §4.15.
+
 ## Ver también
 
 - [`ESTADO_DEL_PROYECTO.md`](ESTADO_DEL_PROYECTO.md) — dónde quedó cada cosa, hoy.

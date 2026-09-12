@@ -194,6 +194,39 @@ granted)`, and the create branch itself was exercised against a real,
 harmless principal — a role assignment actually created, confirmed present,
 then deleted and reconfirmed gone. No residue left behind.
 
+## 20. The Figma reference adopted across all four sections, landing page removed (2026-09-11)
+
+Priced first, in `FIGMA_ADOPTION.md`, because a change this size broke the
+layout budget once before (CP3). Then implemented in six commits.
+
+What was built: a 56px topbar carrying the presenter's company mark and the
+deployment's identity; a breadcrumb reshaped out of the existing title line; a
+one-line context band carrying the sentence that used to sit in the footer; a
+subtitle on the active rail item only; the reference's card cosmetics on
+Agents; `#D4003B` adopted as the single canonical brand red with the rail
+unified to `#1C1C1C`; and the landing page removed.
+
+What the spec asked for and did not get, each for a measured reason: the
+topbar's second line (3.13:1 as text, 10px against a 16px floor, and 40+12+12
+does not equal 56), a `v2.4.0` badge (`package.json` is `0.0.0`, so it would
+have been a rendered invention), and a green "healthy" status dot — the third
+consecutive mockup to ask for one and not get it.
+
+The landing page's job was migrated before it was deleted, and proved by
+clicking: ten checks against the live backend covering Home with a live
+conversation, the confirm dialog, Escape, and a second full demonstration on
+the same page load with no reload.
+
+**One screen broke and had to be bought back.** Platform/Live went to −15px of
+hidden content. The band had been priced at ~30px and measured 48px. It was
+recovered from the shared frame's padding and gaps — never from content or
+type — and Platform ended at +19. Along the way, two content figures the plan
+had relied on turned out to be stale (one measured while a panel was still
+loading, one recorded on 2026-09-03), which is why the baseline was re-measured
+as a live A/B rather than trusted. Eight of nine screens at 0px hidden, three
+of them with more room than before the topbar existed. Full attribution in
+`DESIGN_DECISIONS.md` §4.15.
+
 ## See also
 
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — where everything stands, today.

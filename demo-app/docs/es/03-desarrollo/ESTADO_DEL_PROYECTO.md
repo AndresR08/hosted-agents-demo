@@ -289,6 +289,64 @@ la pena distinguir de la espera fija, en
 **No se cambió nada** — ni código de agente, ni tamaño de contenedor, ni
 cadencia de precalentamiento. Se alcanzó a propósito solo como diagnóstico.
 
+## 4h. La referencia de Figma adoptada; una pantalla se rompió y se recompró (2026-09-11)
+
+Adoptada en las cuatro secciones: barra superior de 56px, migas de pan, banda
+de contexto de una línea, un subtítulo en el ítem activo del riel, la
+cosmética de tarjetas de la referencia en Agentes, `#D4003B` como rojo de
+marca canónico, el riel unificado a `#1C1C1C`, y la página de inicio
+eliminada. Seis commits, cifrados en `ADOPCION_FIGMA.md` antes de escribir
+nada.
+
+**No desplegado.** A la espera de aprobación del conjunto completo con
+capturas.
+
+**Presupuesto de layout, 1366×768, medido contra el backend real tras el
+cambio:**
+
+| pantalla | contenido | presupuesto | margen |
+|---|---|---|---|
+| Agentes / Resumen | 415 | 550 | +135 |
+| Agentes / Versiones | 403 | 550 | +147 |
+| Agentes / Ejecutar | 329 | 550 | +221 |
+| Gateway / En vivo | 328 | 510 | +182 |
+| Gateway / Credenciales | 122 | 510 | +388 |
+| Observabilidad / Registro | 421 | 550 | +129 |
+| Observabilidad / Mediciones | 132 | 510 | +378 |
+| Plataforma | 491 | 510 | **+19** |
+
+Ocho de nueve con 0px oculto. La novena es Gateway/Referencia, que scrollea
+por diseño (§4.9). Plataforma/Live había caído a −15px y se recuperó del
+relleno y las separaciones del marco compartido; la banda costó 48px donde el
+plan predecía ~30px. Tres pantallas tienen ahora *más* sitio que antes de que
+existiera la barra superior.
+
+**La eliminación de la página de inicio se verificó haciendo clic, no
+compilando:** diez comprobaciones contra el backend real — arranca en una
+sección, Home levanta el diálogo de confirmación con una conversación viva,
+confirmar limpia el copiloto sin recargar, una segunda demostración completa
+corre en la misma carga de página, Escape reinicia en sitio.
+
+**Sistema de honestidad tras la adopción:** `<ProvenanceBadge>` 13,
+`<StatusPill>` 1, `text-affirm` 1, `bg-affirm` 0, `border-affirm` 0,
+`border-dashed` 6, `tone="reference"` 1, nada de verde. El punto
+Live/Simulación se desduplicó de tres copias a una y ambas ramas se
+confirmaron en ejecución.
+
+**Corregido aquí:** la cifra de 457px de contenido del §4.11 para
+Plataforma/Live está obsoleta — hoy son 491px, también en la línea base previa
+al cambio, así que la pantalla derivó con el despliegue y no con ningún cambio
+de UI.
+
+**Sigue abierto, sin cambios:** Plataforma/Simulación, ahora en −26px frente a
+los −51px del §4.11. Siguen siendo los nombres de control sin traducir en la
+ruta live, no un defecto de maquetación, y deliberadamente no corregido aquí.
+
+**También abierto, nuevo:** en Plataforma la banda de contexto y el párrafo
+introductorio propio de la pantalla quedan ahora adyacentes — dos frases de
+preámbulo antes del contenido. Trabajo de composición en cinco pantallas, no
+un defecto de maquetación.
+
 ## 5. Arquitectura actual
 
 ```

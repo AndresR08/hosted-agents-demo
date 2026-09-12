@@ -666,6 +666,14 @@ been saying correctly all along.
 **Status: an open finding, deliberately not fixed here. This section exists so
 that whoever translates the control names finds this before the layout does.**
 
+> **The content figures below are stale (2026-09-11).** Re-measured as an A/B
+> against the same live backend, Platform's Live content is **491px**, not
+> 457px — the screen drifted with the deployment, not with any UI change. The
+> current numbers are Live **491 in 510 (+19)** and Simulation **536 in 510
+> (−26)**; see §4.15. The *finding* below is unchanged and still open: the gap
+> is the untranslated control names on the live path, and it is still 79px of
+> content. Only the absolute figures moved.
+
 Measured 2026-09-03 against the production bundle, at the 1366×768 floor, with
 the same probe used in 4.8 and 4.9:
 
@@ -1046,6 +1054,112 @@ cut (§4.13), and to the indigo cut. Three passes now, all in agreement. Rail
 `scrollHeight` equals `clientHeight` in every one; no page scroll anywhere;
 the honesty census (`text-affirm`, `<StatusPill>`, `<ProvenanceBadge>`,
 `illustrative-*`, `border-dashed`) unchanged from baseline in every count.
+
+---
+
+### 4.15 The Figma adoption, and the 49px it took off the tightest screen (2026-09-11)
+
+The reference was adopted across all four sections: a 56px topbar, a
+breadcrumb, a one-line context band, a subtitle on the active rail item, the
+reference's card cosmetics on Agents, and the landing page removed. What
+follows is only what the measurements changed about the plan.
+
+**The landing page's job was migrated before it was deleted, and proved by
+clicking rather than by compiling.** `resetDemoState()` now bumps a
+`sessionKey` that keys both the stage and the copilot, so a remount discards
+the conversation exactly as returning to the landing page used to. Verified
+against the live backend with real clicks and real keypresses: boots straight
+into a section with no landing page; Home with a live conversation still
+raises the confirm dialog; confirming returns to the first section, clears the
+copilot and does **not** reload (`performance.getEntriesByType('navigation')`
+stays at 1); a second full demonstration runs on the same page load; Escape
+resets in place. Ten checks, all passing.
+
+**Platform/Live broke, and it is not §4.11.** It measured −15px of margin —
+hidden content, which §4.7 forbids. §4.11 describes Platform/**Simulation**;
+this was Live.
+
+**§4.11's 457px content figure is stale, and this is the correction.** Rather
+than trust it, the baseline was re-measured as an A/B: a sparse worktree at
+`295a310` served on one port and the branch on another, against the same live
+backend in the same minute. Platform's content is **491px on both**. The
+screen drifted with the deployment between 2026-09-03 and now; it did not grow
+because of this work. Content across all nine screens is unchanged to within
+2px, so every pixel lost was budget, not composition.
+
+Attributed by walking the DOM from the scrolling panel up to `<main>`, not by
+subtracting totals:
+
+| | px |
+|---|---|
+| topbar | −56 |
+| `main` `py-6` → `py-4` | +16 |
+| card `p-6` → `p-5` | +8 |
+| gaps `16×2` → `12×3` | −4 |
+| footer row 55 → band 36 + provenance 32 | −13 |
+| **net** | **−49** |
+
+**A prediction in FIGMA_ADOPTION.md §1.2 was wrong.** It priced the one-line
+band at about 30px and concluded no screen would break. Measured, the band
+costs **48px** (36 plus its 12px gap) and one screen broke. The band is on
+five of the nine screens; the four Agents screens do not pass a `footer` and
+so do not pay for it.
+
+**Recovered from the shared frame, never from content or type:** `gap-3` →
+`gap-2`, card `p-5` → `p-4`, band `py-1.5` → `py-1`, provenance `pt-2.5` →
+`pt-2`, `main` `py-4` → `py-3`. No font size is touched, so the 16px projector
+floor of §4.5/F7 stands.
+
+Final, 1366×768, live backend:
+
+| screen | content | budget | margin |
+|---|---|---|---|
+| Agents / Overview | 415 | 550 | +135 |
+| Agents / Versions | 403 | 550 | +147 |
+| Agents / Run | 329 | 550 | +221 |
+| Gateway / Live | 328 | 510 | +182 |
+| Gateway / Credentials | 122 | 510 | +388 |
+| Observability / Record | 421 | 550 | +129 |
+| Observability / Measurements | 132 | 510 | +378 |
+| Platform | 491 | 510 | **+19** |
+
+Eight of nine at 0px hidden. Three now have *more* room than before the topbar
+existed — Observability/Record gains 37px, because the breadcrumb reshape put
+its question back on one line (`questionLines` 2 → 1). The ninth is
+Gateway/Reference, which scrolled by design at −1648 before this work and
+scrolls at −1628 now (§4.9).
+
+**Platform/Simulation now measures −26px, against §4.11's −51px.** Still
+negative, still open, still the i18n gap and not a layout defect. The frame
+trim simply happened to give it 25px back. Do not read the improvement as
+progress on the underlying problem: the control names are still untranslated
+on the live path.
+
+**The rail subtitle is on the active item only**, at `--text-caption` (16px),
+white/90 on the brand fill (4.56:1). Three of the four strings clipped in both
+languages on the first pass — measured as `scrollWidth` against `clientWidth`,
+195/189/184 into 172px in Spanish and 202/181/218 into ~173px in English — and
+were shortened until all eight fit, because a subtitle cut off by an ellipsis
+is noise rather than information. The rail's `scrollHeight` equals its
+`clientHeight`, so none of it costs the stage anything.
+
+**The Simulation dot was deduplicated, not dropped.** `illustrative-fg` fell
+from 5 source occurrences to 1. Traced: three were the same live/simulation
+dot rendered in `LandingPage`, `Header` and `Sidebar`, and two were comment
+lines. Both files are gone and the rail's copy moved to the topbar, so there is
+now exactly one. Confirmed at runtime, not by reading code: the dot renders
+`rgb(123,116,236)` (`--color-rail-live-mark`) in Live and `rgb(125,138,163)`
+(`--color-illustrative-fg`) in Simulation.
+
+**Census after the whole adoption:** `<ProvenanceBadge>` 13, `<StatusPill>` 1,
+`text-affirm` 1, `bg-affirm` 0, `border-affirm` 0, `border-dashed` 6,
+`tone="reference"` 1, no green anywhere. Green stayed exclusive to the 401 for
+the third mockup running.
+
+**Open, not fixed here:** on Platform the context band and the screen's own
+introductory paragraph now sit adjacent, two sentences of preamble before the
+content. That is a consequence of moving the footer sentence to the top of the
+frame, and it is composition work on five screens rather than a layout defect.
 
 ---
 
