@@ -72,7 +72,7 @@ export function AppShell() {
         that fills every pixel reads as a web page; a composition with canvas
         around it reads as a product. At 1366 the cap never engages.
       */}
-        <main className="mx-auto flex min-h-0 min-w-0 max-w-[1600px] flex-1 gap-grid-gutter overflow-hidden px-grid-margin py-4">
+        <main className="mx-auto flex min-h-0 min-w-0 max-w-[1600px] flex-1 gap-grid-gutter overflow-hidden px-grid-margin py-3">
           {/*
           `key` on the stage is deliberate: moving between stops remounts, so
           each stop plays its entry animation and none of them inherit scroll

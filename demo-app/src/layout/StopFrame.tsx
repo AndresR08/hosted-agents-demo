@@ -66,7 +66,7 @@ export function StopFrame({
   const t = useTranslation();
 
   return (
-    <Surface tone={tone} className="flex min-h-0 flex-1 animate-fade-slide-in flex-col gap-3 p-5">
+    <Surface tone={tone} className="flex min-h-0 flex-1 animate-fade-slide-in flex-col gap-2 p-4">
       <header className={cn("flex shrink-0 items-center justify-between gap-6", MEASURE)}>
         <div className="min-w-0">
           {/*
@@ -119,7 +119,7 @@ export function StopFrame({
       {footer && (
         <div
           className={cn(
-            "flex shrink-0 items-center gap-2 rounded-md border border-border bg-canvas px-3 py-1.5",
+            "flex shrink-0 items-center gap-2 rounded-md border border-border bg-canvas px-3 py-1",
             MEASURE,
           )}
         >
@@ -142,7 +142,7 @@ export function StopFrame({
       {provenance && (
         <div
           className={cn(
-            "flex shrink-0 items-center justify-end border-t border-border pt-2.5",
+            "flex shrink-0 items-center justify-end border-t border-border pt-2",
             MEASURE,
           )}
         >
