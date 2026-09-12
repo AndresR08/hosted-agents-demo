@@ -305,12 +305,19 @@ function DetailTab({ active, onClick, label }: { active: boolean; onClick: () =>
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        "rounded-md px-2.5 py-1 text-caption",
+        "rounded-t-md px-2.5 py-1 text-caption",
         "transition-colors duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50",
+        /*
+          A brand underline rather than a tinted pill, as the reference
+          draws it. The underline is 2px of --color-brand, which measures
+          5.44:1 on the surface behind it — comfortably past the 3:1 a
+          state carried by colour needs — and the label going semibold is
+          the redundant second signal.
+        */
         active
-          ? "bg-accent/[0.08] font-semibold text-ink"
-          : "text-ink-muted hover:bg-illustrative-bg/70 hover:text-ink",
+          ? "border-b-2 border-brand font-semibold text-ink"
+          : "border-b-2 border-transparent text-ink-muted hover:bg-illustrative-bg/70 hover:text-ink",
       )}
     >
       {label}

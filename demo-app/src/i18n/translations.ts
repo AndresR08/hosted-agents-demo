@@ -316,6 +316,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     // translation strings of its own beyond this; each renders existing
     // stops unchanged.
     "nav.agents": "Agents",
+    "nav.agents.subtitle": "Deployed agents",
+    "nav.gateway.subtitle": "Route, key and policy",
+    "nav.observability.subtitle": "Evidence per request",
+    "nav.platform.subtitle": "Environment, controls",
     "nav.gateway": "Gateway",
     "nav.observability": "Observability",
     "nav.platform": "Platform",
@@ -729,6 +733,10 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // ── Shell de la consola — las cuatro secciones principales ──────────
     "nav.agents": "Agentes",
+    "nav.agents.subtitle": "Agentes desplegados",
+    "nav.gateway.subtitle": "Ruta, clave y política",
+    "nav.observability.subtitle": "Evidencia por solicitud",
+    "nav.platform.subtitle": "Entorno y controles",
     "nav.gateway": "Gateway",
     "nav.observability": "Observabilidad",
     "nav.platform": "Plataforma",

@@ -228,14 +228,15 @@ export function Sidebar({ className }: { className?: string }) {
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rail-ink",
                 collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5",
                 /*
-                  `text-white`, not `text-rail-ink`: the rail's off-white
-                  measures 4.11:1 on this pink and pure white measures 4.56:1.
-                  The one string in the rail that sits on a coloured plate is
-                  the one string that cannot use the rail's own ink.
+                  `text-white`, not `text-rail-ink`: the label sits on a
+                  coloured plate and pure white is the brighter of the two
+                  passing values (5.44:1 against the brand fill).
 
-                  The fill also clears the 3:1 that 1.4.11 asks of a state
-                  carried by colour — 3.95:1 on the rail ground, where the
-                  indigo this briefly used managed only 2.87:1.
+                  The fill clears the 3:1 that 1.4.11 asks of a state carried
+                  by colour — 3.13:1 on the rail ground — and it is not the
+                  only signal: the label goes from muted to white and the
+                  icon with it, so "where you are" survives even for someone
+                  who cannot separate the two reds.
                 */
                 isActive
                   ? "bg-brand text-white hover:bg-brand-hover"
@@ -243,7 +244,33 @@ export function Sidebar({ className }: { className?: string }) {
               )}
             >
               <Icon fontSize={18} />
-              {!collapsed && <span className="truncate">{label}</span>}
+              {!collapsed && (
+                /*
+                  The per-item subtitle is the reference's real contribution
+                  to this rail (FIGMA_ADOPTION.md 0.5) — its crimson edge bar
+                  failed contrast and was dropped, this did not. It says what
+                  the section answers, which is the difference between a menu
+                  and a map.
+
+                  Only the ACTIVE item shows it. Showing four subtitles at
+                  once turns the rail into a paragraph and costs vertical
+                  space the rail does have but the eye does not; showing one
+                  keeps the list scannable and explains the thing the
+                  presenter is actually on.
+
+                  white/90 on the brand fill measures 4.56:1 — AA, and the
+                  reason it is not plain white is that a subtitle at the same
+                  weight as its label stops reading as a subtitle.
+                */
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate">{label}</span>
+                  {isActive && (
+                    <span className="truncate text-caption font-normal text-white/90">
+                      {t(`nav.${section}.subtitle`)}
+                    </span>
+                  )}
+                </span>
+              )}
             </button>
           );
 

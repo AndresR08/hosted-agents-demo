@@ -105,16 +105,23 @@ export function AgentsList({
                   className={cn(
                     "flex w-full min-w-0 flex-col gap-1 px-3 py-2.5 text-left",
                     "transition-colors duration-150",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50",
+                    /*
+                      The reference's selected card: a brand-tinted fill with
+                      a brand edge. --color-brand-tint is #fff5f5 in light and
+                      #2a1520 in dark, and --color-ink measures 14.27:1 and
+                      14.56:1 on them respectively, so the card's own text is
+                      unaffected by being selected.
+                    */
                     isSelected
-                      ? "bg-accent/[0.06] shadow-[inset_2px_0_0_0_var(--color-accent)]"
+                      ? "bg-brand-tint shadow-[inset_2px_0_0_0_var(--color-brand)]"
                       : "hover:bg-illustrative-bg/60",
                   )}
                 >
                   <span className="flex min-w-0 items-center gap-1.5">
                     <BotFilled
                       fontSize={16}
-                      className={cn("shrink-0", isSelected ? "text-accent" : "text-ink-muted")}
+                      className={cn("shrink-0", isSelected ? "text-brand-ink" : "text-ink-muted")}
                     />
                     <span className="min-w-0 flex-1 truncate text-body font-semibold text-ink">
                       {agent.name}
@@ -122,9 +129,16 @@ export function AgentsList({
                     <span
                       className={cn(
                         "h-1.5 w-1.5 shrink-0 rounded-full",
-                        // accent, not affirm: "this is on" is the accent's
-                        // documented job. Green is reserved for the 401.
-                        agent.status === "Running" ? "bg-accent" : "bg-ink-muted",
+                        /*
+                          The reference paints this dot GREEN. It is brand
+                          crimson here, and that is the third time a supplied
+                          mockup has asked for a "healthy" green and not got
+                          it: --color-affirm is the 401 rejection in the
+                          Credentials panel and nothing else (4.4/4.5, F4).
+                          The colour changed from accent to brand with the
+                          Figma adoption; what it must never be is green.
+                        */
+                        agent.status === "Running" ? "bg-brand" : "bg-ink-muted",
                       )}
                       aria-hidden="true"
                     />
