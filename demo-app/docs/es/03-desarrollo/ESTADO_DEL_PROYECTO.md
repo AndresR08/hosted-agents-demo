@@ -347,6 +347,47 @@ introductorio propio de la pantalla quedan ahora adyacentes — dos frases de
 preámbulo antes del contenido. Trabajo de composición en cinco pantallas, no
 un defecto de maquetación.
 
+**Retomado y re-verificado, 2026-09-16.** La sesión que escribió lo anterior
+se cerró mientras tomaba las capturas para aprobación (cuatro en tema claro,
+ninguna en oscuro). Todo se volvió a ejecutar contra HEAD y el backend real en
+lugar de darlo por bueno:
+
+- Presupuesto de las nueve pantallas: idéntico al píxel a la tabla de arriba.
+- Reinicio: las diez comprobaciones vuelven a pasar. Su paso 5 solo probaba
+  una navegación tras el reinicio, así que se añadió una verificación más
+  estricta — una segunda demostración completa (todas las secciones, todas
+  las pestañas, una pregunta nueva al copiloto) en la misma carga de página,
+  sin rastro de la primera conversación, cero recargas, cero errores. 35/35.
+  Escape *nunca* descarta una conversación viva (cierra el copiloto y luego no
+  hace nada); solo Home, que confirma, lo hace. Esa guarda es anterior a este
+  trabajo y es intencionada.
+- Censo de honestidad: sin cambios respecto a las cifras de arriba; nada de
+  verde, sin insignia de versión.
+- Dos commits añadidos. `0945395` elimina lo que dejó la página de inicio (un
+  tipo `View` sin uso, una animación fade-out sin uso, y un docstring de
+  `resetDemoState` que aún describía el mecanismo de desmontaje que
+  reemplazó). `b513ed2` corrige la atribución del presentador: `opacity-70`
+  sobre `rail-ink-muted` componía 4,07:1 antes de la adopción y 3,94:1
+  después — bajo AA ambas veces, y ni §4.12 ni `ecd1059` lo habían medido.
+  Ahora 6,65:1.
+- AA auditado sobre contraste *renderizado* (cada nodo de texto visible
+  compuesto sobre su fondo real, nueve pantallas, ambos temas) y comparado A/B
+  con el commit previo a la adopción `7d93794`. Tras `b513ed2` el único fallo
+  es `pydantic-agent` en Gateway/En vivo (4,12 claro / 4,23 oscuro), idéntico
+  en la línea base.
+- Dieciocho capturas tomadas, con tema, sección y modo comprobados antes de
+  cada una.
+
+**Encontrado, preexistente, no corregido aquí:** (1) el recuento de recursos
+de la barra superior cae a un `21` fijo; si `getEnvironmentContext()` falla en
+Live, la barra dice "Azure en vivo · … · 21" — un número inventado bajo la
+etiqueta de en vivo, una infracción del §1.6 que pasó del pie del riel a la
+barra superior con este trabajo. (2) Las etiquetas de `ProvenanceBadge`
+("Live", "Illustrative") están fijas en inglés. (3) El diagrama de flujo de la
+solicitud recorta su último nodo ("gpt-5-mir…"), menos que en la línea base.
+(4) Texto por debajo de 16px en insignias Fluent (10px) y botones pequeños
+(12–14px), idéntico en la línea base.
+
 ## 5. Arquitectura actual
 
 ```

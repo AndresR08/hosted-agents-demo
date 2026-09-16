@@ -327,6 +327,42 @@ defect, and deliberately not fixed here.
 introductory paragraph now sit adjacent — two sentences of preamble before
 content. Composition work across five screens, not a layout defect.
 
+**Resumed and re-verified, 2026-09-16.** The session that wrote the above
+closed while taking the approval screenshots (four light-theme shots, no
+dark). Everything was re-run against HEAD and the live backend rather than
+trusted:
+
+- Nine-screen budget: identical to the pixel to the table above.
+- Reset: the ten checks pass again. Their step 5 only proved one navigation
+  after a reset, so a stricter run was added — a complete second
+  demonstration (every section, every sub-tab, a fresh copilot question) in
+  the same page load, the first conversation absent from it, zero reloads,
+  zero page errors. 35/35. Escape *never* discards a live conversation (it
+  closes the copilot, then does nothing); only Home, which confirms, does.
+  That guard predates this work and is intended.
+- Honesty census: unchanged from the figures above; no green, no version badge.
+- Two commits added. `0945395` removes what the landing page left behind (an
+  unused `View` type, an unused fade-out animation, and a `resetDemoState`
+  docstring still describing the unmount mechanism it replaced). `b513ed2`
+  fixes the presenter attribution: `opacity-70` over `rail-ink-muted`
+  composited to 4.07:1 before the adoption and 3.94:1 after it — under AA both
+  times, and §4.12/`ecd1059` had never measured it. Now 6.65:1.
+- AA audited on *rendered* contrast (every visible text node composited over
+  its real background, nine screens, both themes) and A/B'd against the
+  pre-adoption commit `7d93794`. After `b513ed2` the only failure is
+  `pydantic-agent` on Gateway/Live (4.12 light / 4.23 dark), identical on the
+  baseline.
+- Eighteen screenshots taken, theme, section and mode asserted before each.
+
+**Found, pre-existing, not fixed here:** (1) the topbar's resource count falls
+back to a hardcoded `21`; if `getEnvironmentContext()` fails in Live, the bar
+reads "Azure live · … · 21" — an invented number under the live label, a §1.6
+breach that moved from the rail footer to the topbar with this work. (2)
+`ProvenanceBadge` labels ("Live", "Illustrative") are hardcoded English. (3)
+The request-flow diagram clips its last node ("gpt-5-mir…"), less than on the
+baseline. (4) Sub-16px text in Fluent badges (10px) and small buttons
+(12–14px), identical on the baseline.
+
 ## 5. Current architecture
 
 ```
