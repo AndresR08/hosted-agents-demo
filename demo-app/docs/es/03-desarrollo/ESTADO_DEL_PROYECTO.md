@@ -382,7 +382,10 @@ lugar de darlo por bueno:
 de la barra superior cae a un `21` fijo; si `getEnvironmentContext()` falla en
 Live, la barra dice "Azure en vivo · … · 21" — un número inventado bajo la
 etiqueta de en vivo, una infracción del §1.6 que pasó del pie del riel a la
-barra superior con este trabajo. (2) Las etiquetas de `ProvenanceBadge`
+barra superior con este trabajo. **Corregido en `b9c4c9a`:** también mostraba
+21 mientras cargaba y durante toda la Simulación, y el broker respondía `0`
+ante un listado de ARM rechazado; los fallos dicen ahora "recuento no
+disponible", y la carga y la Simulación no muestran recuento. (2) Las etiquetas de `ProvenanceBadge`
 ("Live", "Illustrative") están fijas en inglés. (3) El diagrama de flujo de la
 solicitud recorta su último nodo ("gpt-5-mir…"), menos que en la línea base.
 (4) Texto por debajo de 16px en insignias Fluent (10px) y botones pequeños

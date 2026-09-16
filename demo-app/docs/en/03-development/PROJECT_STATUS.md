@@ -357,7 +357,10 @@ trusted:
 **Found, pre-existing, not fixed here:** (1) the topbar's resource count falls
 back to a hardcoded `21`; if `getEnvironmentContext()` fails in Live, the bar
 reads "Azure live · … · 21" — an invented number under the live label, a §1.6
-breach that moved from the rail footer to the topbar with this work. (2)
+breach that moved from the rail footer to the topbar with this work.
+**Fixed in `b9c4c9a`:** it also showed 21 while loading and throughout
+Simulation, and the broker answered `0` for a refused ARM listing; failures
+now read "count unavailable", loading and Simulation show no count. (2)
 `ProvenanceBadge` labels ("Live", "Illustrative") are hardcoded English. (3)
 The request-flow diagram clips its last node ("gpt-5-mir…"), less than on the
 baseline. (4) Sub-16px text in Fluent badges (10px) and small buttons
