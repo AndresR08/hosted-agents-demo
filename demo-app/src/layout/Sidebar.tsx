@@ -411,7 +411,14 @@ export function Sidebar({ className }: { className?: string }) {
             relationship="label"
             positioning="after"
           >
-            <div className="px-1 pt-1 opacity-70">
+            {/*
+              Muted by the token alone. It used to carry opacity-70 on top of
+              text-rail-ink-muted as well, which composites to 3.94:1 on the
+              rail - under AA, and nobody measured it when it was added.
+              rail-ink-muted by itself is 6.65:1 and still reads as secondary
+              next to rail-ink.
+            */}
+            <div className="px-1 pt-1">
               <span className="block text-caption leading-snug text-rail-ink-muted">
                 {t("footer.presentedBy")}
               </span>
