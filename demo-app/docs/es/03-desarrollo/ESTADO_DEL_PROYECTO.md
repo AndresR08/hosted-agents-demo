@@ -298,8 +298,22 @@ marca canónico, el riel unificado a `#1C1C1C`, y la página de inicio
 eliminada. Seis commits, cifrados en `ADOPCION_FIGMA.md` antes de escribir
 nada.
 
-**No desplegado.** A la espera de aprobación del conjunto completo con
-capturas.
+**Desplegado el 2026-09-16, 15:59 UTC** en `hosted-agents-demo-ba8fb6d3`,
+aprobado con el conjunto completo de capturas. `deploy.ps1
+-SkipInfrastructure -SkipAgent -SkipImageBuild -ImageTag 20260909195303
+-SkipValidation` — infraestructura, imágenes y agentes alojados intactos;
+solo se reconstruyó y republicó el paquete de consola + broker. Verificado
+contra el sitio real, no solo en local:
+
+- `/api/health` → `{"ok":true}`, HTTP 200.
+- El fingerprint del bundle servido, `index-BUMK9Hjm.js` /
+  `index-gfjESNQv.css`, coincide con el build que produjo este despliegue.
+- Los tres estados que importan para el fix del recuento, contra
+  producción con `/api/environment` interceptado en el navegador real: Live
+  respondiendo → un recuento real; Live forzado a fallar (500) → "recuento
+  no disponible", nunca `21`; Simulación → sin recuento.
+- Se confirmó que `opacity-70` (el fix de contraste de la atribución en
+  `b513ed2`) no está en el bundle desplegado.
 
 **Presupuesto de layout, 1366×768, medido contra el backend real tras el
 cambio:**

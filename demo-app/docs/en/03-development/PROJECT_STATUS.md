@@ -283,7 +283,21 @@ Agents, `#D4003B` as the canonical brand red, the rail unified to `#1C1C1C`,
 and the landing page removed. Six commits, priced in `FIGMA_ADOPTION.md`
 before any of it was written.
 
-**Not deployed.** Awaiting approval of the complete set with captures.
+**Deployed 2026-09-16, 15:59 UTC** to `hosted-agents-demo-ba8fb6d3`, approved
+with the full set of captures. `deploy.ps1 -SkipInfrastructure -SkipAgent
+-SkipImageBuild -ImageTag 20260909195303 -SkipValidation` — infrastructure,
+images and hosted agents untouched; only the console + broker package
+rebuilt and republished. Verified against the live site, not just locally:
+
+- `/api/health` → `{"ok":true}`, HTTP 200.
+- Served bundle fingerprint `index-BUMK9Hjm.js` / `index-gfjESNQv.css` matches
+  the build this deploy produced.
+- The three states that matter for the resource-count fix, against
+  production with `/api/environment` intercepted in the real browser:
+  Live answering → a real count; Live forced to fail (500) → "recuento no
+  disponible", never `21`; Simulation → no count shown at all.
+- `opacity-70` (the attribution contrast fix in `b513ed2`) confirmed absent
+  from the deployed bundle.
 
 **Layout budget, 1366×768, measured against the live backend after the
 change:**
