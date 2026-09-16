@@ -121,7 +121,4 @@ export type Locale = "en" | "es";
  */
 export type ThemePreference = "light" | "dark" | "system";
 
-/** Which top-level page is showing. See layout/LandingPage.tsx and App.tsx. */
-export type View = "landing" | "dashboard";
-
 export type { DemoMode };

@@ -35,9 +35,8 @@ import type { Locale, ThemePreference } from "@/state/types";
 /**
  * The single place every configurable preference lives — Language, Theme,
  * Demo Mode, Reduced Motion. None of these are ever exposed as a
- * dashboard-visible switch; the gear icon in the header (layout/Header.tsx)
- * and the "Open Settings" link on the landing page (landing/LandingPage.tsx)
- * are the only entry points.
+ * dashboard-visible switch; the gear icon in the rail footer
+ * (layout/Sidebar.tsx) is the only entry point.
  *
  * Deliberately flat: four independent controls, no search, no nesting, no
  * "advanced" section.

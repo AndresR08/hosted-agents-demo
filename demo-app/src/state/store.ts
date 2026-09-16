@@ -62,11 +62,13 @@ export interface DemoStore {
    * Clears everything that belongs to one demonstration, keeping everything
    * that belongs to the operator.
    *
-   * Most of a reset already happens for free: App.tsx swaps LandingPage for
-   * AppShell rather than hiding it, so returning to the landing page unmounts
-   * the console and takes the copilot history and the journey timings with it,
-   * and `startDemonstration` already cleared `lastAskId`. What survived that
-   * round trip were the flags below.
+   * It is the only way to begin a fresh demonstration: Home (which confirms
+   * first when a conversation would be lost) and Escape (which refuses to
+   * when one would) both call it. The store values below are cleared here;
+   * the copilot history and the journey timings live inside components, and
+   * bumping `sessionKey` remounts those - AppShell keys the stage and
+   * CopilotPanel on it. Until the landing page was removed that remount was a
+   * side effect of leaving the console; it is now asked for explicitly.
    *
    * `hasActiveConversation` is the one that misbehaved: it is set when the
    * copilot is first used and was never set back, so the session after a
