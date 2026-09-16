@@ -146,6 +146,9 @@ function Build-DemoPackage {
         }
     }
 
+    # This can sit on 'npm ci' for several minutes with no new output on a
+    # machine where Microsoft Defender for Endpoint is scanning every file it
+    # writes - measured, not a hang. See README.md "Known limitations".
     Invoke-NpmCommand -WorkingDirectory $demoAppDir -Arguments @('ci') -What 'console dependencies'
     Invoke-NpmCommand -WorkingDirectory $demoAppDir -Arguments @('run', 'build') -What 'console build' -Environment @{
         # '/' is the same-origin marker: env.ts strips the trailing slash and

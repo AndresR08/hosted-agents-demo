@@ -250,3 +250,44 @@ ai-foundry-hosted-agents-custom-framework-automation/
 See [`docs/03-implementation-report.md`](docs/03-implementation-report.md) for the
 authoritative list, including the two steps that are broken in the notebook as
 shipped and how this automation handles them.
+
+### `npm ci` in the demo-app build step can take several minutes - this is not a hang
+
+`Build-DemoPackage` (`modules/AppService.ps1`) runs `npm ci` for `demo-app`
+before every demo-only or full deploy. For ~170 packages that normally takes
+tens of seconds. On at least one development machine it has taken close to
+5 minutes, with no new console output the whole time - easy to mistake for a
+stuck deploy if you are watching the log. If you see it sitting on
+`run: npm ci (in .../demo-app)`, check whether the `node.exe` process is
+still consuming CPU and holding an open connection before assuming anything
+is wrong; only kill it if both are flat.
+
+**Investigated 2026-09-16, on the machine above (repo checked out inside a
+OneDrive for Business synced folder):**
+
+- First guess was OneDrive sync overhead on `node_modules`. Tested and
+  refuted: a controlled run of the exact same `npm ci` (same
+  `package-lock.json`) in a folder that is **not** under any OneDrive sync
+  took 327s - statistically the same as the ~300s `npm` itself reported
+  ("added 173 packages ... in 5m") during the real, OneDrive-hosted deploy.
+  OneDrive is not the bottleneck here. (An NTFS-junction workaround was also
+  tested and works safely - `fs.rmSync` unlinks a junction without touching
+  the target - but `npm ci` deletes and recreates `node_modules` on every
+  run, which removes the junction each time. It is not something this
+  automation could set once and rely on.)
+- Direct throughput to `registry.npmjs.org` from the same machine was fast
+  (~1.3 MB/s, no delay) - not a slow connection either.
+- The actual suspect: Microsoft Defender for Endpoint (`MsSense.exe`,
+  `SenseCE.exe`, `SenseDlpProcessor.exe`, ...) and Windows Defender real-time
+  protection are both active and appear to scan file writes as `npm ci`
+  extracts hundreds of small package files - a well-documented cause of
+  exactly this slowdown on enterprise-managed Windows. **Not fixable from
+  here:** Tamper Protection is on and exclusions are centrally managed - the
+  signed-in user cannot list them (`Get-MpPreference` refuses with "Must be
+  an administrator") and `Add-MpPreference` is refused outright.
+
+If this needs to be faster, ask IT/security to add a Microsoft Defender for
+Endpoint exclusion for the repo's `node_modules` paths (or for
+`node.exe`/`npm.cmd`) via Intune / the security portal. That is the real
+fix; nothing on the developer's side - including moving the repo out of
+OneDrive - changes it.
