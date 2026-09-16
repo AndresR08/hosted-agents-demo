@@ -308,6 +308,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     // second one, it is two stops.
     "rail.label": "The walkthrough",
     "topbar.label": "Presenter and deployment",
+    "topbar.resourceCountUnavailable": "count unavailable",
     "breadcrumb.label": "You are here",
     "breadcrumb.root": "Azure AI Gateway Demo",
 
@@ -728,6 +729,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     // ── El recorrido guiado ────────────────────────────────────────────
     "rail.label": "El recorrido",
     "topbar.label": "Presentador y despliegue",
+    "topbar.resourceCountUnavailable": "recuento no disponible",
     "breadcrumb.label": "Dónde estás",
     "breadcrumb.root": "Azure AI Gateway Demo",
 

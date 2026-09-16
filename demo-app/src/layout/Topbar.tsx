@@ -67,29 +67,53 @@ export function Topbar() {
   const [liveEnv, setLiveEnv] = useState<{
     region: string;
     resourceGroupName: string;
-    resourceCount: number;
+    resourceCount: number | null;
   } | null>(null);
+  const [envFailed, setEnvFailed] = useState(false);
 
   useEffect(() => {
-    if (mode !== "live") {
-      setLiveEnv(null);
-      return;
-    }
+    setLiveEnv(null);
+    setEnvFailed(false);
+    if (mode !== "live") return;
     let cancelled = false;
     service
       .getEnvironmentContext()
       .then((ctx) => {
         if (!cancelled) setLiveEnv(ctx);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setEnvFailed(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [mode, service]);
 
+  // Region and group fall back to this build's configuration, which names
+  // the deployment the console is pointed at - configured, not invented.
   const region = liveEnv?.region ?? env.region;
   const resourceGroup = liveEnv?.resourceGroupName ?? env.resourceGroupName;
-  const resourceCount = liveEnv?.resourceCount ?? 21;
+  /*
+   * The count has no such fallback, because there is nothing true to fall
+   * back to. It used to be `?? 21` - ARCHITECTURE.md §5's manual inventory,
+   * which OperationsStop already refuses to show - and that 21 appeared under
+   * "Azure en vivo" while the read was loading (up to ~11s cold, §4g), when it
+   * failed, and permanently in Simulation. Now:
+   *
+   *   Live, answered with a number   the number
+   *   Live, failed or answered null  "recuento no disponible", said out loud
+   *   Live, still loading            nothing - no claim yet
+   *   Simulation                     nothing - there is no live count to show
+   */
+  const resourceCount: string | null =
+    mode !== "live"
+      ? null
+      : typeof liveEnv?.resourceCount === "number"
+        ? String(liveEnv.resourceCount)
+        : envFailed || liveEnv
+          ? t("topbar.resourceCountUnavailable")
+          : null;
+  const detail = [region, resourceGroup, resourceCount].filter(Boolean).join(" · ");
   const modeLabel = mode === "live" ? t("header.statusLive") : t("header.statusSimulation");
 
   return (
@@ -127,7 +151,7 @@ export function Topbar() {
         block keeps its natural width and only this side absorbs the slack.
       */}
       <Tooltip
-        content={`${modeLabel} · ${region} · ${resourceGroup} · ${resourceCount}`}
+        content={`${modeLabel} · ${detail}`}
         relationship="label"
         positioning="below"
       >
@@ -148,7 +172,8 @@ export function Topbar() {
             label always survives, and the detail is what goes first.
           */}
           <span className="hidden min-w-0 truncate text-caption text-rail-ink-muted lg:block">
-            {region} · <span className="font-mono">{resourceGroup}</span> · {resourceCount}
+            {region} · <span className="font-mono">{resourceGroup}</span>
+            {resourceCount !== null && <> · {resourceCount}</>}
           </span>
         </div>
       </Tooltip>

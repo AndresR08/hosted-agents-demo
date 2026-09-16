@@ -44,7 +44,7 @@ export class SimulationService implements DemoDataService {
     return {
       region: "PLACEHOLDER",
       resourceGroupName: "PLACEHOLDER",
-      resourceCount: 0,
+      resourceCount: null,
       provenance: placeholderProvenance(),
     };
   }

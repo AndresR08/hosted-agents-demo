@@ -27,7 +27,11 @@ export interface Provenance {
 export interface EnvironmentContext {
   region: string;
   resourceGroupName: string;
-  resourceCount: number;
+  /**
+   * Resources an ARM listing of the lab's group returned, or null when that
+   * listing failed. Never a stand-in number: consumers say "unavailable".
+   */
+  resourceCount: number | null;
   /**
    * The hosted-agent Responses URL with `{agentName}` left in place — the
    * mechanism behind "one API serves N agents" (README.md §Get Started,

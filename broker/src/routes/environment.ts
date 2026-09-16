@@ -52,7 +52,14 @@ environmentRouter.get("/environment", asyncHandler(async (_req, res) => {
   res.json({
     region: config.region,
     resourceGroupName: config.resourceGroup,
-    resourceCount: body.value.length,
+    /**
+     * null, not 0, when the listing was refused. A failed read used to fall
+     * through to `{ value: [] }` and report 0 resources under a `live`
+     * provenance - a number nobody measured, on the one screen element that
+     * is always visible. The read this depends on is the one §4f found
+     * missing its Reader grant, so this is a failure mode that has happened.
+     */
+    resourceCount: response.ok ? body.value.length : null,
     apimSku,
     /**
      * The address of a hosted agent, with the agent name left as a
