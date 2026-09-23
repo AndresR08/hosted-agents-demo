@@ -156,7 +156,7 @@ function KpiBand({ obs }: { obs: RequestObservability }) {
                   the room cannot read and a tooltip does not help with from the
                   back of a room.
                 */}
-                <p className="text-caption uppercase leading-tight tracking-[0.04em] text-ink-muted">
+                <p className="text-caption uppercase leading-tight tracking-label text-ink-muted">
                   {tile.label}
                 </p>
                 {/*
@@ -338,7 +338,7 @@ function TechnicalDetails({ obs }: { obs: RequestObservability }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-1 rounded py-1 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        className="flex w-full items-center gap-1 rounded py-1 text-caption font-semibold uppercase tracking-label text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         aria-expanded={open}
       >
         {open ? <ChevronDownRegular fontSize={12} /> : <ChevronRightRegular fontSize={12} />}
@@ -403,7 +403,7 @@ function gatewayTotal(obs: RequestObservability): ObservableField<number> {
 
 function SubHeading({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+    <p className="mb-1.5 text-caption font-semibold uppercase tracking-label text-ink-muted">
       {children}
     </p>
   );
@@ -412,7 +412,7 @@ function SubHeading({ children }: { children: React.ReactNode }) {
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+      <p className="mb-1 text-caption font-semibold uppercase tracking-label text-ink-muted">
         {title}
       </p>
       {children}

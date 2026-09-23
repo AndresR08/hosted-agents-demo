@@ -280,7 +280,7 @@ function MessageRow({ message, t }: { message: CopilotMessage; t: (key: string) 
         color={isUser ? "neutral" : "brand"}
       />
       <div className="min-w-0 flex-1">
-        <span className="text-caption font-semibold uppercase tracking-[0.04em] text-ink-muted">
+        <span className="text-caption font-semibold uppercase tracking-label text-ink-muted">
           {isUser ? t("assistant.you") : t("assistant.title")}
         </span>
         {/*

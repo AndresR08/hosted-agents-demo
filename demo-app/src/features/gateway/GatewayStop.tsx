@@ -143,7 +143,7 @@ export function GatewayStop() {
           being addressed at all.
         */}
         <section>
-          <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+          <p className="mb-2 text-caption font-semibold uppercase tracking-label text-ink-muted">
             {t("gw.path.title")}
           </p>
           <RouteLine template={routeTemplate} agentName={targetAgent} />

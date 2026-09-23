@@ -356,7 +356,7 @@ function ControlGroup({
       >
         <p
           className={cn(
-            "text-caption font-semibold uppercase tracking-[0.06em]",
+            "text-caption font-semibold uppercase tracking-label",
             tone === "active" ? "text-accent" : "text-ink-muted",
           )}
         >
@@ -417,7 +417,7 @@ function ControlGroup({
                 </p>
                 <span
                   className={cn(
-                    "shrink-0 rounded px-1.5 py-px text-caption uppercase tracking-[0.04em]",
+                    "shrink-0 rounded px-1.5 py-px text-caption uppercase tracking-label",
                     tone === "active"
                       ? "bg-accent/10 text-accent"
                       // Dashed outline, full-contrast text: the same vocabulary

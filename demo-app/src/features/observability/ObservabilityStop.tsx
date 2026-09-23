@@ -134,7 +134,7 @@ export function ObservabilityStop() {
         <AuditRecordSection />
 
         <div className="border-t border-border pt-3">
-          <p className="mb-2 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+          <p className="mb-2 text-caption font-semibold uppercase tracking-label text-ink-muted">
             {t("obs.session.title")}
           </p>
           {!hasData ? (
@@ -216,7 +216,7 @@ function AuditSection({ obs }: { obs: RequestObservability }) {
       */}
       <div className="grid grid-cols-2 gap-x-6 gap-y-2">
         <div className="min-w-0">
-          <p className="mb-0.5 text-caption font-medium uppercase tracking-[0.04em] text-ink-muted">
+          <p className="mb-0.5 text-caption font-medium uppercase tracking-label text-ink-muted">
             {t("obs.prompt")}
           </p>
           <p
@@ -228,7 +228,7 @@ function AuditSection({ obs }: { obs: RequestObservability }) {
         </div>
 
         <div className="min-w-0">
-          <p className="mb-0.5 text-caption font-medium uppercase tracking-[0.04em] text-ink-muted">
+          <p className="mb-0.5 text-caption font-medium uppercase tracking-label text-ink-muted">
             {t("obs.completion")}
           </p>
           <p

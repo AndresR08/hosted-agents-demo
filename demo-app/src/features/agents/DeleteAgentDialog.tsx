@@ -99,7 +99,7 @@ export function DeleteAgentDialog({
               </p>
 
               <label>
-                <span className="mb-1 block text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+                <span className="mb-1 block text-caption font-semibold uppercase tracking-label text-ink-muted">
                   {t("agents.delete.confirmLabel")}
                 </span>
                 <Input

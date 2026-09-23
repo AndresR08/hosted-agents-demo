@@ -47,7 +47,7 @@ export function AgentsList({
   return (
     <section className="flex min-w-0 flex-col rounded-lg border border-border">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-illustrative-bg/50 px-3 py-2">
-        <p className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+        <p className="text-caption font-semibold uppercase tracking-label text-ink-muted">
           {t("agents.list.title")}
         </p>
         <div className="flex shrink-0 items-center gap-1">

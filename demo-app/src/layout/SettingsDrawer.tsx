@@ -281,7 +281,7 @@ function SettingSection({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="flex items-center gap-1.5 text-caption font-medium uppercase tracking-[0.02em] text-ink-muted">
+      <h3 className="flex items-center gap-1.5 text-caption font-medium uppercase tracking-label text-ink-muted">
         <Icon fontSize={14} />
         {label}
       </h3>

@@ -1254,6 +1254,58 @@ became `rail.resourceCountUnavailable` (the label had no remaining use).
 
 ---
 
+### 4.17 The shared design system's type scale is not adoptable, and one letter-spacing was (2026-09-23)
+
+**Status: done. The adoption of that system's typography is this section, in
+full — the rest of it was declined, with the reason recorded here so nobody
+spends a session rediscovering it.**
+
+The shared system documents a seventeen-step scale from 7.5px to 24px.
+**Sixteen of those seventeen steps sit below the 16px projector floor** of §4.5
+/ F7. Adopting it is not a tuning exercise, it is a reversal of the floor, and
+this console has already run the experiment:
+
+- `--text-caption` reached 16 by going 13 → 14 (UX_AUDIT F1) → 16, and it
+  carries **131 of the app's 164 type usages** — the per-hop latencies, the
+  APIM policy captions, the capability bodies. That is precisely the content
+  §4.5 says the room reads from the back.
+- The one variant that would have preserved a size step — `--text-body` at
+  20px — was measured, not argued: at 20px the Platform screen hid 322px of
+  734. It went back to 16 and merged with caption.
+
+So the scale stays. The carve-out offered for this work — that 9–12px is
+acceptable for "secondary technical metadata" — does not survive contact with
+the code either: there is no tier above caption that could absorb a demotion.
+Caption *is* the metadata tier, and it is the tier the floor was raised for.
+
+**What was adopted is the uppercase section label.** It is the one pattern the
+two systems agree on — uppercase, caption size, muted ink, letter-spaced — and
+the reference sets it at `.04em`. Here it had drifted into three values with
+nothing written down to arbitrate: `.06em` ×19, `.04em` ×8, `.02em` ×1. It is
+now `--tracking-label` at the reference's `.04em`, referenced by 28 usages.
+
+At 16px the difference between `.06em` and `.04em` is 0.32px per character —
+invisible, which is exactly how it drifted and exactly why discipline was never
+going to hold it. A token holds it.
+
+`ProvenanceBadge` keeps `tracking-[0.02em]` and is the only arbitrary tracking
+left. It is not a defect: it is the only tracked text in the app that is not
+uppercase, so it is not this pattern.
+
+**Measured, 1366×768, live backend, all nine screens: 0px change.** Content
+and budget are identical to §4.16 on every screen, Platform included at
+491/526 (+35). Expected — letter-spacing does not alter line height, and
+narrowing a label can only reduce wrapping. Verified rather than assumed
+because a label that unwrapped would have moved a number.
+
+**Deliberately not done: the weight drift on the same pattern.** These labels
+are variously `font-semibold`, `font-medium`, and unset. Normalizing upward
+makes text *wider*, one of the affected elements is the control-status pill on
+Platform, and Platform has 35px. That is a composition change to schedule
+against a measurement, not a token to define. Census unchanged.
+
+---
+
 ## 5. Demo choreography, risks, and prep
 
 The recommended script runs 12 to 15 minutes: open with a question/answer exchange (~90 s, "that's a governed agent in your cloud"), move into the three Access Control tests and the live policy reveal (~3:30, the pivot moment), continue with Agent Governance — two frameworks, one governance model, provenance chain, live RBAC (~3 min), animate the six steps of the Request Journey (~3 min), and close with Platform Control — real audit record, controls catalog, honest cost framing (~3 min), leaving the controls catalog as the natural artifact for the next conversation.

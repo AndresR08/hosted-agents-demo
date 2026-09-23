@@ -1297,6 +1297,62 @@ topbar como presente, y las cadenas `topbar.label` /
 
 ---
 
+### 4.17 La escala tipográfica del sistema de diseño compartido no es adoptable, y un letter-spacing sí lo fue (2026-09-23)
+
+**Estado: hecho. La adopción de la tipografía de ese sistema es esta sección,
+entera — el resto se declinó, con el motivo registrado aquí para que nadie
+gaste una sesión en redescubrirlo.**
+
+El sistema compartido documenta una escala de diecisiete pasos, de 7,5px a
+24px. **Dieciséis de esos diecisiete pasos quedan por debajo del piso de
+proyector de 16px** de §4.5 / F7. Adoptarla no es un ajuste fino, es revertir
+el piso, y esta consola ya hizo el experimento:
+
+- `--text-caption` llegó a 16 pasando por 13 → 14 (AUDITORIA_UX F1) → 16, y
+  carga **131 de los 164 usos de tipo de la app**: las latencias por salto,
+  los pies de las políticas de APIM, los cuerpos de capacidades. Es justo el
+  contenido que §4.5 dice que la sala lee desde el fondo.
+- La única variante que habría conservado un escalón de tamaño —
+  `--text-body` a 20px — se midió, no se discutió: a 20px la pantalla
+  Plataforma ocultaba 322px de 734. Volvió a 16 y se fusionó con caption.
+
+Así que la escala se queda. La excepción ofrecida para este trabajo — que
+9–12px es aceptable para "metadatos técnicos secundarios" — tampoco sobrevive
+al contacto con el código: no hay un nivel por encima de caption que pueda
+absorber una degradación. Caption *es* el nivel de metadatos, y es el nivel
+por el que se subió el piso.
+
+**Lo que sí se adoptó es la etiqueta de sección en mayúsculas.** Es el único
+patrón en que ambos sistemas coinciden — mayúsculas, tamaño caption, tinta
+atenuada, con letter-spacing — y la referencia lo fija en `.04em`. Aquí había
+derivado a tres valores sin nada escrito que arbitrara: `.06em` ×19, `.04em`
+×8, `.02em` ×1. Ahora es `--tracking-label` con el `.04em` de la referencia,
+referenciado por 28 usos.
+
+A 16px la diferencia entre `.06em` y `.04em` es de 0,32px por carácter —
+invisible, que es exactamente cómo derivó y exactamente por qué la disciplina
+nunca iba a sostenerlo. Un token sí lo sostiene.
+
+`ProvenanceBadge` conserva `tracking-[0.02em]` y es el único tracking
+arbitrario que queda. No es un defecto: es el único texto con tracking de la
+app que no va en mayúsculas, así que no es este patrón.
+
+**Medido, 1366×768, backend en vivo, las nueve pantallas: 0px de cambio.**
+Contenido y presupuesto idénticos a §4.16 en todas, Plataforma incluida en
+491/526 (+35). Esperado — el letter-spacing no altera la altura de línea, y
+estrechar una etiqueta solo puede reducir el ajuste de línea. Verificado en
+vez de asumido porque una etiqueta que se desenvolviera habría movido una
+cifra.
+
+**Deliberadamente no hecho: la deriva de pesos en ese mismo patrón.** Estas
+etiquetas son indistintamente `font-semibold`, `font-medium` y sin peso.
+Normalizar hacia arriba ensancha el texto, uno de los elementos afectados es
+la píldora de estado de control en Plataforma, y Plataforma tiene 35px. Eso
+es un cambio de composición que hay que agendar contra una medición, no un
+token que definir. Censo sin cambios.
+
+---
+
 ## 5. Coreografía de la demo, riesgos y preparación
 
 El guion recomendado ocupa 12 a 15 minutos: abrir con un intercambio de pregunta/respuesta (~90 s, "eso es un agente gobernado en tu nube"), seguir con las tres pruebas de Access Control y la revelación de la política en vivo (~3:30, el momento pivote), continuar con Agent Governance — dos frameworks, un modelo de gobernanza, cadena de procedencia, RBAC en vivo (~3 min), animar los seis pasos de la Request Journey (~3 min), y cerrar con Platform Control — registro de auditoría real, catálogo de controles, encuadre honesto de costos (~3 min), dejando el catálogo de controles como el artefacto natural de la siguiente conversación.

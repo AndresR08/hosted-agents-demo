@@ -209,7 +209,7 @@ function SpanRow({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-5">
-      <h3 className="mb-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+      <h3 className="mb-1.5 text-caption font-semibold uppercase tracking-label text-ink-muted">
         {title}
       </h3>
       {children}

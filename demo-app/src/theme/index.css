@@ -216,6 +216,28 @@
   --text-body: 16px;
   --text-caption: 16px;
 
+  /*
+   * The uppercase section label — the one typographic pattern the shared
+   * design system and this console actually agree on.
+   *
+   * That system's type scale is not adoptable here: sixteen of its seventeen
+   * steps sit under the projector floor above, and the one experiment that
+   * would have kept a size step (body at 20px) was measured and reverted -
+   * see the note on `--text-body`. What survives the floor is everything that
+   * is not a size, and this is the load-bearing one: uppercase, caption size,
+   * muted ink, letter-spaced. The reference sets it at .04em.
+   *
+   * It is a token rather than an arbitrary value because it had drifted into
+   * three of them - .06em on nineteen usages, .04em on eight, .02em on one -
+   * with nothing written down to say which was right. Letter-spacing at 16px
+   * is invisible at that granularity, which is precisely why it drifted and
+   * why it needed one home rather than better discipline.
+   *
+   * `ProvenanceBadge` keeps its own .02em and is not a defect: it is the only
+   * tracked text in the app that is NOT uppercase, so it is not this pattern.
+   */
+  --tracking-label: 0.04em;
+
   --spacing-grid-gutter: 24px;
   --spacing-grid-margin: 48px;
 

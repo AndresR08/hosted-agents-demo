@@ -83,7 +83,7 @@ export function StopFrame({
             every screen.
           */}
           <nav aria-label={t("breadcrumb.label")}>
-            <ol className="flex min-w-0 items-center gap-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+            <ol className="flex min-w-0 items-center gap-1.5 text-caption font-semibold uppercase tracking-label text-ink-muted">
               <li className="truncate">{t("breadcrumb.root")}</li>
               <li aria-hidden="true" className="shrink-0 text-border">
                 /

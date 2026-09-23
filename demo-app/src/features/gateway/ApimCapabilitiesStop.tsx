@@ -109,7 +109,7 @@ export function ApimCapabilitiesStop() {
         <div className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-illustrative-bg/60 px-4 py-3">
           <BookInformationRegular fontSize={20} className="mt-0.5 shrink-0 text-ink-muted" />
           <div className="min-w-0">
-            <p className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+            <p className="text-caption font-semibold uppercase tracking-label text-ink-muted">
               {t("apim.bannerTitle")}
             </p>
             <p className="mt-1 text-body text-ink-muted">{t("apim.bannerBody")}</p>
@@ -176,7 +176,7 @@ export function ApimCapabilitiesStop() {
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[540px] border-collapse text-body">
               <thead>
-                <tr className="text-left text-caption uppercase tracking-[0.04em] text-ink-muted">
+                <tr className="text-left text-caption uppercase tracking-label text-ink-muted">
                   <th className="py-1.5 pr-4 font-medium">{t("apim.colTier")}</th>
                   <th className="py-1.5 pr-4 font-medium">{t("apim.colCost")}</th>
                   <th className="py-1.5 pr-4 font-medium">{t("apim.colColdStart")}</th>

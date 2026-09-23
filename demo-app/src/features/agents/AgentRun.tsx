@@ -149,7 +149,7 @@ export function AgentRun({ agent }: { agent: AgentSummary | null }) {
   return (
     <section className="flex min-w-0 flex-1 flex-col rounded-lg border border-border">
       <header className="flex shrink-0 items-baseline justify-between gap-2 border-b border-border bg-illustrative-bg/50 px-3 py-2">
-        <p className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+        <p className="text-caption font-semibold uppercase tracking-label text-ink-muted">
           {t("agents.run.title")}
         </p>
         <span className="shrink-0 truncate font-mono text-caption text-ink-muted">{agent?.name}</span>
@@ -178,12 +178,12 @@ export function AgentRun({ agent }: { agent: AgentSummary | null }) {
           <div className="flex flex-col gap-1.5 rounded-md border border-border bg-illustrative-bg/40 p-3">
             <FactList facts={metaFacts} />
 
-            <p className="mt-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+            <p className="mt-1.5 text-caption font-semibold uppercase tracking-label text-ink-muted">
               {t("agents.run.promptLabel")}
             </p>
             <p className="whitespace-pre-wrap break-words text-caption text-ink">{runDetail.prompt}</p>
 
-            <p className="mt-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+            <p className="mt-1.5 text-caption font-semibold uppercase tracking-label text-ink-muted">
               {t("agents.run.answerLabel")}
             </p>
             {runDetail.response ? (
@@ -200,7 +200,7 @@ export function AgentRun({ agent }: { agent: AgentSummary | null }) {
 
         {recentRuns.length > 0 && (
           <div className="mt-1 flex flex-col gap-1">
-            <p className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-muted">
+            <p className="text-caption font-semibold uppercase tracking-label text-ink-muted">
               {t("agents.run.recentTitle")}
             </p>
             <ul className="flex flex-col gap-1">
