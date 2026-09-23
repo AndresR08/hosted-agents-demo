@@ -307,8 +307,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     // single question that stop exists to answer; if a stop ever needs a
     // second one, it is two stops.
     "rail.label": "The walkthrough",
-    "topbar.label": "Presenter and deployment",
-    "topbar.resourceCountUnavailable": "count unavailable",
+    "rail.resourceCountUnavailable": "count unavailable",
     "breadcrumb.label": "You are here",
     "breadcrumb.root": "Azure AI Gateway Demo",
 
@@ -728,8 +727,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // ── El recorrido guiado ────────────────────────────────────────────
     "rail.label": "El recorrido",
-    "topbar.label": "Presentador y despliegue",
-    "topbar.resourceCountUnavailable": "recuento no disponible",
+    "rail.resourceCountUnavailable": "recuento no disponible",
     "breadcrumb.label": "Dónde estás",
     "breadcrumb.root": "Azure AI Gateway Demo",
 

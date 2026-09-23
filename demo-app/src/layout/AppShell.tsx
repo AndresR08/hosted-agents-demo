@@ -3,7 +3,6 @@ import { useDemoStore } from "@/state/store";
 import { STOP_TO_SECTION } from "@/state/types";
 import { cn } from "@/lib/cn";
 import { Sidebar } from "./Sidebar";
-import { Topbar } from "./Topbar";
 import { CopilotPanel } from "@/features/copilot/CopilotPanel";
 import { AgentsView } from "@/features/agents/AgentsView";
 import { CredentialTestStop } from "@/features/gateway/CredentialTestStop";
@@ -38,6 +37,16 @@ import { OperationsStop } from "@/features/operations/OperationsStop";
  * them displayed was dropped, it all lives in the rail now. Neither file is
  * deleted, the same way `FrameworksStop` was not.
  *
+ * The rail is now the ONLY chrome. The 56px topbar added on top of it was the
+ * third horizontal band this shell has had, and it went the same way as the
+ * first two and for the same reason: measured at 1366×768 against the live
+ * backend, Platform held 491px of content in a 470px budget — 21px below the
+ * fold, in Live, in breach of §4.7. Removing the band returns those 56px to
+ * every screen and puts Platform back in the black at +35. Nothing it carried
+ * was dropped: the presenter's mark went back to the rail's brand block and
+ * the live/simulation indicator with its deployment line went back to the rail
+ * footer, which is where both of them lived before the band existed.
+ *
  * The rail sits OUTSIDE the max-w-[1600px] cap and the page padding, so it
  * meets the viewport edge the way chrome should, while the stage keeps the
  * measure that makes it read as a product rather than a web page.
@@ -56,56 +65,52 @@ export function AppShell() {
 
   return (
     /*
-      Column, not row, since the topbar arrived: the 56px band spans the full
-      viewport and the rail begins beneath it (FIGMA_ADOPTION.md 0.2). The
-      inner row below keeps the rail/stage relationship exactly as it was, so
-      every measurement in 4.8/4.9/4.11 still describes the same two boxes -
-      only 56px shorter.
+      One row, and the rail runs the full height of the viewport again. The
+      column wrapper existed only to hang the topbar above this row; with the
+      band gone there is nothing to stack, and the rail meets the top edge the
+      way the reference shell does.
     */
-    <div className="flex h-screen w-full flex-col overflow-hidden">
-      <Topbar />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <Sidebar className="animate-fade-in-up" />
+    <div className="flex h-screen w-full overflow-hidden">
+      <Sidebar className="animate-fade-in-up" />
 
-        {/*
+      {/*
         Capped and centred rather than edge-to-edge. At 1920 an application
         that fills every pixel reads as a web page; a composition with canvas
         around it reads as a product. At 1366 the cap never engages.
       */}
-        <main className="mx-auto flex min-h-0 min-w-0 max-w-[1600px] flex-1 gap-grid-gutter overflow-hidden px-grid-margin py-3">
-          {/*
+      <main className="mx-auto flex min-h-0 min-w-0 max-w-[1600px] flex-1 gap-grid-gutter overflow-hidden px-grid-margin py-3">
+        {/*
           `key` on the stage is deliberate: moving between stops remounts, so
           each stop plays its entry animation and none of them inherit scroll
           position from the last one.
         */}
-          <div
-            key={`${sessionKey}-${stop}`}
-            className="flex min-w-0 flex-1 flex-col"
-          >
-            {section === "agents" && <AgentsView />}
-            {/*
+        <div
+          key={`${sessionKey}-${stop}`}
+          className="flex min-w-0 flex-1 flex-col"
+        >
+          {section === "agents" && <AgentsView />}
+          {/*
             The Gateway sub-nav is no longer a row here: each Gateway screen
             passes it to its own StopFrame `action` slot. That reclaimed the
             36px these three screens were paying and no other section paid.
             It still does not remount on tab change, because StopFrame's header
             is outside the animated body.
           */}
-            {stop === "gateway" && <GatewayStop />}
-            {stop === "gatewayCredentials" && <CredentialTestStop />}
-            {stop === "apimCapabilities" && <ApimCapabilitiesStop />}
-            {stop === "observability" && <ObservabilityStop />}
-            {stop === "observabilityMeasurements" && <MeasurementsStop />}
-            {stop === "operations" && <OperationsStop />}
-          </div>
+          {stop === "gateway" && <GatewayStop />}
+          {stop === "gatewayCredentials" && <CredentialTestStop />}
+          {stop === "apimCapabilities" && <ApimCapabilitiesStop />}
+          {stop === "observability" && <ObservabilityStop />}
+          {stop === "observabilityMeasurements" && <MeasurementsStop />}
+          {stop === "operations" && <OperationsStop />}
+        </div>
 
-          {/*
+        {/*
           Always mounted, hidden when closed. `hidden` is display:none, so it
           occupies no space at all — but the conversation survives being closed
           and reopened, which it would not if this unmounted. A presenter who
           collapses the panel to show a stop in full is not asking to lose the
           exchange they just had.
-        */}
-          {/*
+
           `sessionKey` in the key is what replaced the landing page's
           unmount. Returning to the landing page used to take the copilot's
           history with it for free; resetDemoState bumps the key instead, and
@@ -113,12 +118,11 @@ export function AppShell() {
           "start a second demonstration" would leave the first one's messages
           on screen.
         */}
-          <CopilotPanel
-            key={sessionKey}
-            className={cn(!copilotOpen && "hidden")}
-          />
-        </main>
-      </div>
+        <CopilotPanel
+          key={sessionKey}
+          className={cn(!copilotOpen && "hidden")}
+        />
+      </main>
     </div>
   );
 }

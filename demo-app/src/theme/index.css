@@ -95,11 +95,13 @@
    *
    * ONE DARK, NOT TWO (FIGMA_ADOPTION.md 1.5)
    *
-   * The rail ground is now #1c1c1c - the topbar's value from the Figma
-   * spec - and the topbar uses this same token rather than a second one.
-   * That is the decision, not an accident: two near-blacks differing
-   * slightly read as a rendering defect rather than as intent, and the
-   * seam between them would be the first thing the eye lands on. The
+   * The rail ground is #1c1c1c - the value the Figma spec gave the topbar,
+   * which both bands shared for as long as there were two of them. The
+   * topbar is gone and the rail is the only chrome left, so there is now
+   * one dark by construction rather than by discipline; the value stays
+   * because it is the brand specification's, not because of the seam it
+   * used to avoid. Two near-blacks differing slightly read as a rendering
+   * defect rather than as intent, which is why it was never worth two. The
    * #17132b it replaces was itself adopted only one session earlier from a
    * *different* reference's palette, so it had no claim to permanence that
    * a real brand specification does not outrank.

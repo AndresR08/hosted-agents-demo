@@ -72,9 +72,9 @@ export function StopFrame({
           {/*
             The breadcrumb. This is a RESHAPE of the uppercase line that was
             already here, not a new band - same slot, same height, one more
-            segment of information (FIGMA_ADOPTION.md 0.1). That is why the
-            breadcrumb costs nothing in a budget where 56px of topbar had to
-            be argued for.
+            segment of information (FIGMA_ADOPTION.md 0.1). It costs the
+            vertical budget nothing, which is the only reason it survived the
+            removal of the topbar that was added in the same adoption.
 
             Two segments, like the reference. A third for the sub-tab is
             deliberately not built: StopFrame is handed a `title` and does

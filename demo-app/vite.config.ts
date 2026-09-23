@@ -17,5 +17,18 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // The broker only allows its own origin, so a browser on localhost cannot
+    // call a *deployed* one directly. Set BROKER_PROXY_TARGET to forward /api
+    // server-side instead; no credential is involved, the target authenticates
+    // with its own managed identity. Unset, this is inert and the local broker
+    // in ../broker is reached the normal way through VITE_BROKER_BASE_URL.
+    proxy: process.env.BROKER_PROXY_TARGET
+      ? {
+          "/api": {
+            target: process.env.BROKER_PROXY_TARGET,
+            changeOrigin: true,
+          },
+        }
+      : undefined,
   },
 });

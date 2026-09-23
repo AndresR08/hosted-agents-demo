@@ -19,6 +19,8 @@ import {
   SettingsRegular,
   ShieldKeyholeRegular,
 } from "@fluentui/react-icons";
+import controlesEmpresarialesMark from "@/assets/controles-empresariales-mark.png";
+import { env } from "@/config/env";
 import { useDemoStore } from "@/state/store";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useDemoDataService } from "@/services/provider";
@@ -129,6 +131,12 @@ export function Sidebar({ className }: { className?: string }) {
   const [agentVersions, setAgentVersions] = useState<Record<string, string>>(
     {},
   );
+  const [liveEnv, setLiveEnv] = useState<{
+    region: string;
+    resourceGroupName: string;
+    resourceCount: number | null;
+  } | null>(null);
+  const [envFailed, setEnvFailed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const collapsed = useRailCollapsed();
@@ -141,8 +149,7 @@ export function Sidebar({ className }: { className?: string }) {
     }
     let cancelled = false;
     // Versions come from the same live registry the Agents panel reads, so the
-    // rail can never show a version that is not deployed. The environment
-    // context that used to be fetched alongside it belongs to the topbar now.
+    // rail can never show a version that is not deployed.
     service
       .listAgents()
       .then((agents) => {
@@ -157,7 +164,53 @@ export function Sidebar({ className }: { className?: string }) {
     };
   }, [mode, service]);
 
+  useEffect(() => {
+    setLiveEnv(null);
+    setEnvFailed(false);
+    if (mode !== "live") return;
+    let cancelled = false;
+    service
+      .getEnvironmentContext()
+      .then((ctx) => {
+        if (!cancelled) setLiveEnv(ctx);
+      })
+      .catch(() => {
+        if (!cancelled) setEnvFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, service]);
+
   const targetAgentVersion = agentVersions[targetAgent] ?? "";
+
+  // Region and group fall back to this build's configuration, which names the
+  // deployment the console is pointed at - configured, not invented.
+  const region = liveEnv?.region ?? env.region;
+  const resourceGroup = liveEnv?.resourceGroupName ?? env.resourceGroupName;
+  /*
+   * The count has no such fallback, because there is nothing true to fall back
+   * to. This line used to read `?? 21` - ARCHITECTURE.md §5's manual inventory,
+   * which OperationsStop already refuses to show - and that 21 appeared under
+   * "Azure en vivo" while the read was loading, when it failed, and permanently
+   * in Simulation. That was fixed while this indicator lived in the topbar and
+   * the fix comes back here with it; do not reintroduce the literal.
+   *
+   *   Live, answered with a number   the number
+   *   Live, failed or answered null  "recuento no disponible", said out loud
+   *   Live, still loading            nothing - no claim yet
+   *   Simulation                     nothing - there is no live count to show
+   */
+  const resourceCount: string | null =
+    mode !== "live"
+      ? null
+      : typeof liveEnv?.resourceCount === "number"
+        ? String(liveEnv.resourceCount)
+        : envFailed || liveEnv
+          ? t("rail.resourceCountUnavailable")
+          : null;
+  const modeLabel =
+    mode === "live" ? t("header.statusLive") : t("header.statusSimulation");
 
   /*
    * Home restarts the demonstration in place. It used to navigate back to
@@ -186,26 +239,77 @@ export function Sidebar({ className }: { className?: string }) {
       )}
     >
       {/*
-        The product's name. The MARK is not here any more - it moved to the
-        topbar, where it identifies the presenter's company, and rendering
-        the same crimson glyph twice on one screen made the console look
-        like it could not decide which of the two it belonged to. The
-        reference solves this by putting a company mark up top and a
-        product mark in the rail; we have one mark, so it goes where the
-        company identity is and the rail keeps the words.
+        The brand lockup: the presenter's mark and the product's name.
 
-        Collapsed there is no column for the words either, so the block
-        disappears entirely and the nav list starts at the top - the topbar
-        still carries the identity in that state, which is the whole reason
-        this can be dropped rather than truncated.
+        The mark was moved out to the topbar when that band existed, on the
+        argument that rendering the same crimson glyph twice on one screen
+        looked indecisive. With the band gone there is only one place left for
+        it, so the argument is spent and the mark comes home — which is also
+        what the reference shell does, and the shape below is measured off it
+        rather than eyeballed:
+
+          rail width          239px          (ours: 250)
+          symbol              34 x 34px
+          symbol -> text gap  11px           (ours: 10, gap-2.5)
+          text                two short lines, white, bold, TO THE RIGHT
+          brand block height  34px total - the symbol governs it
+          air before nav      ~30px          (ours: pb-8)
+
+        It is NOT tinted, boxed or given a coloured plate: it carries its own
+        crimson, which measures 3.37:1 on `--color-rail` — above the 3:1 bar a
+        non-text graphic has to clear, and it clears it in both themes because
+        the rail does not change between them.
+
+        `alt=""` and `aria-hidden`: the words beside it already name the
+        console, and the attribution the mark stands for is spelled out in the
+        rail footer. A screen reader that announced the mark here would read
+        the presenter's name before the product's.
+
+        Collapsed, both sets of words are gone and the mark is all that is
+        left, so that is the one state where it is labelled rather than hidden.
       */}
-      {!collapsed && (
-        <div className="flex flex-col gap-0.5 px-1 pb-8">
-          <span className="block text-body font-semibold leading-tight">
-            Microsoft {t("header.productName")}
+      <div
+        className={cn(
+          "flex gap-2.5 pb-8",
+          collapsed ? "justify-center" : "items-center px-1",
+        )}
+      >
+        {collapsed ? (
+          <Tooltip
+            content={`Microsoft ${t("header.productName")} · ${t("footer.presentedBy")}`}
+            relationship="label"
+            positioning="after"
+          >
+            <img
+              src={controlesEmpresarialesMark}
+              alt=""
+              className="h-[34px] w-auto shrink-0"
+            />
+          </Tooltip>
+        ) : (
+          <img
+            src={controlesEmpresarialesMark}
+            alt=""
+            aria-hidden="true"
+            className="h-[34px] w-auto shrink-0"
+          />
+        )}
+        {/*
+          Wrapping, not truncating. 250px minus the 34px mark and its gap
+          leaves ~188px, and the name is longer than that in both locales —
+          with `truncate` the console introduced itself as "Microsoft Foundry
+          H...". A brand lockup that cannot say the product's name is worse
+          than a two-line one, and two lines is exactly what the reference
+          sets its own name in.
+        */}
+        {!collapsed && (
+          <span className="min-w-0">
+            <span className="block text-body font-semibold leading-tight">
+              Microsoft {t("header.productName")}
+            </span>
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       <ul className="flex flex-col gap-0.5">
         {SECTION_ORDER.map((section) => {
@@ -363,12 +467,61 @@ export function Sidebar({ className }: { className?: string }) {
         </Tooltip>
 
         {/*
-          The live / simulation indicator and the deployment identity used to
-          live here. They are in the topbar now (FIGMA_ADOPTION.md 0.7), which
-          is a move and not a duplication: the honesty system's most important
-          persistent signal still appears exactly once, higher up, and one
-          component fetches it. `getEnvironmentContext` went with it.
+          The live / simulation indicator and the deployment identity. This is
+          the honesty system's most important persistent signal, and it is back
+          here after a spell in the topbar — a move each way, never a
+          duplication: it appears exactly once on screen and exactly one
+          component fetches it.
+
+          `rail-live-mark` for Live and `illustrative-fg` for Simulation.
+          `affirm` is the 401 and nothing else (§4.4/§4.5) — which is exactly
+          the dot the reference palette wanted painted green, and the reason it
+          is not. This is the indicator only; the toggle stays in the drawer
+          and on `L`, per §1.2.
         */}
+        <Tooltip
+          content={[modeLabel, region, resourceGroup, resourceCount]
+            .filter(Boolean)
+            .join(" · ")}
+          relationship="label"
+          positioning="after"
+        >
+          <div
+            className={cn(
+              "flex flex-col gap-0.5 px-1",
+              collapsed && "items-center px-0",
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "h-2 w-2 shrink-0 rounded-full transition-colors duration-300 motion-reduce:transition-none",
+                  mode === "live" ? "bg-rail-live-mark" : "bg-illustrative-fg",
+                )}
+                aria-hidden="true"
+              />
+              {!collapsed && (
+                <span className="truncate text-caption font-medium">
+                  {modeLabel}
+                </span>
+              )}
+            </span>
+            {/*
+              Also wrapping. The resource group name is the fact this line
+              exists to carry — it is what identifies WHICH deployment the room
+              is looking at — and truncating it to "lab-hoste..." made the line
+              decorative. Two short lines beat one useless one.
+            */}
+            {!collapsed && (
+              <span className="text-caption leading-snug text-rail-ink-muted">
+                {region} ·{" "}
+                <span className="break-all font-mono">{resourceGroup}</span>
+                {resourceCount !== null && <> · {resourceCount}</>}
+              </span>
+            )}
+          </div>
+        </Tooltip>
+
         <div className={cn("flex items-center gap-1", collapsed && "flex-col")}>
           <RailIconButton
             icon={<ChatRegular fontSize={18} />}

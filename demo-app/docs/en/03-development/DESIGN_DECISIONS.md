@@ -1163,6 +1163,97 @@ frame, and it is composition work on five screens rather than a layout defect.
 
 ---
 
+### 4.16 The topbar was removed, and it was repaying a debt, not buying room (2026-09-23)
+
+**Status: done and measured. The rail is the only chrome again.**
+
+The console is one of several lab demos that are meant to share a shell, and the
+reference that shell comes from has no full-width band at all — a rail, and
+nothing above it. The topbar §4.15 added was the third horizontal band this
+layout has had, after the 72px environment header and the 48px section row that
+CP3 already removed for the same reason. It went the same way.
+
+**The table in §4.15 is stale, and the error mattered.** Re-measured with the
+same probe, at 1366×768, against the live backend, *before* touching anything:
+
+| screen | content | budget | margin |
+|---|---|---|---|
+| Agents / Overview | 415 | 510 | +95 |
+| Agents / Versions | 403 | 510 | +107 |
+| Agents / Run | 329 | 510 | +181 |
+| Gateway / Live | 343 | 470 | +127 |
+| Gateway / Credentials | 122 | 470 | +348 |
+| Gateway / Reference | 2172 | 506 | −1666 |
+| Observability / Record | 395 | 510 | +115 |
+| Observability / Measurements | 132 | 470 | +338 |
+| **Platform** | **491** | **470** | **−21** |
+
+Every *content* figure reproduces §4.15's table exactly (415 / 403 / 329 / 122 /
+491), so the probe is the same probe. Every *budget* figure is 40px lower. The
+shared frame grew 40px at some point between that measurement and this one and
+nobody re-measured, which is how **Platform ended up 21px below the fold in
+Live — a live §4.7 breach that was sitting in production**. §4.15 recorded
+Platform at +19 and that number was never true again after the frame moved.
+
+Removing the band returns 56px to all nine screens, exactly and uniformly:
+
+| screen | content | budget | margin | was |
+|---|---|---|---|---|
+| Agents / Overview | 415 | 566 | +151 | +95 |
+| Agents / Versions | 403 | 566 | +163 | +107 |
+| Agents / Run | 329 | 566 | +237 | +181 |
+| Gateway / Live | 343 | 526 | +183 | +127 |
+| Gateway / Credentials | 122 | 526 | +404 | +348 |
+| Gateway / Reference | 2172 | 562 | −1610 | −1666 |
+| Observability / Record | 395 | 566 | +171 | +115 |
+| Observability / Measurements | 132 | 526 | +394 | +338 |
+| **Platform** | **491** | **526** | **+35** | **−21** |
+
+Content is identical on all nine — every pixel gained is budget, not
+composition. Eight of nine at 0px hidden with real margin; the ninth is
+Gateway/Reference, which scrolls by design (§4.9).
+
+**Nothing the band carried was dropped.** Both things it held went back where
+they were before §4.15 moved them, and each still appears exactly once:
+
+- **The presenter's mark** returned to the rail's brand block, at the 34px the
+  reference measures (§4.13's own figures, unchanged). The argument for moving
+  it out — that the same crimson glyph rendered twice looked indecisive — was
+  an argument about having two places to put it, and there is one again. It
+  also now survives the collapsed rail, which it did not before: the old
+  collapsed state dropped the whole brand block on the grounds that the topbar
+  still carried identity, and there is no topbar to carry it.
+- **The live/simulation indicator and the deployment line** returned to the
+  rail footer. `illustrative-fg` is still exactly one className occurrence and
+  `getEnvironmentContext` is still fetched by exactly one chrome component.
+
+**The `?? 21` did not come back with it.** The pre-§4.15 rail code read
+`liveEnv?.resourceCount ?? 21` — ARCHITECTURE.md §5's manual inventory, shown
+under "Azure en vivo" while loading, on failure, and permanently in Simulation.
+That was fixed while the indicator lived in the topbar, and restoring the block
+from history would have silently reverted the fix. The honest four-state
+version came back instead; the comment in `Sidebar.tsx` says so, at the line
+where the literal used to be.
+
+**Census, unchanged:** `<ProvenanceBadge>` 13, `<StatusPill>` 1, `text-affirm`
+1, `bg-affirm` 0, `border-affirm` 0, `border-dashed` 6, `tone="reference"` 1,
+`illustrative-fg` 1 as a class. No green anywhere but the 401.
+
+**Measuring this needed a dev proxy and that is worth writing down.** The broker
+only allows its own origin, so a browser on `localhost` cannot read a *deployed*
+one and every live call fails silently into the error state — which looks like
+real content and measures shorter than it. `vite.config.ts` now forwards `/api`
+to `BROKER_PROXY_TARGET` when that variable is set, and is inert otherwise. No
+credential is involved: the target authenticates with its own managed identity.
+Anything measured against localhost without either that proxy or a local broker
+is measuring error states, not the console.
+
+**Not done here:** `FIGMA_ADOPTION.md` §0.2/§0.4/§0.7 still describe the topbar
+as present, and the strings `topbar.label` / `topbar.resourceCountUnavailable`
+became `rail.resourceCountUnavailable` (the label had no remaining use).
+
+---
+
 ## 5. Demo choreography, risks, and prep
 
 The recommended script runs 12 to 15 minutes: open with a question/answer exchange (~90 s, "that's a governed agent in your cloud"), move into the three Access Control tests and the live policy reveal (~3:30, the pivot moment), continue with Agent Governance — two frameworks, one governance model, provenance chain, live RBAC (~3 min), animate the six steps of the Request Journey (~3 min), and close with Platform Control — real audit record, controls catalog, honest cost framing (~3 min), leaving the controls catalog as the natural artifact for the next conversation.

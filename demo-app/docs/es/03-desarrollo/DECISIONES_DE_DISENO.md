@@ -1199,6 +1199,104 @@ no un defecto de maquetación.
 
 ---
 
+### 4.16 El topbar se eliminó, y estaba saldando una deuda, no comprando espacio (2026-09-23)
+
+**Estado: hecho y medido. El riel vuelve a ser el único chrome.**
+
+Esta consola es una de varias demos de laboratorio que deben compartir un
+mismo shell, y la referencia de la que sale ese shell no tiene ninguna banda
+de ancho completo: un riel, y nada encima. El topbar que añadió §4.15 era la
+tercera banda horizontal que ha tenido este layout, tras la cabecera de
+entorno de 72px y la fila de secciones de 48px que CP3 ya había eliminado por
+el mismo motivo. Ha seguido el mismo camino.
+
+**La tabla de §4.15 está desactualizada, y el error importó.** Re-medido con
+la misma sonda, a 1366×768, contra el backend en vivo, *antes* de tocar nada:
+
+| pantalla | contenido | presupuesto | margen |
+|---|---|---|---|
+| Agents / Overview | 415 | 510 | +95 |
+| Agents / Versions | 403 | 510 | +107 |
+| Agents / Run | 329 | 510 | +181 |
+| Gateway / Live | 343 | 470 | +127 |
+| Gateway / Credentials | 122 | 470 | +348 |
+| Gateway / Reference | 2172 | 506 | −1666 |
+| Observability / Record | 395 | 510 | +115 |
+| Observability / Measurements | 132 | 470 | +338 |
+| **Platform** | **491** | **470** | **−21** |
+
+Cada cifra de *contenido* reproduce exactamente la tabla de §4.15 (415 / 403 /
+329 / 122 / 491), así que la sonda es la misma sonda. Cada cifra de
+*presupuesto* está 40px por debajo. El marco compartido creció 40px en algún
+momento entre aquella medición y esta, y nadie volvió a medir: así es como
+**Plataforma acabó con 21px bajo el pliegue en modo Live — un incumplimiento
+vivo de §4.7 que llevaba tiempo en producción**. §4.15 registró Plataforma en
++19 y ese número dejó de ser cierto en cuanto el marco cambió.
+
+Quitar la banda devuelve 56px a las nueve pantallas, exacta y uniformemente:
+
+| pantalla | contenido | presupuesto | margen | antes |
+|---|---|---|---|---|
+| Agents / Overview | 415 | 566 | +151 | +95 |
+| Agents / Versions | 403 | 566 | +163 | +107 |
+| Agents / Run | 329 | 566 | +237 | +181 |
+| Gateway / Live | 343 | 526 | +183 | +127 |
+| Gateway / Credentials | 122 | 526 | +404 | +348 |
+| Gateway / Reference | 2172 | 562 | −1610 | −1666 |
+| Observability / Record | 395 | 566 | +171 | +115 |
+| Observability / Measurements | 132 | 526 | +394 | +338 |
+| **Platform** | **491** | **526** | **+35** | **−21** |
+
+El contenido es idéntico en las nueve: cada píxel ganado es presupuesto, no
+composición. Ocho de nueve a 0px ocultos con margen real; la novena es
+Gateway/Reference, que scrollea por diseño (§4.9).
+
+**No se perdió nada de lo que llevaba la banda.** Las dos cosas que sostenía
+volvieron a donde estaban antes de que §4.15 las moviera, y cada una sigue
+apareciendo exactamente una vez:
+
+- **La marca del presentador** volvió al bloque de marca del riel, a los 34px
+  que mide la referencia (las cifras de §4.13, sin cambios). El argumento para
+  sacarla — que el mismo glifo carmesí renderizado dos veces se veía indeciso
+  — era un argumento sobre tener dos sitios donde ponerla, y vuelve a haber
+  uno. Además ahora sobrevive al riel colapsado, cosa que antes no hacía: el
+  estado colapsado anterior eliminaba el bloque de marca entero alegando que
+  el topbar seguía portando la identidad, y ya no hay topbar que la porte.
+- **El indicador live/simulación y la línea de despliegue** volvieron al pie
+  del riel. `illustrative-fg` sigue siendo exactamente una ocurrencia como
+  clase, y `getEnvironmentContext` lo sigue pidiendo exactamente un componente
+  de chrome.
+
+**El `?? 21` no volvió con ellos.** El código del riel anterior a §4.15 decía
+`liveEnv?.resourceCount ?? 21` — el inventario manual de ARCHITECTURE.md §5,
+mostrado bajo "Azure en vivo" mientras cargaba, al fallar, y permanentemente
+en Simulación. Eso se corrigió mientras el indicador vivía en el topbar, y
+restaurar el bloque desde el historial habría revertido la corrección en
+silencio. Volvió en su lugar la versión honesta de cuatro estados; el
+comentario en `Sidebar.tsx` lo dice, en la línea donde estaba el literal.
+
+**Censo, sin cambios:** `<ProvenanceBadge>` 13, `<StatusPill>` 1,
+`text-affirm` 1, `bg-affirm` 0, `border-affirm` 0, `border-dashed` 6,
+`tone="reference"` 1, `illustrative-fg` 1 como clase. Nada de verde salvo el
+401.
+
+**Medir esto requirió un proxy de desarrollo y conviene dejarlo escrito.** El
+broker solo admite su propio origen, así que un navegador en `localhost` no
+puede leer uno *desplegado* y toda llamada viva falla en silencio hacia el
+estado de error — que parece contenido real y mide menos que él.
+`vite.config.ts` ahora reenvía `/api` a `BROKER_PROXY_TARGET` cuando esa
+variable está puesta, y es inerte si no lo está. No interviene ninguna
+credencial: el destino se autentica con su propia identidad administrada.
+Cualquier medición hecha contra localhost sin ese proxy o sin un broker local
+está midiendo estados de error, no la consola.
+
+**No hecho aquí:** `FIGMA_ADOPTION.md` §0.2/§0.4/§0.7 siguen describiendo el
+topbar como presente, y las cadenas `topbar.label` /
+`topbar.resourceCountUnavailable` pasaron a ser `rail.resourceCountUnavailable`
+(la etiqueta ya no tenía uso).
+
+---
+
 ## 5. Coreografía de la demo, riesgos y preparación
 
 El guion recomendado ocupa 12 a 15 minutos: abrir con un intercambio de pregunta/respuesta (~90 s, "eso es un agente gobernado en tu nube"), seguir con las tres pruebas de Access Control y la revelación de la política en vivo (~3:30, el momento pivote), continuar con Agent Governance — dos frameworks, un modelo de gobernanza, cadena de procedencia, RBAC en vivo (~3 min), animar los seis pasos de la Request Journey (~3 min), y cerrar con Platform Control — registro de auditoría real, catálogo de controles, encuadre honesto de costos (~3 min), dejando el catálogo de controles como el artefacto natural de la siguiente conversación.
