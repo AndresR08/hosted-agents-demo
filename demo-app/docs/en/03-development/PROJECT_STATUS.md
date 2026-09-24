@@ -528,7 +528,40 @@ either found two more instances, reported to the presenter before any fix:
    A busy neighbor on the shared gateway could put another team's real
    conversation on this console's audit panel.
 
-Neither is fixed yet — the presenter is deciding scope for each.
+**Both resolved — `365a400`, deployed and verified the same day.** The rule
+chosen: another team's row must never reach the broker, so every query
+filters in KQL rather than hiding rows afterwards (`broker/src/ourTelemetry.ts`).
+
+1. Refresh Agent Registry now reads through `fetchFoundryAgents()`, so it gets
+   the hosted-only filter. "Prueba" is still in the project; the action
+   reports "3 hosted agents registered — bank-agent, strands-agent,
+   pydantic-agent", locally and on the public site.
+2. `ApiManagementGatewayLlmLog` has no `ApiId` column (checked with
+   `getschema`), so the audit record joins it on `CorrelationId` to
+   `ApiManagementGatewayLogs` rows of our inference API. With no recent calls
+   of ours the route answers `null` and the console says "Sin registros
+   recientes de los agentes de este laboratorio". `subscriptionName` is the
+   joined row's own `ApimSubscriptionId`, no longer a literal. The audit also
+   covered the other shared-table reads, and three more were fixed the same
+   way: Maintenance → Reload audit logs (reported another lab's freshness),
+   and the gateway/LLM queries of `/api/journey` and `/api/observability`
+   (fetched a whole window and filtered in the broker — now filtered to our
+   APIs, and hop 1 to the agent, in the query). The App Insights span query
+   already filtered by this request's own trace id and was left alone.
+
+Verified against the real workspace, through the route's own code
+(`readAuditRecord` now takes its window): 2026-09-23 22:00–23:00 UTC held 61
+other-lab model calls and none of ours; the old query brought 25 of them
+(gpt-5.4, deepseek-v3.2, gpt-5.4-mini) into the broker, the new one 0, and
+the route answered `null`. Filtering by model name would not have been
+enough: 34 `gpt-5-mini` rows in 14 days belonged to another lab. On mixed
+windows only our rows came back, all `hosted-agents-subscription`, and the
+gateway query stopped bringing `bank-inference-api`, `content-safety` and
+`backend-pool-inference-api`. A real invocation, locally and then on the
+public site, still went through the diagram (model duration from the
+filtered log), Observability (API, subscription, tokens via the join) and
+the audit record. Public site: health 200, bundle `index-CRUtkQCe.js`.
+Captures in `demo-app/captures/shared-telemetry-filter/`.
 ## 5. Current architecture
 
 ```

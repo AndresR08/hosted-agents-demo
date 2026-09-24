@@ -567,8 +567,44 @@ nada:
    poner la conversación real de otro equipo en el panel de auditoría de esta
    consola.
 
-Ninguno de los dos está arreglado todavía — el presentador está decidiendo el
-alcance de cada uno.
+**Ambos resueltos — `365a400`, desplegado y verificado el mismo día.** La regla
+elegida: una fila de otro equipo no debe llegar siquiera al broker, así que
+cada consulta filtra en KQL en vez de ocultar filas después
+(`broker/src/ourTelemetry.ts`).
+
+1. "Actualizar registro de agentes" ahora lee a través de
+   `fetchFoundryAgents()`, así que hereda el filtro de solo hosted. "Prueba"
+   sigue en el proyecto; la acción informa "3 hosted agents registered —
+   bank-agent, strands-agent, pydantic-agent", en local y en el sitio público.
+2. `ApiManagementGatewayLlmLog` no tiene columna `ApiId` (comprobado con
+   `getschema`), así que el registro de auditoría la une por `CorrelationId`
+   con las filas de `ApiManagementGatewayLogs` de nuestra API de inferencia.
+   Sin llamadas nuestras recientes la ruta responde `null` y la consola dice
+   "Sin registros recientes de los agentes de este laboratorio".
+   `subscriptionName` es el `ApimSubscriptionId` de la propia fila unida, ya no
+   un literal. La auditoría cubrió también las demás lecturas de tablas
+   compartidas, y se arreglaron tres más de la misma forma: Mantenimiento →
+   Recargar registros de auditoría (informaba la antigüedad de otro
+   laboratorio), y las consultas de gateway/LLM de `/api/journey` y
+   `/api/observability` (traían una ventana entera y filtraban en el broker —
+   ahora filtran por nuestras APIs, y el salto 1 por agente, en la consulta).
+   La consulta de spans de App Insights ya filtraba por el trace id de la
+   propia petición y no se tocó.
+
+Verificado contra el workspace real, a través del propio código de la ruta
+(`readAuditRecord` ahora recibe su ventana): el 2026-09-23 de 22:00 a 23:00
+UTC hubo 61 llamadas a modelos de otros laboratorios y ninguna nuestra; la
+consulta antigua traía 25 de ellas (gpt-5.4, deepseek-v3.2, gpt-5.4-mini) al
+broker, la nueva 0, y la ruta respondió `null`. Filtrar por nombre de modelo
+no habría bastado: 34 filas de `gpt-5-mini` en 14 días eran de otro
+laboratorio. En ventanas mixtas solo volvieron filas nuestras, todas
+`hosted-agents-subscription`, y la consulta del gateway dejó de traer
+`bank-inference-api`, `content-safety` y `backend-pool-inference-api`. Una
+invocación real, en local y después en el sitio público, siguió recorriendo el
+diagrama (duración del modelo desde el log filtrado), Observabilidad (API,
+suscripción y tokens a través de la unión) y el registro de auditoría. Sitio
+público: health 200, bundle `index-CRUtkQCe.js`. Capturas en
+`demo-app/captures/shared-telemetry-filter/`.
 ## 5. Arquitectura actual
 
 ```
