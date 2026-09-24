@@ -408,9 +408,8 @@ solicitud recorta su último nodo ("gpt-5-mir…"), menos que en la línea base.
 ## 4i. Ejecutar alimenta el diagrama del gateway; tiempos por salto medidos por las propias políticas de APIM, con la respuesta (2026-09-24)
 
 Dos problemas que hacían la pantalla del Gateway poco práctica en una reunión.
-Ambos verificados con invocaciones reales contra un broker local con la
-configuración del App Service; **todavía no se desplegó nada al App Service** —
-producción sigue con el broker anterior, que ignora los nuevos encabezados.
+Ambos verificados primero con invocaciones reales contra un broker local con la
+configuración del App Service, y después desplegados (abajo).
 
 **Agentes → Ejecutar ahora anima el diagrama.** Ejecutar siempre fue una
 llamada real a través de APIM (el mismo `invokeHostedAgent()`, la misma
@@ -466,8 +465,27 @@ nuestras líneas de política. XML de rollback conservado.
 política, así que un redespliegue los mantiene. Capturas:
 `demo-app/captures/gateway-timing/`.
 
-**Pendiente:** desplegar broker/consola al App Service (pendiente de
-aprobación); el texto de correlación de Observabilidad lo genera el broker en
+**Desplegado el 2026-09-24** en `hosted-agents-demo-ba8fb6d3`, con aprobación.
+`deploy.ps1 -ResourceGroupName lab-hosted-agents-demo-v2 -SkipInfrastructure
+-SkipAgent -SkipImageBuild -ImageTag 20260909195303 -SkipValidation`, dos veces:
+la primera publicación de `1efb402` arrancó con `GET /api/agents` respondiendo
+502, porque minutos antes se había creado desde el portal un agente `prompt`
+("Prueba") en el proyecto de Foundry y el broker suponía que todo agente tiene
+contenedor. `5000e6c` deja fuera del registro los agentes que no son hosted, y
+se redesplegó. Verificado contra el sitio público, no en local:
+
+- `/api/health` → `{"ok":true}`, HTTP 200; `/api/agents` → 200 con
+  bank-agent, strands-agent y pydantic-agent.
+- La huella del bundle servido `index-v5mgtsKa.js` / `index-Cxf1M8r3.css`
+  coincide con la compilación de ambos despliegues (la corrección es solo del
+  broker).
+- Agentes → Ejecutar y el copiloto, una invocación real de pydantic-agent cada
+  uno: ambos animan el diagrama y ambos muestran el costo de gateway al
+  instante en los dos saltos (0,4 ms y 0,9 ms, vinculados por trace id); la
+  duración del modelo llegó del log a los 156 s y 251 s. Capturas en
+  `demo-app/captures/gateway-timing-production/`.
+
+**Pendiente:** el texto de correlación de Observabilidad lo genera el broker en
 inglés, igual que el anterior; un sondeo fallido de Observabilidad borra los
 datos ya mostrados (comportamiento previo).
 

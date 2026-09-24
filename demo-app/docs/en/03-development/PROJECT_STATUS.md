@@ -383,9 +383,8 @@ baseline. (4) Sub-16px text in Fluent badges (10px) and small buttons
 ## 4i. Run feeds the gateway diagram; per-hop timing measured by APIM's own policies, with the response (2026-09-24)
 
 Two problems that made the Gateway screen impractical in a meeting. Both
-verified with real invocations against a local broker running the App
-Service's configuration; **nothing was deployed to the App Service yet** —
-production still runs the previous broker, which ignores the new headers.
+verified first with real invocations against a local broker running the App
+Service's configuration, then deployed (below).
 
 **Agents → Run now animates the diagram.** Run was always a real call through
 APIM (same `invokeHostedAgent()`, same `hosted-agents-responses-api` as the
@@ -436,10 +435,28 @@ write; each diff showed exactly our policy lines. Rollback XML kept.
 `shared-apim-registration.bicep` now loads our two policy files, so a redeploy
 keeps them. Captures: `demo-app/captures/gateway-timing/`.
 
-**Still open:** deploying the broker/console to the App Service (awaiting
-approval); Observability's correlation text is broker-generated English, as
-the previous text was; a failed Observability poll clears data already shown
-(pre-existing).
+**Deployed 2026-09-24** to `hosted-agents-demo-ba8fb6d3`, approved. `deploy.ps1
+-ResourceGroupName lab-hosted-agents-demo-v2 -SkipInfrastructure -SkipAgent
+-SkipImageBuild -ImageTag 20260909195303 -SkipValidation`, twice: the first
+publish of `1efb402` came up with `GET /api/agents` answering 502, because a
+`prompt` agent ("Prueba") had been created in the Foundry project from the
+portal minutes earlier and the broker assumed every agent has a container.
+`5000e6c` keeps non-hosted agents out of the registry read, and was
+redeployed. Verified against the public site, not locally:
+
+- `/api/health` → `{"ok":true}`, HTTP 200; `/api/agents` → 200 with
+  bank-agent, strands-agent and pydantic-agent.
+- Served bundle fingerprint `index-v5mgtsKa.js` / `index-Cxf1M8r3.css` matches
+  the build both deploys produced (the fix is broker-only).
+- Agents → Run and the copilot, one real pydantic-agent invocation each: both
+  animate the diagram, and both show gateway cost immediately on both hops
+  (0.4 ms and 0.9 ms, tied by trace id); the model's duration arrived from the
+  log after 156 s and 251 s. Captures in
+  `demo-app/captures/gateway-timing-production/`.
+
+**Still open:** Observability's correlation text is broker-generated English,
+as the previous text was; a failed Observability poll clears data already
+shown (pre-existing).
 
 ## 5. Current architecture
 
