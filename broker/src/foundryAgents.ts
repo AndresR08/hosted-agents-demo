@@ -22,6 +22,8 @@ export interface FoundryAgentVersion {
   created_at: number;
   status: string;
   definition: {
+    /** "hosted" for container agents; "prompt" observed live for a portal-made agent, which has none of the fields below. */
+    kind: string;
     cpu: string;
     memory: string;
     environment_variables: Record<string, string>;
@@ -137,8 +139,20 @@ export async function fetchFoundryAgents(): Promise<FoundryAgent[]> {
   if (!response.ok) throw new Error(`Foundry agents list failed: ${response.status}`);
   const body = (await response.json()) as { data: FoundryAgent[] };
 
-  cache = { agents: body.data, expiresAt: Date.now() + CACHE_TTL_MS };
-  return body.data;
+  /*
+   * Hosted agents only. The Foundry project is shared with the portal, and on
+   * 2026-09-24 a `prompt` agent ("Prueba") was created there: no
+   * container_configuration, no cpu, no image. Every projection in this
+   * broker reads those fields, so one such agent turned GET /api/agents into
+   * a 502 and took the whole agent list - and Agents > Run with it - down in
+   * production. This console is about hosted agents, the only kind that has a
+   * container to show; any other kind is left out here, at the one place the
+   * registry is read, rather than guarded field by field downstream.
+   */
+  const hosted = body.data.filter((agent) => agent.versions?.latest?.definition?.kind === "hosted");
+
+  cache = { agents: hosted, expiresAt: Date.now() + CACHE_TTL_MS };
+  return hosted;
 }
 
 /**
