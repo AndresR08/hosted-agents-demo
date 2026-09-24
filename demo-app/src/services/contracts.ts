@@ -406,7 +406,11 @@ export interface RequestObservability {
     traceId: ObservableField<string>;
     hop1CorrelationId: ObservableField<string>;
     hop2CorrelationId: ObservableField<string>;
-    method: string;
+    /** An identifier the console translates (obs.correlationMethod.*), never prose from the broker. */
+    method: {
+      id: "trace-id-log-landed" | "trace-id-log-pending" | "timestamp-containment" | "not-correlated";
+      traceId: string | null;
+    };
   };
   audit: {
     prompt: ObservableField<string>;
@@ -479,7 +483,8 @@ export interface JourneyTimings {
   hop2: JourneyHopTiming | null;
   totalGatewayOverheadMs: number | null;
   /** Non-null when hop 2 was associated with hop 1 — states that it is an association. */
-  correlationMethod: string | null;
+  /** How hop 2 was tied to hop 1 — the same value as `hop2.association`. */
+  correlationMethod: "trace-id" | "timestamp-containment" | null;
   source: string;
   provenance: Provenance;
 }

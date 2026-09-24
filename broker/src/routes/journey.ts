@@ -328,11 +328,8 @@ journeyRouter.get("/journey/:askId", asyncHandler(async (req, res) => {
           : hop1Timing
             ? hop1Timing.gatewayOverheadMs
             : null,
-      correlationMethod: !hop2Timing
-        ? null
-        : hop2Timing.association === "trace-id"
-          ? "Hop 2 tied to hop 1 by the W3C trace id both requests carried — one transaction, measured by the gateway at request time."
-          : "Hop 2 associated with hop 1 by timestamp containment — an association, not a single measured transaction.",
+      // An identifier, like hop2.association, not prose: the console words it.
+      correlationMethod: hop2Timing?.association ?? null,
       source: [
         `Hop 1: ${hop1Timing?.source === "apim-policy" ? "API Management policy (context.Elapsed), returned with the response" : "ApiManagementGatewayLogs (TotalTime, BackendTime)"}.`,
         `Hop 2: ${hop2Timing?.source === "apim-policy" ? "API Management policy, handed to hop 1 through the gateway cache by trace id" : "ApiManagementGatewayLogs (TotalTime, BackendTime)"}.`,

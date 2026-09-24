@@ -99,7 +99,10 @@ export function ObservabilityDetailDialog({
                 <FieldRow label={t("obs.field.conversationId")} field={i.conversationId} mono />
                 <FieldRow label={t("obs.detail.apimRequestId")} field={i.apimRequestId} mono />
                 <p className="mt-1.5 text-caption leading-relaxed text-ink-muted">
-                  {obs.correlation.method}
+                  {t(`obs.correlationMethod.${obs.correlation.method.id}`).replace(
+                    "{traceId}",
+                    obs.correlation.method.traceId ?? "",
+                  )}
                 </p>
               </Section>
 

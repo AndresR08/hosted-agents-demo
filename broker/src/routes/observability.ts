@@ -60,6 +60,22 @@ export const observabilityRouter = Router();
  *    display-only and cannot be used to join.
  */
 
+/**
+ * How hop 2 was tied to hop 1 for one request - see `correlation.method`.
+ *
+ *   trace-id-log-landed    the gateway found hop 2 under hop 1's W3C trace id;
+ *                          the log row shown is located by timestamp
+ *                          containment, since that log carries no trace id
+ *   trace-id-log-pending   the same, and the log row has not landed yet
+ *   timestamp-containment  no trace-id match (the agent did not propagate the
+ *                          trace, or the cache had no entry): an association
+ *   not-correlated         nothing to tie yet
+ */
+interface CorrelationMethod {
+  id: "trace-id-log-landed" | "trace-id-log-pending" | "timestamp-containment" | "not-correlated";
+  traceId: string | null;
+}
+
 /** Every observable field is wrapped so "missing" is always distinguishable from "zero". */
 interface Field<T> {
   value: T | null;
@@ -276,13 +292,20 @@ observabilityRouter.get("/observability/:askId", asyncHandler(async (req, res) =
        * ApiManagementGatewayLogs carries no trace id to join on. When it did
        * not (strands-agent, or a cache miss), containment is all there is.
        */
-      method: ask.policyTiming?.hop2
-        ? hop2
-          ? `Hop 2 tied to hop 1 by the W3C trace id both requests carried (${ask.policyTiming.hop2.traceId}), verified by the gateway at request time. The gateway-log row shown is located by timestamp containment, since that log carries no trace id.`
-          : `Hop 2 tied to hop 1 by the W3C trace id both requests carried (${ask.policyTiming.hop2.traceId}), verified by the gateway at request time. Its gateway-log row has not landed yet.`
-        : hop2
-          ? "Hop 2 associated with hop 1 by timestamp containment — an association, not a single measured transaction. The gateway did not return hop 2 under hop 1's trace id: either this agent's model call did not carry it, or the gateway cache had no entry."
-          : "Hop 2 not yet correlated.",
+      //
+      // An identifier, not a sentence: the console renders it in the
+      // presenter's language (obs.correlationMethod.* in translations.ts).
+      // Prose written here reached a Spanish screen in English.
+      method: {
+        id: ask.policyTiming?.hop2
+          ? hop2
+            ? "trace-id-log-landed"
+            : "trace-id-log-pending"
+          : hop2
+            ? "timestamp-containment"
+            : "not-correlated",
+        traceId: ask.policyTiming?.hop2?.traceId ?? null,
+      } satisfies CorrelationMethod,
     },
 
     // ── SECTION 1 — Request Audit ────────────────────────────────────────

@@ -485,9 +485,20 @@ se redesplegó. Verificado contra el sitio público, no en local:
   duración del modelo llegó del log a los 156 s y 251 s. Capturas en
   `demo-app/captures/gateway-timing-production/`.
 
-**Pendiente:** el texto de correlación de Observabilidad lo genera el broker en
-inglés, igual que el anterior; un sondeo fallido de Observabilidad borra los
-datos ya mostrados (comportamiento previo).
+**Los dos pendientes, corregidos después y verificados en local contra el
+despliegue real — todavía sin desplegar:**
+
+- `805df22` — un sondeo fallido de Observabilidad ya no vacía la pantalla.
+  Conserva la última lectura buena con un aviso tranquilo de cuándo se leyó y
+  hace cuánto, la insignia de procedencia envejece con ella, cambiar de
+  pestaña en plena caída la mantiene, y una pregunta nueva nunca hereda la
+  lectura de la anterior. Verificado con `/api/observability` forzado a 502 en
+  un navegador real; capturas en `demo-app/captures/observability-stale/`.
+- El texto de correlación ahora es un identificador que traduce la consola
+  (`trace-id-log-landed`, `trace-id-log-pending`, `timestamp-containment`,
+  `not-correlated`), no prosa en inglés generada por el broker. Los cuatro
+  vistos con invocaciones reales, en español y tras cambiar a inglés; capturas
+  en `demo-app/captures/correlation-text/`.
 
 ## 5. Arquitectura actual
 

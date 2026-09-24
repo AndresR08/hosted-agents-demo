@@ -454,9 +454,20 @@ redeployed. Verified against the public site, not locally:
   log after 156 s and 251 s. Captures in
   `demo-app/captures/gateway-timing-production/`.
 
-**Still open:** Observability's correlation text is broker-generated English,
-as the previous text was; a failed Observability poll clears data already
-shown (pre-existing).
+**The two follow-ups, fixed afterwards and verified locally against the live
+deployment — not deployed yet:**
+
+- `805df22` — a failed Observability poll no longer empties the screen. It
+  keeps the last good reading with a calm notice of when it was read and how
+  long ago, the provenance badge ages with it, switching tabs mid-outage keeps
+  it, and a new question never inherits the previous one's reading. Verified
+  with `/api/observability` forced to 502 in a real browser; captures in
+  `demo-app/captures/observability-stale/`.
+- The correlation text is now an identifier the console translates
+  (`trace-id-log-landed`, `trace-id-log-pending`, `timestamp-containment`,
+  `not-correlated`), not English prose from the broker. All four seen with
+  real invocations, in Spanish and after switching to English; captures in
+  `demo-app/captures/correlation-text/`.
 
 ## 5. Current architecture
 
