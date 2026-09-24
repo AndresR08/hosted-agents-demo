@@ -9,7 +9,7 @@ import { ObservableValue } from "./ObservableValue";
 import { ObservabilityDetailDialog } from "./ObservabilityDetailDialog";
 import { ObservabilitySubNav } from "./ObservabilitySubNav";
 import { AuditRecordSection } from "./AuditRecordSection";
-import { TelemetryEmptyState, useRequestObservability } from "./useRequestObservability";
+import { StaleReadingNotice, TelemetryEmptyState, useRequestObservability } from "./useRequestObservability";
 
 /**
  * Two lines of prompt and two of completion, expandable.
@@ -77,7 +77,7 @@ export function ObservabilityStop() {
   const t = useTranslation();
   const [detailOpen, setDetailOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { obs, checked, obsError, hasData, mode, lastAskId } = useRequestObservability();
+  const { obs, checked, obsError, hasData, mode, lastAskId, staleSince, provenance } = useRequestObservability();
 
 
   function copyRecord() {
@@ -125,9 +125,7 @@ export function ObservabilityStop() {
         </>
       }
       provenance={
-        <ProvenanceBadge
-          provenance={obs?.provenance ?? { band: mode === "live" ? "live-delayed" : "illustrative" }}
-        />
+        <ProvenanceBadge provenance={provenance} />
       }
     >
       <div className="flex flex-col gap-3">
@@ -145,7 +143,10 @@ export function ObservabilityStop() {
               error={obsError}
             />
           ) : (
-            <AuditSection obs={obs!} />
+            <>
+              {staleSince != null && <StaleReadingNotice since={staleSince} detail={obsError} />}
+              <AuditSection obs={obs!} />
+            </>
           )}
         </div>
       </div>

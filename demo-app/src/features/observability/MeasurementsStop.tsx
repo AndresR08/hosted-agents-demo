@@ -12,7 +12,7 @@ import type { ObservableField, RequestObservability } from "@/services/contracts
 import { cn } from "@/lib/cn";
 import { FieldRow, ObservableValue, fmt } from "./ObservableValue";
 import { ObservabilitySubNav } from "./ObservabilitySubNav";
-import { TelemetryEmptyState, useRequestObservability } from "./useRequestObservability";
+import { StaleReadingNotice, TelemetryEmptyState, useRequestObservability } from "./useRequestObservability";
 
 /**
  * OBSERVABILITY / MEASUREMENTS — "what did this request cost?"
@@ -43,7 +43,7 @@ import { TelemetryEmptyState, useRequestObservability } from "./useRequestObserv
  */
 export function MeasurementsStop() {
   const t = useTranslation();
-  const { obs, checked, obsError, hasData, mode, lastAskId } = useRequestObservability();
+  const { obs, checked, obsError, hasData, mode, lastAskId, staleSince, provenance } = useRequestObservability();
 
   return (
     <StopFrame
@@ -52,9 +52,7 @@ export function MeasurementsStop() {
       action={<ObservabilitySubNav />}
       footer={t("obsMeasurements.caption")}
       provenance={
-        <ProvenanceBadge
-          provenance={obs?.provenance ?? { band: mode === "live" ? "live-delayed" : "illustrative" }}
-        />
+        <ProvenanceBadge provenance={provenance} />
       }
     >
       {!hasData ? (
@@ -66,6 +64,7 @@ export function MeasurementsStop() {
         />
       ) : (
         <div className="flex flex-col gap-3">
+          {staleSince != null && <StaleReadingNotice since={staleSince} detail={obsError} />}
           <KpiBand obs={obs!} />
           <HopWaterfall obs={obs!} />
           <TechnicalDetails obs={obs!} />
