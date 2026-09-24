@@ -1,0 +1,102 @@
+<policies>
+  <!--
+    The official lab's hosted-agent-policy.xml (vendor/ai-gateway/labs/
+    ai-foundry-hosted-agents-custom-framework/), unchanged, plus gateway-measured
+    timing returned on the response. The vendored file is never edited; this copy
+    is what shared-apim-registration.bicep deploys.
+
+    Why: the console used to learn hop 1's timing only from
+    ApiManagementGatewayLogs, ~150 s after the answer. The same two figures are
+    measured here, by the gateway, and returned with the response itself:
+
+      x-hosted-agents-backend-ms   last inbound statement -> first outbound
+                                   statement: the backend section (forward-request
+                                   to the Foundry agent) and nothing else.
+      x-hosted-agents-gateway-ms   everything else APIM spent on this request up to
+                                   the point these headers are written: global,
+                                   product and API inbound and outbound policies.
+
+    Plus, when hop 2 shares this request's trace id and its entry is in the
+    cache (see hosted-agents-inference-policy.xml):
+
+      x-hosted-agents-hop2         one `gateway:backend:status:streamed;` per
+                                   model call (for a streamed call, backend is
+                                   time to first byte - see the inference policy)
+      x-hosted-agents-trace-id     the trace id the entry was found under
+
+    Not identical to the log's TotalTime - BackendTime: the log also counts sending
+    the response body to the client, which happens after this policy has run.
+    Both are measured by API Management; neither is estimated.
+
+    The timestamps bracket the backend from INSIDE this API's scope: the inbound
+    mark is the last inbound statement (after <base />, so parent inbound policies
+    are counted as gateway), the outbound mark is the first outbound statement
+    (before <base />, so parent outbound policies are counted as gateway too).
+  -->
+  <inbound>
+    <base />
+    <!-- Get managed identity token for Foundry Responses API -->
+    <authentication-managed-identity resource="https://ai.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" />
+
+    <!-- Set bearer token in Authorization header -->
+    <set-header name="Authorization" exists-action="override">
+      <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+    </set-header>
+
+    <!-- Force Content-Type header -->
+    <set-header name="Content-Type" exists-action="override">
+      <value>application/json</value>
+    </set-header>
+
+    <!-- Force Foundry-Features header for preview access -->
+    <set-header name="Foundry-Features" exists-action="override">
+      <value>HostedAgents=V1Preview</value>
+    </set-header>
+
+    <set-variable name="hosted-agents-backend-start-ms" value="@(context.Elapsed.TotalMilliseconds)" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <set-variable name="hosted-agents-backend-end-ms" value="@(context.Elapsed.TotalMilliseconds)" />
+    <base />
+    <set-header name="x-hosted-agents-backend-ms" exists-action="override">
+      <value>@(((double)context.Variables["hosted-agents-backend-end-ms"] - (double)context.Variables["hosted-agents-backend-start-ms"]).ToString("F1"))</value>
+    </set-header>
+    <set-header name="x-hosted-agents-gateway-ms" exists-action="override">
+      <value>@((context.Elapsed.TotalMilliseconds - ((double)context.Variables["hosted-agents-backend-end-ms"] - (double)context.Variables["hosted-agents-backend-start-ms"])).ToString("F1"))</value>
+    </set-header>
+    <!--
+      Hop 2, as left in the cache by hosted-agents-inference-policy.xml under
+      this request's W3C trace id. Foundry returns that id as X-Request-ID
+      (comma-doubled; the first value is taken); a caller-supplied traceparent
+      is the fallback. No entry - strands-agent, a cache miss, a late write -
+      means no hop 2 headers at all, never zeros.
+    -->
+    <set-variable name="hosted-agents-trace-id" value="@{
+      var fromResponse = context.Response.Headers.GetValueOrDefault("x-request-id", "").Split(',')[0].Trim().ToLowerInvariant();
+      if (fromResponse.Length == 32) { return fromResponse; }
+      var parts = context.Request.Headers.GetValueOrDefault("traceparent", "").Split('-');
+      return (parts.Length == 4 && parts[1].Length == 32) ? parts[1].ToLowerInvariant() : "";
+    }" />
+    <choose>
+      <when condition="@(((string)context.Variables["hosted-agents-trace-id"]).Length == 32)">
+        <cache-lookup-value key="@("hosted-agents-hop2:" + (string)context.Variables["hosted-agents-trace-id"])" variable-name="hosted-agents-hop2" default-value="" caching-type="internal" />
+        <choose>
+          <when condition="@(((string)context.Variables["hosted-agents-hop2"]).Length > 0)">
+            <set-header name="x-hosted-agents-hop2" exists-action="override">
+              <value>@((string)context.Variables["hosted-agents-hop2"])</value>
+            </set-header>
+            <set-header name="x-hosted-agents-trace-id" exists-action="override">
+              <value>@((string)context.Variables["hosted-agents-trace-id"])</value>
+            </set-header>
+          </when>
+        </choose>
+      </when>
+    </choose>
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

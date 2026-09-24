@@ -1,3 +1,5 @@
+import type { PolicyTiming } from "./agentInvocation.js";
+
 /** In-memory correlation between an ask and its journey, for GET /api/journey/:askId right after the fact. Cleared on broker restart — fine, this is a live demo aid, not durable state. */
 export interface AskRecord {
   askId: string;
@@ -45,6 +47,8 @@ export interface AskRecord {
   completedAt?: number;
   /** Which demo-knowledge entries were injected for this question. */
   knowledgeApplied?: string[];
+  /** Hop 1 timing from our APIM policy's response headers, when the gateway returned them. */
+  policyTiming?: PolicyTiming;
 }
 
 const asks = new Map<string, AskRecord>();

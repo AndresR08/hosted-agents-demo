@@ -405,6 +405,72 @@ solicitud recorta su último nodo ("gpt-5-mir…"), menos que en la línea base.
 (4) Texto por debajo de 16px en insignias Fluent (10px) y botones pequeños
 (12–14px), idéntico en la línea base.
 
+## 4i. Ejecutar alimenta el diagrama del gateway; tiempos por salto medidos por las propias políticas de APIM, con la respuesta (2026-09-24)
+
+Dos problemas que hacían la pantalla del Gateway poco práctica en una reunión.
+Ambos verificados con invocaciones reales contra un broker local con la
+configuración del App Service; **todavía no se desplegó nada al App Service** —
+producción sigue con el broker anterior, que ignora los nuevos encabezados.
+
+**Agentes → Ejecutar ahora anima el diagrama.** Ejecutar siempre fue una
+llamada real a través de APIM (el mismo `invokeHostedAgent()`, la misma
+`hosted-agents-responses-api` que el copiloto), pero solo escribía en
+`runStore`, y el diagrama busca las peticiones en `askStore` por `lastAskId`,
+que Ejecutar a propósito nunca fijaba. Una ejecución correcta ahora se
+registra en ambos y fija `lastAskId`, así que Gateway y Observabilidad la
+muestran exactamente igual que una pregunta del copiloto.
+
+**El salto 1 es inmediato.** Nuestra copia de la política de la API de
+respuestas (`labs/.../policies/hosted-agents-responses-policy.xml`; el archivo
+vendorizado no se tocó) acota la sección backend con `context.Elapsed` y
+devuelve `x-hosted-agents-backend-ms` / `x-hosted-agents-gateway-ms`.
+Comparado con `ApiManagementGatewayLogs` en 8 invocaciones secuenciales (4 por
+agente): backend entre +0,5 y +1,1 ms (el log redondea a ms enteros); gateway
+0,4–0,5 ms según la política frente a 1–2 ms en el log, política ≤ log en 8/8.
+El log cuenta además el envío del cuerpo después de que la política se
+ejecuta, así que ≤ es la relación esperada, no una discrepancia.
+
+**Salto 2, solo pydantic-agent, y solo su costo de gateway es inmediato.** La
+respuesta del salto 2 va al contenedor, no al broker. pydantic-agent propaga
+la traza W3C del salto 1 (verificado: la llamada al modelo de cada invocación
+200 comparte el trace id del salto 1; strands-agent: 0 de 11), así que nuestra
+política de la API de inferencia deja sus cifras en la caché interna de APIM
+bajo `hosted-agents-hop2:{traceId}` (`caching-type="internal"`, TTL de 120 s,
+sin caché externa en el gateway, los otros equipos solo usan caché de
+respuestas) y la política de respuestas las devuelve. Tasa de aciertos en esta
+sesión: 12/12 invocaciones de pydantic; 0/8 invocaciones de strands trajeron
+encabezados del salto 2, según lo diseñado.
+
+**Hallado durante la verificación — la duración del modelo no puede venir de la
+política.** Ambos agentes llaman al modelo en streaming (`IsStreamCompletion =
+true`), y outbound se ejecuta con el primer byte: el "backend" de la política
+para el salto 2 fue 2491 ms frente a 3026 ms del log (257 tokens) y 8424 frente
+a 9414 (950 tokens). Por eso el costo de gateway del salto 2 (0,8–0,9 ms, ≤ log
+en 4/4) y su asociación por trace id son inmediatos; la duración del modelo, y
+con ella el tiempo derivado del agente, siguen en `live-delayed` hasta que llega
+el log (~140–150 s medidos) y nunca se estiman mientras tanto. strands-agent
+mantiene el salto 2 completo en el log.
+
+**Cómo se vincula el salto 2 al 1 ahora se declara por petición**, en la nota
+del diagrama y en el texto de correlación de Observabilidad: "vinculado por el
+trace id W3C que llevaban ambas peticiones" cuando el gateway lo devolvió,
+"asociado por contención de marcas de tiempo" (con el motivo) cuando no.
+
+**Gateway compartido:** solo cambiaron las políticas de
+`hosted-agents-responses-api` y `hosted-agents-inference-api` — snapshot
+completo de los 299 recursos del gateway (APIs, operaciones, productos,
+backends, suscripciones, named values, loggers, diagnósticos, diagnostic
+settings) antes y después de cada escritura; cada diff mostró exactamente
+nuestras líneas de política. XML de rollback conservado.
+`shared-apim-registration.bicep` ahora carga nuestros dos archivos de
+política, así que un redespliegue los mantiene. Capturas:
+`demo-app/captures/gateway-timing/`.
+
+**Pendiente:** desplegar broker/consola al App Service (pendiente de
+aprobación); el texto de correlación de Observabilidad lo genera el broker en
+inglés, igual que el anterior; un sondeo fallido de Observabilidad borra los
+datos ya mostrados (comportamiento previo).
+
 ## 5. Arquitectura actual
 
 ```

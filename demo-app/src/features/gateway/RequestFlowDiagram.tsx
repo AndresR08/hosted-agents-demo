@@ -43,12 +43,23 @@ import { cn } from "@/lib/cn";
  *
  * WHAT THE NUMBERS ARE, AND ARE NOT
  *
- * Every millisecond comes from ApiManagementGatewayLogs via /api/journey —
- * TotalTime and BackendTime per hop. Nothing is estimated. Agent processing
- * is DERIVED (hop1.backend − hop2.total) and marked so. Timings arrive on
- * Log Analytics ingestion lag, measured at ~150 s against this deployment;
- * until they land the diagram animates on the real total and shows no per-hop
- * figure at all.
+ * Every millisecond is API Management's own measurement, via /api/journey.
+ * Hop 1 normally comes from our responses-API policy, which measures itself
+ * and returns the figures with the response, so it shows as soon as the answer
+ * does. Hop 2's response goes to the agent's container, never to the broker,
+ * so it still comes from ApiManagementGatewayLogs (TotalTime, BackendTime) on
+ * Log Analytics ingestion lag, measured at ~150 s against this deployment.
+ * Nothing is estimated: until a hop's figures exist its connectors carry no
+ * number. Agent processing is DERIVED (hop1.backend − hop2.total) and marked
+ * so.
+ *
+ * HOW HOP 2 IS TIED TO HOP 1 — TWO CASES, TWO SENTENCES
+ *
+ * When the agent propagates hop 1's W3C trace (pydantic-agent), the gateway
+ * hands hop 2's figures to hop 1 under that trace id: one transaction, proven,
+ * and immediate. When it does not (strands-agent), hop 2 comes from the
+ * gateway log, found by timestamp containment: an association. The note under
+ * the diagram states which one produced the numbers on screen.
  *
  * TWO COLOURS, BECAUSE THERE ARE TWO KINDS OF MEASUREMENT
  *
@@ -68,8 +79,12 @@ import { cn } from "@/lib/cn";
  * Segment durations are proportional to the measurements, scaled so the path
  * plays in ~2.6 s. A 13-second request animated over 13 seconds would be
  * accurate and useless: the ratios are real, the wall-clock duration is not,
- * and the caption says which is which. Without measurements every segment
- * gets an equal slice, which reads as "we do not know".
+ * and the caption says which is which. Until EVERY segment is measured each
+ * gets an equal slice, which reads as "we do not know". Hop 1 alone is not
+ * enough: it knows the gateway cost and the whole backend, but not how the
+ * backend splits between agent and model, and scaling segment 0 against a
+ * guess of the rest would animate a ratio nobody measured. The same holds
+ * while a streamed model call's duration is still waiting for the log.
  */
 
 const PLAYBACK_MS = 2600;
@@ -121,19 +136,22 @@ function buildSegments(timings: JourneyTimings | null): Segment[] {
 
   const { hop1, hop2 } = timings;
   if (hop1) shape[0] = { ...shape[0], ms: hop1.gatewayOverheadMs };
-  if (hop1 && hop2) {
-    const agentMs = hop1.backendMs - hop2.totalMs;
-    if (agentMs > 0) shape[1] = { ...shape[1], ms: agentMs };
+  if (hop2) {
     shape[2] = { ...shape[2], ms: hop2.gatewayOverheadMs };
-    shape[3] = { ...shape[3], ms: hop2.backendMs };
+    // Null while a streamed model call's duration waits for the log.
+    if (hop2.backendMs != null) shape[3] = { ...shape[3], ms: hop2.backendMs };
+    if (hop1?.backendMs != null && hop2.totalMs != null) {
+      const agentMs = hop1.backendMs - hop2.totalMs;
+      if (agentMs > 0) shape[1] = { ...shape[1], ms: agentMs };
+    }
   }
   return shape;
 }
 
-/** Playback slice per connector: real ratios when measured, equal when not. */
+/** Playback slice per connector: real ratios when every segment is measured, equal when not. */
 function playbackDurations(segments: Segment[]): number[] {
   const measured = segments.map((s) => s.ms).filter((m): m is number => m != null && m > 0);
-  if (measured.length === 0) return segments.map(() => PLAYBACK_MS / segments.length);
+  if (measured.length < segments.length) return segments.map(() => PLAYBACK_MS / segments.length);
   const total = measured.reduce((a, b) => a + b, 0);
   return segments.map((s) =>
     s.ms != null && s.ms > 0 ? Math.max(MIN_SEGMENT_MS, (s.ms / total) * PLAYBACK_MS) : MIN_SEGMENT_MS,
@@ -141,7 +159,9 @@ function playbackDurations(segments: Segment[]): number[] {
 }
 
 function formatMs(ms: number): string {
-  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
+  if (ms >= 1000) return `${(ms / 1000).toFixed(1)} s`;
+  // The policy reports tenths; below 10 ms rounding would print "0 ms" for a real cost.
+  return ms < 10 ? `${ms.toFixed(1)} ms` : `${Math.round(ms)} ms`;
 }
 
 /**
@@ -199,6 +219,7 @@ export function RequestFlowDiagram({
 }) {
   const t = useTranslation();
   const segments = useMemo(() => buildSegments(timings), [timings]);
+  const bothHops = timings?.hop1 != null && timings?.hop2 != null;
   const durations = useMemo(() => playbackDurations(segments), [segments]);
 
   // -1 = nothing lit. `progress` is the index of the connector currently being
@@ -232,7 +253,22 @@ export function RequestFlowDiagram({
     // invocation must restart, which a timings-only dependency would not do.
   }, [runToken, idle, durations]);
 
-  const measured = timings?.available === true;
+  const hop1FromPolicy = timings?.hop1?.source === "apim-policy";
+  const note = idle
+    ? t("flow.note.idle")
+    : bothHops
+      ? timings?.hop2?.association === "trace-id"
+        ? t(
+            timings.hop2.backendSource === "apim-policy"
+              ? "flow.note.tracedPolicy"
+              : timings.hop2.backendSource === "gateway-log"
+                ? "flow.note.traced"
+                : "flow.note.tracedPending",
+          )
+        : t(hop1FromPolicy ? "flow.note.measuredPolicy" : "flow.note.measured")
+      : timings?.hop1
+        ? t(hop1FromPolicy ? "flow.note.hop1Policy" : "flow.note.hop1Log")
+        : t("flow.note.pending");
 
   return (
     <div>
@@ -341,7 +377,7 @@ export function RequestFlowDiagram({
       </div>
 
       <p className="mt-1.5 text-caption leading-relaxed text-ink-muted">
-        {idle ? t("flow.note.idle") : measured ? t("flow.note.measured") : t("flow.note.pending")}
+        {note}
       </p>
     </div>
   );

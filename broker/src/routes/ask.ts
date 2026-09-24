@@ -112,6 +112,7 @@ askRouter.post("/ask", asyncHandler(async (req, res) => {
     createdAt: result.createdAt,
     completedAt: result.completedAt,
     knowledgeApplied: matchedEntryIds,
+    policyTiming: result.policyTiming,
   });
 
   recordRun({

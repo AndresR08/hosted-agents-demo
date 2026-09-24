@@ -161,9 +161,9 @@ export function GatewayStop() {
             <div className="mt-2 flex items-center justify-end gap-4">
               {timings?.available && timings.totalGatewayOverheadMs != null && (
                 <p className="whitespace-nowrap text-caption text-ink-muted">
-                  {t("journey.gatewayOverhead")}:{" "}
+                  {t(timings.hop2 ? "journey.gatewayOverhead" : "journey.gatewayOverheadHop1")}:{" "}
                   <span className="font-medium tabular-nums text-accent">
-                    {timings.totalGatewayOverheadMs} ms
+                    {Number(timings.totalGatewayOverheadMs.toFixed(1))} ms
                   </span>
                 </p>
               )}

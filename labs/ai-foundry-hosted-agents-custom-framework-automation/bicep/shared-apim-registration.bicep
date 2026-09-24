@@ -109,7 +109,8 @@ resource azureMonitorLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-
 // ------------------
 
 /*
-  Upstream's inference API module, reused unmodified and pointed at the shared
+  Upstream's inference API module, reused unmodified (only the policy text it
+  is handed is ours) and pointed at the shared
   gateway by `apiManagementName` plus this deployment's scope. It creates the
   API, the backend (named from aiServicesConfig[0].name, which is also what it
   substitutes into policy.xml's {backend-id} placeholder - so renaming the
@@ -126,7 +127,9 @@ module inferenceApi '../../../vendor/ai-gateway/modules/apim/v3/inference-api.bi
     apimLoggerId: azureMonitorLogger.id
     appInsightsId: appInsightsId
     appInsightsInstrumentationKey: appInsightsInstrumentationKey
-    policyXml: loadTextContent('../../../vendor/ai-gateway/labs/ai-foundry-hosted-agents-custom-framework/policy.xml')
+    // Our copy of upstream's policy.xml: the same policy plus hop 2's timing,
+    // left in the gateway cache for the responses API to return. See its header.
+    policyXml: loadTextContent('../policies/hosted-agents-inference-policy.xml')
     aiServicesConfig: [
       {
         name: inferenceBackendName
@@ -195,12 +198,19 @@ resource responsesOperation 'Microsoft.ApiManagement/service/apis/operations@202
   }
 }
 
+/*
+  Our copy of upstream's hosted-agent-policy.xml, not the vendored file: the same
+  policy plus gateway-measured timing headers, so the console gets hop 1's
+  figures with the response instead of ~150 s later from Log Analytics. The diff
+  against the vendored file is the three timing statements; see the policy's own
+  header.
+*/
 resource responsesApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
   name: 'policy'
   parent: responsesApi
   properties: {
     format: 'rawxml'
-    value: loadTextContent('../../../vendor/ai-gateway/labs/ai-foundry-hosted-agents-custom-framework/hosted-agent-policy.xml')
+    value: loadTextContent('../policies/hosted-agents-responses-policy.xml')
   }
 }
 

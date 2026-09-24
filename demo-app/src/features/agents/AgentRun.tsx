@@ -39,16 +39,19 @@ import { cn } from "@/lib/cn";
  * value on success (observed live: "completed"), or the broker's own
  * "failed"/"timeout" — never translated, never invented.
  *
- * Does not stamp the store's `lastAskId`: that value is Gateway's,
- * Observability's and Platform's key into `askStore` (traceId, sessionId,
- * Log Analytics attribution), and a run created here has no entry there —
- * setting it would point those panels at an id that 404s.
+ * Stamps the store's `lastAskId` on success. It used not to, because a run
+ * had no entry in the broker's `askStore` and the id would have 404'd — which
+ * left the Gateway diagram still for a request that had really crossed the
+ * gateway. The broker now records a successful run there too (same APIM
+ * API as the copilot's, routes/agents.ts) and returns its `askId`; a failed
+ * run returns none and stamps nothing.
  */
 export function AgentRun({ agent }: { agent: AgentSummary | null }) {
   const t = useTranslation();
   const service = useDemoDataService();
   const mode = useDemoStore((s) => s.mode);
   const targetAgent = useDemoStore((s) => s.targetAgent);
+  const setLastAskId = useDemoStore((s) => s.setLastAskId);
 
   const [draft, setDraft] = useState("");
   const [isInvoking, setIsInvoking] = useState(false);
@@ -116,6 +119,7 @@ export function AgentRun({ agent }: { agent: AgentSummary | null }) {
     try {
       const result = await service.invokeAgent(targetAgent, prompt);
       newRunId = result.runId;
+      if (result.askId) setLastAskId(result.askId);
     } catch (err) {
       setInvokeError(err instanceof Error ? err.message : String(err));
     }

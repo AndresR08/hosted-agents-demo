@@ -380,6 +380,67 @@ The request-flow diagram clips its last node ("gpt-5-mir…"), less than on the
 baseline. (4) Sub-16px text in Fluent badges (10px) and small buttons
 (12–14px), identical on the baseline.
 
+## 4i. Run feeds the gateway diagram; per-hop timing measured by APIM's own policies, with the response (2026-09-24)
+
+Two problems that made the Gateway screen impractical in a meeting. Both
+verified with real invocations against a local broker running the App
+Service's configuration; **nothing was deployed to the App Service yet** —
+production still runs the previous broker, which ignores the new headers.
+
+**Agents → Run now animates the diagram.** Run was always a real call through
+APIM (same `invokeHostedAgent()`, same `hosted-agents-responses-api` as the
+copilot), but it wrote only to `runStore`, and the diagram looks requests up in
+`askStore` by `lastAskId`, which Run deliberately never set. A successful run is
+now recorded in both and stamps `lastAskId`, so Gateway and Observability show
+it exactly as they show a copilot ask.
+
+**Hop 1 is immediate.** Our copy of the responses-API policy
+(`labs/.../policies/hosted-agents-responses-policy.xml`; the vendored file is
+untouched) brackets the backend section with `context.Elapsed` and returns
+`x-hosted-agents-backend-ms` / `x-hosted-agents-gateway-ms`. Compared with
+`ApiManagementGatewayLogs` for 8 sequential invocations (4 per agent):
+backend within +0.5 to +1.1 ms (the log rounds to whole ms); gateway 0.4–0.5 ms
+by the policy against 1–2 ms in the log, policy ≤ log in 8/8. The log also
+counts sending the body after the policy has run, so ≤ is the expected
+relation, not a discrepancy.
+
+**Hop 2, pydantic-agent only, and only its gateway cost is immediate.** Hop 2's
+response goes to the container, not the broker. pydantic-agent propagates hop
+1's W3C trace (verified: every 200 invocation's model call shares hop 1's trace
+id; strands-agent: 0 of 11), so our inference-API policy leaves its figures in
+APIM's built-in cache under `hosted-agents-hop2:{traceId}` (`caching-type=
+"internal"`, 120 s TTL, no external cache on the gateway, other teams use
+response caching only) and the responses-API policy returns them. Hit rate this
+session: 12/12 pydantic invocations; 0/8 strands invocations carried hop 2
+headers, as designed.
+
+**Found during verification — the model's duration cannot come from the
+policy.** Both agents stream their model calls (`IsStreamCompletion = true`),
+and outbound runs on the first byte: the policy's "backend" for hop 2 was 2491
+ms against the log's 3026 ms (257 tokens) and 8424 against 9414 (950 tokens).
+So hop 2's gateway cost (0.8–0.9 ms, ≤ log in 4/4) and its trace-id association
+are immediate; the model's duration, and the agent's derived time with it, stay
+`live-delayed` until the log lands (~140–150 s measured) and are never
+estimated meanwhile. strands-agent keeps hop 2 entirely on the log.
+
+**How hop 2 is tied to hop 1 is now stated per request**, in the diagram note
+and in Observability's correlation text: "tied by the W3C trace id both
+requests carried" when the gateway returned it, "associated by timestamp
+containment" (with the reason) when it did not.
+
+**Shared gateway:** only `hosted-agents-responses-api` and
+`hosted-agents-inference-api` policies changed — full snapshot of all 299
+gateway resources (APIs, operations, products, backends, subscriptions, named
+values, loggers, diagnostics, diagnostic settings) before and after every
+write; each diff showed exactly our policy lines. Rollback XML kept.
+`shared-apim-registration.bicep` now loads our two policy files, so a redeploy
+keeps them. Captures: `demo-app/captures/gateway-timing/`.
+
+**Still open:** deploying the broker/console to the App Service (awaiting
+approval); Observability's correlation text is broker-generated English, as
+the previous text was; a failed Observability poll clears data already shown
+(pre-existing).
+
 ## 5. Current architecture
 
 ```

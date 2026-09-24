@@ -255,6 +255,12 @@ export interface AgentVersionHistory {
  */
 export interface InvokeAgentResult {
   runId: string;
+  /**
+   * Present on success, equal to runId: the invocation passed through the same
+   * APIM API as the copilot's, and the broker records it under this key so the
+   * Gateway diagram and Observability can show it.
+   */
+  askId?: string;
   /** Foundry's own value on success (observed live: "completed") — never translated. */
   status: string;
   startedAt: string;
@@ -435,12 +441,36 @@ export interface RequestObservability {
 /** Per-hop gateway timing on the Request Journey — real, from ApiManagementGatewayLogs. */
 export interface JourneyHopTiming {
   label: string;
-  totalMs: number;
-  backendMs: number;
-  /** TotalTime − BackendTime: API Management's own processing cost. */
+  /** Null only on a policy-sourced hop 2 whose model duration is still waiting for the gateway log. */
+  totalMs: number | null;
+  /**
+   * Null in the same case. A streamed model call's policy figure is time to
+   * first byte, so its duration comes from the log — see `backendSource`.
+   */
+  backendMs: number | null;
+  backendSource?: "apim-policy" | "gateway-log" | null;
+  /** API Management's own processing cost — how it is measured depends on `source`. */
   gatewayOverheadMs: number;
   responseCode: number;
-  correlationId: string;
+  /** The gateway log's CorrelationId; null for a policy-sourced hop whose log row has not landed. */
+  correlationId: string | null;
+  /**
+   * "apim-policy": measured by our responses-API policy and returned with the
+   * response (immediate). "gateway-log": ApiManagementGatewayLogs,
+   * TotalTime − BackendTime (after ingestion). Both are APIM's own figures.
+   */
+  source: "apim-policy" | "gateway-log";
+  /**
+   * Hop 2 only — how it was tied to hop 1. "trace-id": both requests carried
+   * the same W3C trace id, checked by the gateway at request time (one
+   * transaction). "timestamp-containment": the log row falls inside hop 1's
+   * span (an association, not a measured transaction).
+   */
+  association?: "trace-id" | "timestamp-containment";
+  traceId?: string;
+  /** Hop 2 from the policy: how many model calls the figures sum. */
+  modelCalls?: number;
+  provenance: Provenance;
 }
 
 export interface JourneyTimings {

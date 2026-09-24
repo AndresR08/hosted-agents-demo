@@ -46,6 +46,23 @@ export const journeyRouter = Router();
  * *previous* invocation, because the ask's own row has not landed yet. A hop
  * that claims more gateway time than the whole request took is not ours, and is
  * rejected rather than displayed — see the containment invariant below.
+ *
+ * ─── Hop 1 without the wait (policy timing) ──────────────────────────────
+ *
+ * Our responses-API policy measures hop 1 itself and returns it as response
+ * headers (labs/.../policies/hosted-agents-responses-policy.xml), which the
+ * broker keeps on the ask record. When present, hop 1 is served from there,
+ * immediately and on the `live` band — still API Management's own
+ * measurement, just delivered with the response instead of through Log
+ * Analytics. Each hop says which source it came from.
+ *
+ * Hop 2's response goes to the agent's container, not to the broker, so it
+ * travels differently: our inference-API policy leaves its figures in APIM's
+ * cache under the W3C trace id, and hop 1's policy returns them — only when
+ * the agent propagated hop 1's trace (pydantic-agent does, strands-agent does
+ * not) and the cache still had the entry. Otherwise hop 2 stays on Log
+ * Analytics and on `live-delayed` until it lands, associated by timestamp
+ * containment, and is never filled in meanwhile.
  */
 
 interface GatewayRow {
@@ -71,7 +88,7 @@ async function fetchHopTimings(
   agentName: string,
   timestamp: number,
   totalLatencyMs: number,
-): Promise<{ hop1?: GatewayRow; hop2?: GatewayRow }> {
+): Promise<{ hop1?: GatewayRow; hop2?: GatewayRow; hop2Rows?: GatewayRow[] }> {
   const token = await getAccessToken(SCOPES.logAnalytics);
   const from = new Date(timestamp - 120_000).toISOString();
   const to = new Date(timestamp + 120_000).toISOString();
@@ -145,14 +162,15 @@ async function fetchHopTimings(
 
   const start = new Date(hop1.TimeGenerated).getTime();
   const end = start + hop1.TotalTime;
-  const hop2 = rows
+  const hop2Rows = rows
     .filter((r) => r.ApiId === INFERENCE_API_NAME)
-    .find((r) => {
+    .filter((r) => {
       const s = new Date(r.TimeGenerated).getTime();
       return s >= start && s + r.TotalTime <= end + 1000;
-    });
+    })
+    .sort((a, b) => new Date(a.TimeGenerated).getTime() - new Date(b.TimeGenerated).getTime());
 
-  return { hop1, hop2 };
+  return { hop1, hop2: hop2Rows[0], hop2Rows };
 }
 
 journeyRouter.get("/journey/:askId", asyncHandler(async (req, res) => {
@@ -169,9 +187,10 @@ journeyRouter.get("/journey/:askId", asyncHandler(async (req, res) => {
 
   let hop1: GatewayRow | undefined;
   let hop2: GatewayRow | undefined;
+  let hop2Rows: GatewayRow[] = [];
   if (record?.agentName) {
     try {
-      ({ hop1, hop2 } = await fetchHopTimings(
+      ({ hop1, hop2, hop2Rows = [] } = await fetchHopTimings(
         record.agentName,
         record.timestamp,
         record.totalLatencyMs,
@@ -181,9 +200,109 @@ journeyRouter.get("/journey/:askId", asyncHandler(async (req, res) => {
     }
   }
 
-  const timingProvenance: Provenance = hop1
-    ? { band: "live-delayed", ageSeconds: Math.max(0, (Date.now() - new Date(hop1.TimeGenerated).getTime()) / 1000) }
-    : notYetAvailable;
+  const logProvenance = (row: GatewayRow): Provenance => ({
+    band: "live-delayed",
+    ageSeconds: Math.max(0, (Date.now() - new Date(row.TimeGenerated).getTime()) / 1000),
+  });
+
+  const policy = record?.policyTiming;
+  const hop1Timing = policy
+    ? {
+        label: "Client → API Management → Agent",
+        totalMs: policy.gatewayMs + policy.backendMs,
+        backendMs: policy.backendMs,
+        gatewayOverheadMs: policy.gatewayMs,
+        responseCode: record?.httpStatus ?? 200,
+        // The log's CorrelationId is not in the response; filled once the row lands.
+        correlationId: hop1?.CorrelationId ?? null,
+        source: "apim-policy" as const,
+        provenance: liveNow(),
+      }
+    : hop1
+      ? {
+          label: "Client → API Management → Agent",
+          totalMs: hop1.TotalTime,
+          backendMs: hop1.BackendTime,
+          gatewayOverheadMs: hop1.TotalTime - hop1.BackendTime,
+          responseCode: hop1.ResponseCode,
+          correlationId: hop1.CorrelationId,
+          source: "gateway-log" as const,
+          provenance: logProvenance(hop1),
+        }
+      : null;
+
+  /*
+   * Hop 2 from the policy when hop 1's response carried it: summed over every
+   * model call the agent made, and tied to hop 1 by the W3C trace id both
+   * requests carried — the same transaction, not a nearby one. Otherwise the
+   * gateway log's row, tied by timestamp containment, and said so.
+   */
+  /*
+   * The model's duration is the one hop 2 figure the policy cannot always
+   * give. Outbound runs when response headers arrive, so for a streamed call
+   * (both agents stream) the policy's "backend" is time to first byte — a
+   * real measurement of a different thing, 0.5–1 s short of the call's
+   * duration on long answers. So: the policy's backend only when no call was
+   * streamed; otherwise the gateway log's BackendTime, summed over the
+   * contained rows and only when their count matches the policy's call count;
+   * otherwise null. The gateway figure is the policy's either way.
+   */
+  const policyHop2 = policy?.hop2;
+  const policyBackendValid = policyHop2?.calls.every((c) => !c.streamed) ?? false;
+  const logBackendMs =
+    policyHop2 && hop2Rows.length === policyHop2.calls.length
+      ? hop2Rows.reduce((sum, r) => sum + r.BackendTime, 0)
+      : null;
+  const policyGatewayMs = policyHop2?.calls.reduce((sum, c) => sum + c.gatewayMs, 0) ?? 0;
+  const hop2BackendMs = policyHop2
+    ? policyBackendValid
+      ? policyHop2.calls.reduce((sum, c) => sum + c.backendMs, 0)
+      : logBackendMs
+    : null;
+  const hop2Timing = policyHop2
+    ? {
+        label: "Agent → API Management → gpt-5-mini",
+        totalMs: hop2BackendMs != null ? hop2BackendMs + policyGatewayMs : null,
+        backendMs: hop2BackendMs,
+        /** Where backendMs came from; null while it is still waiting for the log. */
+        backendSource: policyBackendValid ? ("apim-policy" as const) : logBackendMs != null ? ("gateway-log" as const) : null,
+        gatewayOverheadMs: policyGatewayMs,
+        responseCode: policyHop2.calls[policyHop2.calls.length - 1].status,
+        correlationId: hop2?.CorrelationId ?? null,
+        source: "apim-policy" as const,
+        association: "trace-id" as const,
+        traceId: policyHop2.traceId,
+        modelCalls: policyHop2.calls.length,
+        // Live only when every figure on this hop is the policy's own.
+        provenance: policyBackendValid
+          ? liveNow()
+          : logBackendMs != null
+            ? logProvenance(hop2Rows[0])
+            : notYetAvailable,
+      }
+    : hop2
+      ? {
+          label: "Agent → API Management → gpt-5-mini",
+          totalMs: hop2.TotalTime,
+          backendMs: hop2.BackendTime,
+          gatewayOverheadMs: hop2.TotalTime - hop2.BackendTime,
+          responseCode: hop2.ResponseCode,
+          correlationId: hop2.CorrelationId,
+          source: "gateway-log" as const,
+          backendSource: "gateway-log" as const,
+          association: "timestamp-containment" as const,
+          provenance: logProvenance(hop2),
+        }
+      : null;
+
+  // The weakest band present: fully live only if nothing is waiting on ingestion.
+  const timingProvenance: Provenance = !hop2Timing
+    ? notYetAvailable
+    : hop2Timing.provenance.band !== "live"
+      ? hop2Timing.provenance
+      : hop1Timing?.provenance.band !== "live"
+        ? (hop1Timing?.provenance ?? notYetAvailable)
+        : liveNow();
 
   res.json({
     askId: req.params.askId,
@@ -193,42 +312,31 @@ journeyRouter.get("/journey/:askId", asyncHandler(async (req, res) => {
     provenance: record ? liveNow() : notYetAvailable,
 
     /**
-     * Real gateway timing, once Log Analytics has ingested it. `null` until
-     * then — the UI must render the flow without it rather than showing zero.
+     * Real gateway timing, per hop, each from the source it names: hop 1 from
+     * the policy headers when present, otherwise — like hop 2 always — once
+     * Log Analytics has ingested it. A hop is `null` until its source has it;
+     * the UI must render the flow without it rather than showing zero.
      */
     timings: {
-      available: Boolean(hop1),
-      hop1: hop1
-        ? {
-            label: "Client → API Management → Agent",
-            totalMs: hop1.TotalTime,
-            backendMs: hop1.BackendTime,
-            gatewayOverheadMs: hop1.TotalTime - hop1.BackendTime,
-            responseCode: hop1.ResponseCode,
-            correlationId: hop1.CorrelationId,
-          }
-        : null,
-      hop2: hop2
-        ? {
-            label: "Agent → API Management → gpt-5-mini",
-            totalMs: hop2.TotalTime,
-            backendMs: hop2.BackendTime,
-            gatewayOverheadMs: hop2.TotalTime - hop2.BackendTime,
-            responseCode: hop2.ResponseCode,
-            correlationId: hop2.CorrelationId,
-          }
-        : null,
-      /** Combined APIM processing cost across both hops — the headline figure. */
+      available: Boolean(hop1Timing),
+      hop1: hop1Timing,
+      hop2: hop2Timing,
+      /** Combined APIM processing cost across both hops — the headline figure. Hop 1 alone until hop 2 lands. */
       totalGatewayOverheadMs:
-        hop1 && hop2
-          ? hop1.TotalTime - hop1.BackendTime + (hop2.TotalTime - hop2.BackendTime)
-          : hop1
-            ? hop1.TotalTime - hop1.BackendTime
+        hop1Timing && hop2Timing
+          ? hop1Timing.gatewayOverheadMs + hop2Timing.gatewayOverheadMs
+          : hop1Timing
+            ? hop1Timing.gatewayOverheadMs
             : null,
-      correlationMethod: hop2
-        ? "Hop 2 associated with hop 1 by timestamp containment — an association, not a single measured transaction."
-        : null,
-      source: "ApiManagementGatewayLogs (TotalTime, BackendTime)",
+      correlationMethod: !hop2Timing
+        ? null
+        : hop2Timing.association === "trace-id"
+          ? "Hop 2 tied to hop 1 by the W3C trace id both requests carried — one transaction, measured by the gateway at request time."
+          : "Hop 2 associated with hop 1 by timestamp containment — an association, not a single measured transaction.",
+      source: [
+        `Hop 1: ${hop1Timing?.source === "apim-policy" ? "API Management policy (context.Elapsed), returned with the response" : "ApiManagementGatewayLogs (TotalTime, BackendTime)"}.`,
+        `Hop 2: ${hop2Timing?.source === "apim-policy" ? "API Management policy, handed to hop 1 through the gateway cache by trace id" : "ApiManagementGatewayLogs (TotalTime, BackendTime)"}.`,
+      ].join(" "),
       provenance: timingProvenance,
     },
 
@@ -243,7 +351,7 @@ journeyRouter.get("/journey/:askId", asyncHandler(async (req, res) => {
         id: "apim-agent",
         label: `API Management → ${agentLabel}`,
         credentialFact: "managed-identity token · ai.azure.com",
-        durationMs: hop1?.TotalTime,
+        durationMs: hop1Timing?.totalMs,
         provenance: structureProvenance,
       },
       {
@@ -256,7 +364,7 @@ journeyRouter.get("/journey/:askId", asyncHandler(async (req, res) => {
         id: "apim-model",
         label: "API Management → gpt-5-mini",
         credentialFact: "managed-identity token · cognitiveservices.azure.com",
-        durationMs: hop2?.TotalTime,
+        durationMs: hop2Timing?.totalMs,
         provenance: structureProvenance,
       },
       {

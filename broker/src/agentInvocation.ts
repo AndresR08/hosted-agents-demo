@@ -31,6 +31,73 @@ export interface HostedAgentInvocationSuccess {
   region?: string;
   servedByCluster?: string;
   platformServer?: string;
+  /** Hop 1 as measured by API Management's own policy — see readPolicyTiming. */
+  policyTiming?: PolicyTiming;
+}
+
+/**
+ * Hop 1's timing, measured inside the gateway by our responses-API policy
+ * (labs/.../policies/hosted-agents-responses-policy.xml) and returned as
+ * response headers. Same two quantities the gateway log carries, available
+ * with the response instead of after Log Analytics ingestion.
+ */
+export interface PolicyTiming {
+  backendMs: number;
+  gatewayMs: number;
+  /**
+   * Hop 2 — the agent's own model call(s) — as measured by our inference-API
+   * policy and handed to hop 1 through APIM's cache under the W3C trace id
+   * both hops share. Absent when hop 2 did not carry hop 1's trace
+   * (strands-agent) or the cache had no entry: then hop 2 is Log Analytics'
+   * to report, later, and nothing is filled in meanwhile.
+   */
+  hop2?: {
+    traceId: string;
+    /**
+     * One entry per model call the agent made during this invocation.
+     * `backendMs` of a `streamed` call is time to first byte — the policy runs
+     * when headers arrive — and must never be shown as the call's duration.
+     */
+    calls: { gatewayMs: number; backendMs: number; status: number; streamed: boolean }[];
+  };
+}
+
+/**
+ * Absent (undefined), never zero, when the headers are missing — a gateway
+ * still running the upstream policy, or a response that failed before the
+ * outbound section ran. The console then falls back to Log Analytics.
+ */
+function readPolicyTiming(headers: Headers): PolicyTiming | undefined {
+  const backend = headers.get("x-hosted-agents-backend-ms");
+  const gateway = headers.get("x-hosted-agents-gateway-ms");
+  if (backend === null || gateway === null) return undefined;
+  const backendMs = Number(backend);
+  const gatewayMs = Number(gateway);
+  if (!Number.isFinite(backendMs) || !Number.isFinite(gatewayMs)) return undefined;
+  return { backendMs, gatewayMs, hop2: readHop2(headers) };
+}
+
+/**
+ * `x-hosted-agents-hop2` is `gateway:backend:status:streamed;` per model call.
+ * Any malformed entry voids the whole value. An entry without the streamed
+ * flag (written by an earlier policy revision) is treated as streamed — the
+ * reading that never overstates what `backend` means.
+ */
+function readHop2(headers: Headers): PolicyTiming["hop2"] {
+  const raw = headers.get("x-hosted-agents-hop2");
+  const traceId = headers.get("x-hosted-agents-trace-id");
+  if (!raw || !traceId) return undefined;
+  const calls = raw
+    .split(";")
+    .filter((entry) => entry.trim() !== "")
+    .map((entry) => {
+      const [gatewayMs, backendMs, status, streamed] = entry.split(":").map(Number);
+      return { gatewayMs, backendMs, status, streamed: streamed !== 0 };
+    });
+  const wellFormed = calls.every(
+    (c) => Number.isFinite(c.gatewayMs) && Number.isFinite(c.backendMs) && Number.isInteger(c.status),
+  );
+  return calls.length > 0 && wellFormed ? { traceId, calls } : undefined;
 }
 
 export interface HostedAgentInvocationFailure {
@@ -137,5 +204,6 @@ export async function invokeHostedAgent(
     region: response.headers.get("x-ms-region") ?? undefined,
     servedByCluster: response.headers.get("azureml-served-by-cluster") ?? undefined,
     platformServer: response.headers.get("x-platform-server") ?? undefined,
+    policyTiming: readPolicyTiming(response.headers),
   };
 }

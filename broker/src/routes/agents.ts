@@ -16,6 +16,7 @@ import {
 } from "../foundryAgents.js";
 import { invokeHostedAgent } from "../agentInvocation.js";
 import { recordRun } from "../runStore.js";
+import { recordAsk } from "../askStore.js";
 
 export const agentsRouter = Router();
 
@@ -410,6 +411,16 @@ agentsRouter.get("/agents/:name/versions", asyncHandler(async (req, res) => {
  * demoKnowledge augmentation. The run is recorded via runStore.ts regardless
  * of outcome — completed, failed, or timed out — so a later
  * `GET /api/runs`/`GET /api/runs/:id` (not implemented yet) can list it.
+ *
+ * A successful run is ALSO recorded in askStore.ts, under `askId = runId`,
+ * exactly as `/ask` records its own. The call went through the same APIM
+ * API as the copilot's, so it is just as real a gateway journey — but the
+ * Gateway diagram and Observability look requests up in askStore, and before
+ * this a run from Agents → Run was invisible to them: the console had walked
+ * a real request through the gateway and then showed nothing on the screen
+ * built to show exactly that. The prompt stored is the caller's, unaugmented,
+ * because that is the text APIM saw — which is what the audit record's
+ * prompt-containment attribution needs.
  */
 agentsRouter.post("/agents/:name/invoke", asyncHandler(async (req, res) => {
   const { prompt } = req.body as { prompt?: string };
@@ -448,6 +459,27 @@ agentsRouter.post("/agents/:name/invoke", asyncHandler(async (req, res) => {
 
   const status = result.status ?? "completed";
 
+  recordAsk({
+    askId: runId,
+    totalLatencyMs: result.latencyMs,
+    timestamp: finishedAt.getTime(),
+    agentName: req.params.name,
+    agentVersion: result.agentVersion,
+    prompt,
+    answerText: result.outputText,
+    httpStatus: result.httpStatus,
+    traceId: result.traceId,
+    apimRequestId: result.apimRequestId,
+    sessionId: result.sessionId,
+    region: result.region,
+    servedByCluster: result.servedByCluster,
+    platformServer: result.platformServer,
+    createdAt: result.createdAt,
+    completedAt: result.completedAt,
+    knowledgeApplied: [],
+    policyTiming: result.policyTiming,
+  });
+
   recordRun({
     runId,
     agentName: req.params.name,
@@ -465,6 +497,8 @@ agentsRouter.post("/agents/:name/invoke", asyncHandler(async (req, res) => {
 
   res.json({
     runId,
+    /** Same value as runId: the key Gateway and Observability look this request up by. */
+    askId: runId,
     status,
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),

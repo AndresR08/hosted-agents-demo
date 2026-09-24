@@ -1,0 +1,84 @@
+<policies>
+  <!--
+    The official lab's policy.xml (vendor/ai-gateway/labs/
+    ai-foundry-hosted-agents-custom-framework/), unchanged, plus hop 2's
+    gateway-measured timing left in API Management's built-in cache for hop 1 to
+    pick up. The vendored file is never edited; this copy is what
+    shared-apim-registration.bicep deploys. {backend-id} is substituted by
+    upstream's inference-api.bicep, exactly as for the vendored file.
+
+    Why: this hop's response goes to the agent's container, never to the broker,
+    so its timing cannot travel back as response headers. The container does,
+    however, carry the W3C trace of the request that invoked it (verified for
+    pydantic-agent: every successful invocation's model call shares hop 1's
+    trace id). Keyed by that trace id, hop 1's policy can read this hop's figures
+    on its own way out and return them with the response.
+
+    Measured exactly as hop 1 is (see hosted-agents-responses-policy.xml):
+      backend  last inbound statement -> first outbound statement
+      gateway  everything else up to the point the value is stored
+
+    STREAMING CHANGES WHAT "backend" MEANS. Outbound runs when the model's
+    response headers arrive. Both agents stream their model calls
+    (ApiManagementGatewayLlmLog.IsStreamCompletion = true), so for them
+    "backend" is the time to the first byte, not the model call's duration:
+    measured 2026-09-24 at 2491 ms against the log's 3026 ms for 257 completion
+    tokens, 8424 against 9414 for 950. Each entry therefore records whether the
+    response was an event stream, and the broker never presents a streamed
+    call's first-byte time as the model's duration. The gateway figure is
+    unaffected in kind: it is APIM's own processing up to that point.
+
+    Cache use on a gateway shared with other teams:
+      - key prefix `hosted-agents-hop2:` plus a 128-bit random trace id, so it
+        cannot collide with another team's key (they use response caching only);
+      - caching-type="internal", explicitly: never an external cache someone
+        else might attach later;
+      - 120 s TTL, longer than the broker's 60 s invocation timeout and no longer;
+      - a few dozen bytes per invocation.
+    The built-in cache is volatile and its writes are asynchronous. A lost or
+    late value is a cache miss, hop 1 returns no hop 2 headers, and the console
+    falls back to the gateway log. It never produces a wrong figure, only a
+    missing one.
+
+    A request with no traceparent (strands-agent's model calls arrive without
+    hop 1's trace) stores nothing.
+
+    An agent can call the model more than once per invocation, so calls are
+    appended as `gateway:backend:status:streamed;` (streamed is 1 or 0).
+  -->
+  <inbound>
+    <base />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" />
+    <set-header name="Authorization" exists-action="override">
+      <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+    </set-header>
+    <set-backend-service backend-id="{backend-id}" />
+    <set-variable name="hosted-agents-backend-start-ms" value="@(context.Elapsed.TotalMilliseconds)" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <set-variable name="hosted-agents-backend-end-ms" value="@(context.Elapsed.TotalMilliseconds)" />
+    <base />
+    <set-variable name="hosted-agents-trace-id" value="@{
+      var parts = context.Request.Headers.GetValueOrDefault("traceparent", "").Split('-');
+      return (parts.Length == 4 && parts[1].Length == 32) ? parts[1].ToLowerInvariant() : "";
+    }" />
+    <choose>
+      <when condition="@(((string)context.Variables["hosted-agents-trace-id"]).Length == 32)">
+        <cache-lookup-value key="@("hosted-agents-hop2:" + (string)context.Variables["hosted-agents-trace-id"])" variable-name="hosted-agents-hop2-previous" default-value="" caching-type="internal" />
+        <cache-store-value key="@("hosted-agents-hop2:" + (string)context.Variables["hosted-agents-trace-id"])" duration="120" caching-type="internal" value="@{
+          var backend = (double)context.Variables["hosted-agents-backend-end-ms"] - (double)context.Variables["hosted-agents-backend-start-ms"];
+          var gateway = context.Elapsed.TotalMilliseconds - backend;
+          return (string)context.Variables["hosted-agents-hop2-previous"]
+            + gateway.ToString("F1") + ":" + backend.ToString("F1") + ":" + context.Response.StatusCode
+            + ":" + (context.Response.Headers.GetValueOrDefault("Content-Type", "").Contains("text/event-stream") ? "1" : "0") + ";";
+        }" />
+      </when>
+    </choose>
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

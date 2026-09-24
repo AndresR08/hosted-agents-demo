@@ -1,0 +1,101 @@
+{
+  "askId": "caresp_0a2a16ee54fc1c1700nMjYk9SPo77nqzY1OTdLiL2a8Uj6dn1k",
+  "journey": {
+    "askId": "caresp_0a2a16ee54fc1c1700nMjYk9SPo77nqzY1OTdLiL2a8Uj6dn1k",
+    "totalLatencyMs": 15537,
+    "agentName": "strands-agent",
+    "agentVersion": ":1",
+    "provenance": {
+      "band": "live",
+      "asOf": "2026-09-24T14:37:12.633Z"
+    },
+    "timings": {
+      "available": true,
+      "hop1": {
+        "label": "Client → API Management → Agent",
+        "totalMs": 14678,
+        "backendMs": 14677.6,
+        "gatewayOverheadMs": 0.4,
+        "responseCode": 200,
+        "correlationId": "10e0b7e0-7b36-480c-b7dd-c5260c903f14",
+        "source": "apim-policy",
+        "provenance": {
+          "band": "live",
+          "asOf": "2026-09-24T14:37:12.633Z"
+        }
+      },
+      "hop2": {
+        "label": "Agent → API Management → gpt-5-mini",
+        "totalMs": 6590,
+        "backendMs": 6587,
+        "gatewayOverheadMs": 3,
+        "responseCode": 200,
+        "correlationId": "8abfa7e8-e560-41a8-b91a-36762aecc472",
+        "source": "gateway-log",
+        "backendSource": "gateway-log",
+        "association": "timestamp-containment",
+        "provenance": {
+          "band": "live-delayed",
+          "ageSeconds": 160.851
+        }
+      },
+      "totalGatewayOverheadMs": 3.4,
+      "correlationMethod": "Hop 2 associated with hop 1 by timestamp containment — an association, not a single measured transaction.",
+      "source": "Hop 1: API Management policy (context.Elapsed), returned with the response. Hop 2: ApiManagementGatewayLogs (TotalTime, BackendTime).",
+      "provenance": {
+        "band": "live-delayed",
+        "ageSeconds": 160.851
+      }
+    },
+    "hops": [
+      {
+        "id": "client-apim",
+        "label": "Client → API Management",
+        "credentialFact": "api-key",
+        "provenance": {
+          "band": "live",
+          "asOf": "2026-09-24T14:37:04.681Z"
+        }
+      },
+      {
+        "id": "apim-agent",
+        "label": "API Management → strands-agent:1",
+        "credentialFact": "managed-identity token · ai.azure.com",
+        "durationMs": 14678,
+        "provenance": {
+          "band": "live",
+          "asOf": "2026-09-24T14:37:04.681Z"
+        }
+      },
+      {
+        "id": "agent-apim",
+        "label": "strands-agent:1 → API Management",
+        "credentialFact": "api-key (APIM_SUBSCRIPTION_KEY)",
+        "provenance": {
+          "band": "live",
+          "asOf": "2026-09-24T14:37:04.681Z"
+        }
+      },
+      {
+        "id": "apim-model",
+        "label": "API Management → gpt-5-mini",
+        "credentialFact": "managed-identity token · cognitiveservices.azure.com",
+        "durationMs": 6590,
+        "provenance": {
+          "band": "live",
+          "asOf": "2026-09-24T14:37:04.681Z"
+        }
+      },
+      {
+        "id": "model",
+        "label": "gpt-5-mini",
+        "credentialFact": "Foundry model deployment",
+        "derived": false,
+        "provenance": {
+          "band": "live",
+          "asOf": "2026-09-24T14:37:04.681Z"
+        }
+      }
+    ]
+  }
+}

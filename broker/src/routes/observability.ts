@@ -47,10 +47,12 @@ export const observabilityRouter = Router();
  *  - Log Analytics carries 1–3 minutes of ingestion lag. A request made
  *    seconds ago legitimately has no telemetry yet; that is reported as
  *    `pending`, not as zero.
- *  - Hop 1 and hop 2 have *different* CorrelationIds. They are associated by
- *    timestamp containment (hop 2 starts after hop 1 and ends before it),
- *    which is an association, not a single measured transaction. Labelled as
- *    such in the response.
+ *  - Hop 1 and hop 2 have *different* CorrelationIds. Their log rows are
+ *    associated by timestamp containment (hop 2 starts after hop 1 and ends
+ *    before it), which is an association, not a single measured transaction.
+ *    For an agent that propagates hop 1's W3C trace (pydantic-agent), the
+ *    gateway policy additionally proves the two are one transaction at request
+ *    time (see routes/journey.ts); `correlation.method` says which applies.
  *  - Tokens describe the **model call**, which is what the gateway meters.
  *    They are not a measurement of the agent invocation.
  *  - `apim-request-id` is returned to the caller but never appears as a
@@ -266,9 +268,21 @@ observabilityRouter.get("/observability/:askId", asyncHandler(async (req, res) =
       traceId: live(ask.traceId, "Agent response header X-Request-ID = App Insights OperationId"),
       hop1CorrelationId: live(hop1?.CorrelationId, "ApiManagementGatewayLogs"),
       hop2CorrelationId: live(hop2?.CorrelationId, "ApiManagementGatewayLogs"),
-      method: hop2
-        ? "Hop 2 associated with hop 1 by timestamp containment — an association, not a single measured transaction."
-        : "Hop 2 not yet correlated.",
+      /*
+       * Two different truths depending on the request, never one sentence for
+       * both. When the gateway policy found hop 2 under hop 1's W3C trace id
+       * (pydantic-agent), the two hops are proven to be one transaction; the
+       * log row shown here is still located by timestamp containment, because
+       * ApiManagementGatewayLogs carries no trace id to join on. When it did
+       * not (strands-agent, or a cache miss), containment is all there is.
+       */
+      method: ask.policyTiming?.hop2
+        ? hop2
+          ? `Hop 2 tied to hop 1 by the W3C trace id both requests carried (${ask.policyTiming.hop2.traceId}), verified by the gateway at request time. The gateway-log row shown is located by timestamp containment, since that log carries no trace id.`
+          : `Hop 2 tied to hop 1 by the W3C trace id both requests carried (${ask.policyTiming.hop2.traceId}), verified by the gateway at request time. Its gateway-log row has not landed yet.`
+        : hop2
+          ? "Hop 2 associated with hop 1 by timestamp containment — an association, not a single measured transaction. The gateway did not return hop 2 under hop 1's trace id: either this agent's model call did not carry it, or the gateway cache had no entry."
+          : "Hop 2 not yet correlated.",
     },
 
     // ── SECTION 1 — Request Audit ────────────────────────────────────────
