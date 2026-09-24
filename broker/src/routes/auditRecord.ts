@@ -4,6 +4,7 @@ import { getAccessToken, SCOPES } from "../azureAuth.js";
 import { delayed } from "../provenance.js";
 import { asyncHandler } from "../asyncHandler.js";
 import { findAskByPrompt } from "../askStore.js";
+import { ourLlmLogRows } from "../ourTelemetry.js";
 import {
   extractCompletion,
   extractLastUserMessage,
@@ -19,30 +20,52 @@ interface LlmLogRow {
   DeploymentName: string;
   RequestMessages: string | null;
   ResponseMessages: string | null;
+  ApimSubscriptionId: string;
 }
 
 /**
  * Priority 5 — real telemetry. Queries `ApiManagementGatewayLlmLog`
  * directly (DESIGN_DECISIONS.md) — the same table and the same
  * known caveat: 1–3 minutes of ingestion lag, so a question asked seconds
- * ago will not appear yet. `subscriptionName` is filled from this
- * deployment's one real APIM subscription (`hosted-agents-subscription` —
- * see config/lab.defaults.psd1 `ApimSubscriptionsConfig`, which is the
- * authority; this literal is kept in step with it by hand) since the table
- * itself doesn't
- * carry it; `modelName` falls back to the known deployment name only when
+ * ago will not appear yet. `subscriptionName` is the row's own
+ * ApimSubscriptionId, read from the gateway log row it is joined to (the LLM
+ * table itself does not carry it) - it used to be the literal
+ * "hosted-agents-subscription", applied to whatever row was shown; `modelName` falls back to the known deployment name only when
  * the column comes back empty, which it does for hosted-agent traffic.
  * Neither is invented — both are real, static facts about this deployment.
  */
 auditRecordRouter.get("/audit-record", asyncHandler(async (req, res) => {
   const wantedAgent = typeof req.query.agentName === "string" ? req.query.agentName : undefined;
+  const now = new Date();
+  const result = await readAuditRecord(wantedAgent, { from: new Date(now.getTime() - 7 * 86_400_000), to: now });
+  res.status(result.httpStatus).json(result.body);
+}));
+
+/**
+ * The route's whole read, over an explicit time window. The route passes the
+ * last seven days; taking the window as a parameter is what lets the
+ * shared-table case be checked against real data - a past hour in which only
+ * other labs called a model - through this exact code path.
+ */
+export async function readAuditRecord(
+  wantedAgent: string | undefined,
+  window: { from: Date; to: Date },
+): Promise<{ httpStatus: number; body: unknown }> {
   const token = await getAccessToken(SCOPES.logAnalytics);
   // Take a window rather than a single row: attribution below scans it for a
   // row whose prompt we can genuinely tie to the requested agent. 25 covers a
   // demo session comfortably without making the query expensive.
+  //
+  // OUR model calls only, filtered in the query (ourTelemetry.ts). This read
+  // the newest 25 rows of a table every lab on the shared gateway writes to,
+  // and when none of them could be attributed it fell back to the newest row
+  // of any origin - so a busy neighbour's real prompt and completion could
+  // appear here. Another team's row now never reaches the broker; when this
+  // lab has no recent calls the answer is the honest empty state.
   const query =
-    "ApiManagementGatewayLlmLog | order by TimeGenerated desc | take 25 " +
-    "| project TimeGenerated, ModelName, DeploymentName, RequestMessages, ResponseMessages";
+    ourLlmLogRows(window.from.toISOString(), window.to.toISOString()) +
+    "| order by TimeGenerated desc | take 25 " +
+    "| project TimeGenerated, ModelName, DeploymentName, RequestMessages, ResponseMessages, ApimSubscriptionId";
 
   const response = await fetch(
     `https://api.loganalytics.io/v1/workspaces/${config.logAnalyticsWorkspaceId}/query`,
@@ -54,8 +77,7 @@ auditRecordRouter.get("/audit-record", asyncHandler(async (req, res) => {
   );
 
   if (!response.ok) {
-    res.status(response.status).json({ error: "Log Analytics query failed" });
-    return;
+    return { httpStatus: response.status, body: { error: "Log Analytics query failed" } };
   }
 
   const body = (await response.json()) as {
@@ -65,8 +87,7 @@ auditRecordRouter.get("/audit-record", asyncHandler(async (req, res) => {
   if (!table || table.rows.length === 0) {
     // Honest empty state — DESIGN_DECISIONS.md's documented fallback path.
     // The frontend is responsible for saying so rather than inventing a record.
-    res.json(null);
-    return;
+    return { httpStatus: 200, body: null };
   }
 
   const columns = table.columns.map((c) => c.name);
@@ -144,9 +165,10 @@ auditRecordRouter.get("/audit-record", asyncHandler(async (req, res) => {
   const ageSeconds = Math.max(0, (Date.now() - new Date(raw.TimeGenerated).getTime()) / 1000);
   const question = extractQuestion(prompt);
 
-  res.json({
+  return { httpStatus: 200, body: {
     timestamp: raw.TimeGenerated,
-    subscriptionName: "hosted-agents-subscription",
+    /** The row's own ApimSubscriptionId, from the gateway log it was joined to - never a constant. */
+    subscriptionName: raw.ApimSubscriptionId,
     agentName: ask?.agentName,
     agentVersion: ask?.agentVersion,
     /** True when this row could not be tied to a known ask — the UI must not imply attribution. */
@@ -166,6 +188,6 @@ auditRecordRouter.get("/audit-record", asyncHandler(async (req, res) => {
     contextInjected: question !== null,
     completion,
     provenance: delayed(ageSeconds),
-  });
-}));
+  } };
+}
 

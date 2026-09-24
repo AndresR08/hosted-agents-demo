@@ -295,7 +295,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     // anything — durable platform evidence, not a demo artifact.
     "obs.auditRecord.title": "Latest captured interaction",
     "obs.auditRecord.sourceNote": "Read directly from the gateway's own log — independent of what has been asked in this session.",
-    "obs.auditRecord.empty": "No captured interaction yet for the selected agent.",
+    "obs.auditRecord.empty": "No recent records from this lab's agents in the gateway log.",
     "obs.auditRecord.simulation": "Simulation does not query Azure logs.",
     "obs.auditRecord.notAttributed": "Not attributable to a specific agent from this log alone.",
     "obs.session.title": "This session's most recent request",
@@ -731,7 +731,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     // ── Registro de auditoría — GET /api/audit-record ────────────────────
     "obs.auditRecord.title": "Última interacción capturada",
     "obs.auditRecord.sourceNote": "Leído directamente del registro de la puerta de enlace — independiente de lo preguntado en esta sesión.",
-    "obs.auditRecord.empty": "Aún no hay una interacción capturada para el agente seleccionado.",
+    "obs.auditRecord.empty": "Sin registros recientes de los agentes de este laboratorio en el registro del gateway.",
     "obs.auditRecord.simulation": "Simulación no consulta los registros de Azure.",
     "obs.auditRecord.notAttributed": "No se puede atribuir a un agente específico solo con este registro.",
     "obs.session.title": "La solicitud más reciente de esta sesión",

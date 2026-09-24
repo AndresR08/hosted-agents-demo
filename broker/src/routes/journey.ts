@@ -5,6 +5,7 @@ import { getAsk } from "../askStore.js";
 import { liveNow } from "../provenance.js";
 import type { Provenance } from "../provenance.js";
 import { asyncHandler } from "../asyncHandler.js";
+import { ourGatewayRows } from "../ourTelemetry.js";
 
 export const journeyRouter = Router();
 
@@ -102,6 +103,8 @@ async function fetchHopTimings(
         query:
           `ApiManagementGatewayLogs ` +
           `| where TimeGenerated between (datetime(${from}) .. datetime(${to})) ` +
+          // Our APIs and this agent only, in the query - see ourTelemetry.ts.
+          ourGatewayRows(agentName) +
           `| project TimeGenerated, ApiId, CorrelationId, TotalTime, BackendTime, ResponseCode, Url`,
       }),
     },

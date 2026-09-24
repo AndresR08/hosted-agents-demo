@@ -2,6 +2,7 @@ import { Router } from "express";
 import { config, HOSTED_AGENT_API_NAME, INFERENCE_API_NAME } from "../config.js";
 import { getAccessToken, SCOPES } from "../azureAuth.js";
 import { asyncHandler } from "../asyncHandler.js";
+import { ourGatewayRows, ourLlmLogRows } from "../ourTelemetry.js";
 import { getAsk } from "../askStore.js";
 import {
   extractCompletion,
@@ -198,14 +199,15 @@ observabilityRouter.get("/observability/:askId", asyncHandler(async (req, res) =
     queryLogAnalytics<GatewayRow>(
       `ApiManagementGatewayLogs ` +
         `| where TimeGenerated between (datetime(${windowStart}) .. datetime(${windowEnd})) ` +
+        // Our APIs and this agent only, in the query - see ourTelemetry.ts.
+        ourGatewayRows(agentName) +
         `| project TimeGenerated, CorrelationId, ApiId, OperationId, ApiRevision, ResponseCode, ` +
         `BackendResponseCode, IsRequestSuccess, TotalTime, BackendTime, Url, BackendUrl, ` +
         `RequestSize, ResponseSize, ApimSubscriptionId, BackendId, CallerIpAddress, Region, ` +
         `Method, LastErrorReason, LastErrorMessage`,
     ).catch(() => [] as GatewayRow[]),
     queryLogAnalytics<LlmRow>(
-      `ApiManagementGatewayLlmLog ` +
-        `| where TimeGenerated between (datetime(${windowStart}) .. datetime(${windowEnd})) ` +
+      ourLlmLogRows(windowStart, windowEnd) +
         `| project TimeGenerated, CorrelationId, SequenceNumber, DeploymentName, ModelName, ` +
         `PromptTokens, CompletionTokens, TotalTokens, RequestMessages, ResponseMessages`,
     ).catch(() => [] as LlmRow[]),

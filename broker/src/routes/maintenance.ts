@@ -3,6 +3,8 @@ import { config, hostedAgentUrl, HOSTED_AGENT_API_NAME, INFERENCE_API_NAME } fro
 import { getAccessToken, SCOPES } from "../azureAuth.js";
 import { asyncHandler } from "../asyncHandler.js";
 import { clearManifestCache } from "./agents.js";
+import { clearAgentCache, fetchFoundryAgents } from "../foundryAgents.js";
+import { ourLlmLogRows } from "../ourTelemetry.js";
 
 export const maintenanceRouter = Router();
 
@@ -138,14 +140,18 @@ maintenanceRouter.post("/maintenance/reload-audit-logs", asyncHandler(async (_re
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            query: "ApiManagementGatewayLlmLog | order by TimeGenerated desc | take 1 | project TimeGenerated",
+            // Our model calls only: the newest row of the shared table could be
+            // another lab's, and would report their freshness as ours.
+            query:
+              ourLlmLogRows(new Date(Date.now() - 7 * 86_400_000).toISOString(), new Date().toISOString()) +
+              "| order by TimeGenerated desc | take 1 | project TimeGenerated",
           }),
         },
       );
       if (!response.ok) throw new Error(`Log Analytics returned HTTP ${response.status}`);
       const body = (await response.json()) as { tables: { rows: unknown[][] }[] };
       const row = body.tables?.[0]?.rows?.[0];
-      if (!row) return "Query succeeded — no rows in ApiManagementGatewayLlmLog yet";
+      if (!row) return "Query succeeded — no model calls from this lab in the last 7 days";
       const ageSeconds = Math.round((Date.now() - new Date(String(row[0])).getTime()) / 1000);
       return `Latest logged call is ${ageSeconds}s old (1–3 min ingestion lag is normal)`;
     }),
@@ -180,21 +186,23 @@ maintenanceRouter.post("/maintenance/reload-policies", asyncHandler(async (_req,
 /**
  * Drops the 5-minute ACR manifest cache and re-reads the Foundry registry, so
  * an agent registered mid-session appears without restarting the broker.
+ *
+ * Reads through fetchFoundryAgents(), not its own call to GET /agents. It used
+ * to make that call itself, which bypassed the hosted-only filter added after
+ * a portal-made `prompt` agent broke /api/agents (PROJECT_STATUS.md 4j): the
+ * readout would have listed that agent beside the real ones, and an agent with
+ * no `versions.latest` at all would have broken it the same way.
  */
 maintenanceRouter.post("/maintenance/refresh-agent-registry", asyncHandler(async (_req, res) => {
   res.json(
     await timed(async () => {
       clearManifestCache();
-      const token = await getAccessToken(SCOPES.foundry);
-      const response = await fetch(`${config.foundryAgentsProjectEndpoint}/agents?api-version=v1`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error(`Foundry returned HTTP ${response.status}`);
-      const body = (await response.json()) as {
-        data: { name: string; versions: { latest: { version: string } } }[];
-      };
-      const names = body.data.map((a) => `${a.name}:${a.versions.latest.version}`);
-      return names.length ? `${names.length} registered — ${names.join(", ")}` : "No agents registered";
+      clearAgentCache();
+      const agents = await fetchFoundryAgents();
+      const names = agents.map((a) => `${a.name}:${a.versions.latest.version}`);
+      return names.length
+        ? `${names.length} hosted agents registered — ${names.join(", ")}`
+        : "No hosted agents registered";
     }),
   );
 }));
