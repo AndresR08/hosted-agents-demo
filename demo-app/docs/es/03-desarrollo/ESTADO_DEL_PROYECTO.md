@@ -485,8 +485,19 @@ se redesplegó. Verificado contra el sitio público, no en local:
   duración del modelo llegó del log a los 156 s y 251 s. Capturas en
   `demo-app/captures/gateway-timing-production/`.
 
-**Los dos pendientes, corregidos después y verificados en local contra el
-despliegue real — todavía sin desplegar:**
+**Los dos pendientes, corregidos después, verificados primero en local y
+desplegados el 2026-09-24 (mismo comando, mismo App Service) y verificados
+contra el sitio público:** `/api/health` 200; huella del bundle servido
+`index-CfBbXRPW.js` / `index-CJMEM6Es.css` coincidente con la compilación;
+`/api/observability` forzado a 502 en un navegador real contra el sitio en
+vivo — la lectura se conservó con el aviso, cambiar de pestaña en plena caída
+la mantuvo, la insignia marcó "delayed 1m" a los ~45 s, la recuperación borró
+el aviso, y una pregunta nueva durante la caída mostró el error tranquilo en
+vez del registro anterior; y el texto de correlación visto en español
+(`trace-id-log-pending` → `trace-id-log-landed`) y en inglés tras cambiar
+Configuración → Idioma. Capturas en
+`demo-app/captures/observability-stale-production/` y
+`demo-app/captures/correlation-text-production/`.
 
 - `805df22` — un sondeo fallido de Observabilidad ya no vacía la pantalla.
   Conserva la última lectura buena con un aviso tranquilo de cuándo se leyó y
@@ -500,6 +511,64 @@ despliegue real — todavía sin desplegar:**
   vistos con invocaciones reales, en español y tras cambiar a inglés; capturas
   en `demo-app/captures/correlation-text/`.
 
+## 4j. Incidente: un agente de un compañero tumbó producción — la categoría de riesgo que reveló (2026-09-24)
+
+**Síntoma.** Minutos después de desplegar `1efb402`, `GET /api/agents`
+respondió 502 en producción: `"Cannot read properties of undefined (reading
+'image')"`. La lista de agentes, y Agentes → Ejecutar con ella, quedaron
+caídas.
+
+**Causa.** El proyecto de agentes de Foundry (`default-foundry-agents`) es
+compartido con el portal de Azure AI Foundry, no exclusivo de esta consola.
+Ese día a las 15:22 UTC alguien creó ahí un agente llamado "Prueba", de tipo
+`prompt` — sin contenedor, sin imagen, sin cpu. `fetchFoundryAgents()` leía
+todos los agentes que devolvía Foundry, y cada proyección del broker
+suponía que existía `container_configuration.image`; el único agente no
+hosted rompió toda la lista. No lo causó `1efb402` — era una suposición
+previa, expuesta por la acción de otra persona, ajena, sobre un recurso que
+esta consola no controla.
+
+**Arreglo — `5000e6c`.** `fetchFoundryAgents()` conserva solo
+`definition.kind === "hosted"`, en el único lugar donde se lee el registro,
+en vez de proteger el campo aguas abajo. Verificado en local contra el
+proyecto real: `/api/agents` responde 200 con solo los tres agentes reales;
+invocar "Prueba" desde la consola responde 404 "no registrado". Desplegado
+el mismo día (ver 4i) y confirmado en el sitio público.
+
+**Seguimiento — auditado en busca de la misma categoría de riesgo en otros
+sitios.** El proyecto de Foundry y el workspace de Log Analytics del gateway
+compartido son ambos recursos en los que escriben otros equipos, así que el
+broker no puede suponer que es el único que escribe ahí. Un repaso completo
+del broker (`broker/src/**`) buscando lecturas sin filtrar de cualquiera de
+los dos encontró dos casos más, reportados al presentador antes de tocar
+nada:
+
+1. La acción "Actualizar registro de agentes" de `routes/maintenance.ts`
+   hace su propia llamada cruda a `GET /agents` en vez de reutilizar
+   `fetchFoundryAgents()`, así que no se beneficia del filtro por `kind` de
+   arriba. Verificado contra el proyecto real que "Prueba" no la rompería hoy
+   (su campo `version` está presente), pero aparecería en el resultado de
+   mantenimiento junto a los agentes reales — la misma suposición de registro
+   sin filtrar, de forma independiente.
+2. `routes/auditRecord.ts` consulta `ApiManagementGatewayLlmLog` con
+   `take 25` y sin filtro de API ni de agente. Esa tabla, en el workspace de
+   Log Analytics de este propio despliegue, ya lleva tráfico de modelos de
+   otros laboratorios (confirmado en vivo: filas de `gpt-5.4-mini`,
+   `gemini-3-flash-preview` y `DeepSeek-V3.2` junto a las de `gpt-5-mini` de
+   este laboratorio, en los últimos 14 días) — el diagnostic setting del
+   gateway compartido no permite enrutar por API (ver la propia nota de
+   `shared-apim-registration.bicep` sobre esto). Cuando ninguna de las 25
+   filas más recientes se puede atribuir a una pregunta conocida, la ruta cae
+   en la fila más reciente sin importar su procedencia, y la consola muestra
+   su prompt y su respuesta completos — solo la etiqueta "no atribuido" lo
+   distingue, bajo un `subscriptionName` fijo a
+   `"hosted-agents-subscription"` sin importar qué fila se mostró en
+   realidad. Un vecino con mucho tráfico en el gateway compartido podría
+   poner la conversación real de otro equipo en el panel de auditoría de esta
+   consola.
+
+Ninguno de los dos está arreglado todavía — el presentador está decidiendo el
+alcance de cada uno.
 ## 5. Arquitectura actual
 
 ```

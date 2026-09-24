@@ -454,8 +454,18 @@ redeployed. Verified against the public site, not locally:
   log after 156 s and 251 s. Captures in
   `demo-app/captures/gateway-timing-production/`.
 
-**The two follow-ups, fixed afterwards and verified locally against the live
-deployment — not deployed yet:**
+**The two follow-ups, fixed afterwards, verified locally first, then deployed
+2026-09-24 (same command, same App Service) and verified against the public
+site:** `/api/health` 200; served bundle fingerprint `index-CfBbXRPW.js` /
+`index-CJMEM6Es.css` matching the build; `/api/observability` forced to 502 in
+a real browser against the live site — record kept with the stale notice,
+tab switch mid-outage kept it, badge read "delayed 1m" after ~45 s, recovered
+cleared it, a new question during the outage showed the calm error rather
+than the old record; and the correlation text seen in Spanish
+(`trace-id-log-pending` → `trace-id-log-landed`) and in English after
+switching Settings → Language. Captures in
+`demo-app/captures/observability-stale-production/` and
+`demo-app/captures/correlation-text-production/`.
 
 - `805df22` — a failed Observability poll no longer empties the screen. It
   keeps the last good reading with a calm notice of when it was read and how
@@ -469,6 +479,56 @@ deployment — not deployed yet:**
   real invocations, in Spanish and after switching to English; captures in
   `demo-app/captures/correlation-text/`.
 
+## 4j. Incident: a teammate's Foundry agent took production down — the risk class it revealed (2026-09-24)
+
+**Symptom.** Minutes after deploying `1efb402`, `GET /api/agents` answered
+502 in production: `"Cannot read properties of undefined (reading 'image')"`.
+The agent list, and Agents → Run with it, were down.
+
+**Cause.** The Foundry agent project (`default-foundry-agents`) is shared
+with the Azure AI Foundry portal, not exclusive to this console. At 15:22 UTC
+that day someone created an agent named "Prueba" there, of kind `prompt` —
+no container, no image, no cpu. `fetchFoundryAgents()` read every agent
+Foundry returned and every projection in the broker assumed
+`container_configuration.image` existed; the one non-hosted agent broke the
+whole list. Not caused by `1efb402` — a pre-existing assumption, exposed by
+someone else's unrelated action in a resource this console does not own.
+
+**Fix — `5000e6c`.** `fetchFoundryAgents()` keeps only `definition.kind ===
+"hosted"`, at the one place the registry is read, rather than guarding the
+field downstream. Verified locally against the live project: `/api/agents`
+200 with only the three real agents; invoking "Prueba" through the console
+answers 404 "not registered". Deployed the same day (see 4i) and confirmed
+on the public site.
+
+**Follow-up — audited for the same risk class elsewhere.** The Foundry
+project and the shared APIM gateway's Log Analytics workspace are both
+resources other teams write to, so the broker cannot assume it is the only
+writer. A full pass over the broker (`broker/src/**`) for unfiltered reads of
+either found two more instances, reported to the presenter before any fix:
+
+1. `routes/maintenance.ts`'s "Refresh Agent Registry" action makes its own
+   raw `GET /agents` call instead of reusing `fetchFoundryAgents()`, so it
+   does not benefit from the `kind` filter above. Verified against the live
+   project that "Prueba" would not crash it today (its `version` field is
+   present) but would appear in the maintenance readout beside the real
+   agents — the same unfiltered-registry assumption, independently.
+2. `routes/auditRecord.ts` queries `ApiManagementGatewayLlmLog` with
+   `take 25` and no API or agent filter. That table, in this deployment's own
+   Log Analytics workspace, already carries other labs' model traffic
+   (confirmed live: `gpt-5.4-mini`, `gemini-3-flash-preview`,
+   `DeepSeek-V3.2` rows alongside this lab's `gpt-5-mini`, over the last 14
+   days) — the shared-gateway diagnostic setting has no per-API routing (see
+   `shared-apim-registration.bicep`'s own note on this). When none of the 25
+   most recent rows can be attributed to a known ask, the route falls back to
+   the newest row regardless of origin, and the console renders its prompt
+   and completion in full — only the "not attributed" label distinguishes it,
+   under a `subscriptionName` that is hard-coded to
+   `"hosted-agents-subscription"` regardless of which row was actually shown.
+   A busy neighbor on the shared gateway could put another team's real
+   conversation on this console's audit panel.
+
+Neither is fixed yet — the presenter is deciding scope for each.
 ## 5. Current architecture
 
 ```
